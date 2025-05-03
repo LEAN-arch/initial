@@ -10,17 +10,19 @@ import datetime
 import logging
 import uuid
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Set page configuration
+# Set page configuration as the first Streamlit command
 try:
     st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
 except Exception as e:
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
     logger.error(f"Error setting page config: {str(e)}")
     st.error("Failed to initialize the application. Please refresh the page.")
     st.stop()
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Custom CSS
 st.markdown("""
