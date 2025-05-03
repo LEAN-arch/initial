@@ -14,6 +14,14 @@ import uuid
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Set page configuration
+try:
+    st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
+except Exception as e:
+    logger.error(f"Error setting page config: {str(e)}")
+    st.error("Failed to initialize the application. Please refresh the page.")
+    st.stop()
+
 # Custom CSS
 st.markdown("""
     <style>
@@ -26,14 +34,6 @@ st.markdown("""
         .error { color: #e74c3c; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
-
-# Set page configuration
-try:
-    st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
-except Exception as e:
-    logger.error(f"Error setting page config: {str(e)}")
-    st.error("Failed to initialize the application. Please refresh the page.")
-    st.stop()
 
 # Cache questions data
 @st.cache_data
