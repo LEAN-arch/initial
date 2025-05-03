@@ -323,6 +323,8 @@ try:
             # Display results
             st.subheader("Audit Results" if st.session_state.lang == "English" else "Resultados de la Auditoría")
             st.dataframe(df.style.format({"Score": "{:.0f}", "Percent": "{:.1f}%"}))
+            st.subheader("Detailed Results" if st.session_state.lang == "English" else "Resultados Detallados")
+            st.dataframe(df_detailed)
             
             # Interactive Visualization
             try:
@@ -372,7 +374,12 @@ try:
             # Export to CSV
             try:
                 csv_buffer = io.StringIO()
+                csv_buffer.write(f"Ethical Lean Audit Report\n")
+                csv_buffer.write(f"Date: {st.session_state.audit_timestamp}\n\n")
+                csv_buffer.write("Summary\n")
                 df.to_csv(csv_buffer, index=False)
+                csv_buffer.write("\nDetailed Results\n")
+                df_detailed.to_csv(csv_buffer, index=False)
                 csv_data = csv_buffer.getvalue()
                 b64_csv = base64.b64encode(csv_data.encode()).decode()
                 csv_href = (
@@ -381,6 +388,7 @@ try:
                     f'{"Download CSV Report" if st.session_state.lang == "English" else "Descargar Informe CSV"}</a>'
                 )
                 st.markdown(csv_href, unsafe_allow_html=True)
+                st.info("PDF export is not available in this environment. Please use the CSV report for detailed results.")
             except Exception as e:
                 logger.error(f"Error generating CSV: {str(e)}")
                 st.error(f"Error generating CSV: {str(e)}")
