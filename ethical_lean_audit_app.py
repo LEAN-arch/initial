@@ -1,327 +1,130 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-from reportlab.lib.styles import getSampleStyleSheet
-import base64
-import io
-import datetime
-import logging
+from io import BytesIO
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+st.set_page_config(page_title="Ethical Lean Audit", layout="wide")
 
-# Custom CSS
+# CSS for styling the Streamlit app
 st.markdown("""
-    <style>
-        .header { font-size: 2.5em; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 20px; }
-        .subheader { font-size: 1.8em; font-weight: bold; color: #34495e; margin-top: 20px; }
-        .success { color: #27ae60; font-weight: bold; margin-top: 10px; }
-        .stButton>button { width: 100%; border-radius: 5px; padding: 10px; }
-        .stRadio>div { flex-direction: row; gap: 10px; }
-        .dashboard-box { background-color: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-        .error { color: #e74c3c; font-weight: bold; }
-    </style>
+<style>
+    .main {background-color: #f9f9f9;}
+    .block-container {padding-top: 2rem;}
+    h1, h2, h3, h4 {color: #2c3e50;}
+    .stRadio > div {flex-direction: row;}
+</style>
 """, unsafe_allow_html=True)
 
-# Set page configuration
-st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
+# Language selection
+language = st.selectbox("Select Language", ["English", "Español"])
 
-# Questions data (static, no caching needed)
-QUESTIONS = {
-    "Human-Centered Employee Experience": {
+# Define sections and questions in both languages
+audit_sections = {
+    "Respect for People": {
         "English": [
-            "Do employees feel their work contributes meaningfully to both organizational success and personal growth?",
-            "Are leaders evaluated on both business results AND their ability to create positive work environments?",
-            "When process improvements are made, is employee well-being given equal weight to efficiency gains?",
-            "Do employees at all levels have genuine input in decisions that affect their daily work?",
-            "Is psychological safety actively cultivated?"
+            "Are employees engaged in designing solutions that directly affect their work?",
+            "Is there a formal program for upskilling and cross-training employees to ensure they are equipped for evolving roles?",
+            "Do employees have clear career advancement pathways within the Lean system?",
+            "Is there a recognition system for employees who contribute to continuous improvement?"
         ],
         "Español": [
-            "¿Sienten los empleados que su trabajo contribuye significativamente al éxito organizacional y su crecimiento personal?",
-            "¿Se evalúa a los líderes tanto por resultados comerciales COMO por crear entornos de trabajo positivos?",
-            "En mejoras de procesos, ¿se considera igual el bienestar del empleado que las ganancias de eficiencia?",
-            "¿Tienen empleados de todos niveles participación genuina en decisiones que afectan su trabajo diario?",
-            "¿Se cultiva activamente la seguridad psicológica?"
+            "¿Están los empleados involucrados en diseñar soluciones que afectan directamente a su trabajo?",
+            "¿Existe un programa formal para mejorar y capacitar a los empleados para que estén preparados para roles cambiantes?",
+            "¿Los empleados tienen caminos claros de desarrollo profesional dentro del sistema Lean?",
+            "¿Existe un sistema de reconocimiento para los empleados que contribuyen a la mejora continua?"
         ]
     },
-    "Ethical Process Improvement": {
+    "Operational Integrity": {
         "English": [
-            "When eliminating waste, does the organization consider human impacts alongside productivity?",
-            "Are process changes evaluated for potential negative consequences before implementation?",
-            "Do continuous improvement initiatives explicitly include ethical considerations?",
-            "When automating, is equal attention given to retraining affected employees?",
-            "Are metrics balanced between efficiency and human impact?"
+            "Are Lean processes continuously evaluated for compliance with industry best practices and regulations?",
+            "Is waste reduction and process optimization directly linked to customer satisfaction?",
+            "Is there a framework for continuously identifying and mitigating bottlenecks in production or service delivery?",
+            "Are digital tools and automation incorporated into Lean to enhance data-driven decision-making?"
         ],
         "Español": [
-            "Al eliminar desperdicios, ¿se consideran impactos humanos junto con productividad?",
-            "¿Se evalúan cambios en procesos por posibles consecuencias negativas antes de implementar?",
-            "¿Las iniciativas de mejora continua incluyen explícitamente consideraciones éticas?",
-            "Al automatizar, ¿se presta igual atención a recapacitar empleados afectados?",
-            "¿Las métricas equilibran eficiencia e impacto humano?"
+            "¿Los procesos Lean se evalúan continuamente para cumplir con las mejores prácticas y regulaciones de la industria?",
+            "¿La reducción de desperdicios y la optimización de procesos están directamente relacionados con la satisfacción del cliente?",
+            "¿Existe un marco para identificar y mitigar continuamente los cuellos de botella en la producción o entrega de servicios?",
+            "¿Se incorporan herramientas digitales y automatización en Lean para mejorar la toma de decisiones basada en datos?"
         ]
     },
-    "Value Creation for All Stakeholders": {
-        "English": [
-            "Does your organization measure success by value created for ALL stakeholders?",
-            "Are customer needs balanced with employee capabilities when designing processes?",
-            "When cutting costs, does leadership consider long-term human and social impacts?",
-            "Do process improvements create mutual benefit for employees and customers?",
-            "Is community/societal impact considered in operational decisions?"
-        ],
-        "Español": [
-            "¿Su organización mide el éxito por valor creado para TODOS los interesados?",
-            "¿Necesidades del cliente se equilibran con capacidades de empleados al diseñar procesos?",
-            "Al reducir costos, ¿se consideran impactos humanos y sociales a largo plazo?",
-            "¿Las mejoras de procesos crean beneficio mutuo para empleados y clientes?",
-            "¿Se considera impacto comunitario/social en decisiones operativas?"
-        ]
-    }
+    # Add other sections in similar format
 }
 
-# Likert scale labels
-LABELS = {
-    "English": ["Not Practiced", "Rarely Practiced", "Partially Implemented", "Mostly Practiced", "Fully Integrated"],
-    "Español": ["No practicado", "Raramente practicado", "Parcialmente implementado", "Mayormente practicado", "Totalmente integrado"]
-}
+results = {}
+st.title(f"Ethical Lean Audit Checklist - {language}")
 
-# Centralized error handler
-def handle_error(message, error):
-    logger.error(f"{message}: {str(error)}")
-    st.error(f"{message}. Please try again.")
+st.write("### Step 1: Answer the Questions")
 
-# Initialize session state
-def init_session_state():
-    defaults = {
-        'responses': {cat: [0] * len(QUESTIONS[cat]["English"]) for cat in QUESTIONS},
-        'current_category': 0,
-        'completed_categories': set(),
-        'lang': 'English',
-        'audit_timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-    for key, value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
+with st.form("audit_form"):
+    for section, questions in audit_sections.items():
+        st.subheader(section)
+        for i, q in enumerate(questions[language]):
+            response = st.radio(q, ["Yes", "No"], key=f"{section}_{i}")
+            results[q] = 1 if response == "Yes" else 0
+    submitted = st.form_submit_button("Generate Report")
 
-# Render sidebar
-def render_sidebar(categories):
-    st.sidebar.subheader("Progress" if st.session_state.lang == "English" else "Progreso")
-    st.session_state.lang = st.sidebar.selectbox(
-        "Language / Idioma",
-        ["English", "Español"],
-        key="lang_select"
-    )
-    st.session_state.current_category = st.sidebar.slider(
-        "Select Category / Seleccionar Categoría",
-        0, len(categories) - 1,
-        st.session_state.current_category,
-        key="category_slider"
-    )
-    if st.sidebar.button("Reset Session" if st.session_state.lang == "English" else "Restablecer Sesión", key="reset_session"):
-        st.session_state.clear()
-        init_session_state()
-        st.rerun()
+# Once form is submitted, generate results
+if submitted:
+    st.markdown("---")
+    st.header("Step 2: Audit Results & Summary")
+    section_scores = {}
+    for section, questions in audit_sections.items():
+        score = sum([results[q] for q in questions[language]])
+        section_scores[section] = score
 
-# Render dashboard
-def render_dashboard(categories):
-    st.markdown('<div class="dashboard-box">', unsafe_allow_html=True)
-    st.subheader("Progress Overview" if st.session_state.lang == "English" else "Resumen de Progreso")
-    completed_count = len(st.session_state.completed_categories)
-    total_categories = len(categories)
-    st.write(f"{'Completed:' if st.session_state.lang == 'English' else 'Completado:'} {completed_count}/{total_categories} "
-             f"({(completed_count / total_categories) * 100:.1f}%)")
-    if st.session_state.completed_categories:
-        st.write(f"{'Completed Categories:' if st.session_state.lang == 'English' else 'Categorías Completadas:'} "
-                 f"{', '.join(st.session_state.completed_categories)}")
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.progress(int(min((st.session_state.current_category / len(categories)) * 100, 100.0)))
+    df = pd.DataFrame.from_dict(section_scores, orient='index', columns=['Score'])
+    df["Max Score"] = 4
+    df["Percentage"] = (df["Score"] / df["Max Score"] * 100).round(1)
+    st.dataframe(df.style.format({"Percentage": "{:.1f}%"}))
 
-# Render survey
-def render_survey(category, questions):
-    st.markdown(f'<div class="subheader">{category}</div>', unsafe_allow_html=True)
-    current_scores = st.session_state.responses.get(category, [0] * len(questions[category][st.session_state.lang]))
-    
-    for idx, q in enumerate(questions[category][st.session_state.lang]):
-        score = st.radio(
-            q,
-            options=list(range(1, 6)),
-            format_func=lambda x: f"{x} - {LABELS[st.session_state.lang][x - 1]}",
-            key=f"{category}_{idx}",
-            horizontal=True,
-            index=None if current_scores[idx] == 0 else current_scores[idx] - 1
-        )
-        st.session_state.responses[category][idx] = int(score or 0)
-    
-    score_sum = sum(st.session_state.responses[category])
-    max_score = len(questions[category][st.session_state.lang]) * 5
-    score_percent = (score_sum / max_score * 100) if max_score > 0 else 0  # Corrected line
-    st.write(f"{'Current Category Score:' if st.session_state.lang == 'English' else 'Puntuación Actual:'} "
-             f"{score_sum}/{max_score} ({score_percent:.1f}%)")
-    
-    if all(1 <= score <= 5 for score in st.session_state.responses[category]):
-        st.session_state.completed_categories.add(category)
-        st.markdown(f'<div class="success">{"Category completed!" if st.session_state.lang == "English" else "¡Categoría completada!"}</div>',
-                    unsafe_allow_html=True)
+    total_score = df["Score"].sum()
+    st.metric("Total Ethical Lean Score", f"{total_score} / 20")
 
-# Render navigation
-def render_navigation(categories):
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Previous Category" if st.session_state.lang == "English" else "Categoría Anterior",
-                     disabled=st.session_state.current_category == 0, key="prev_button"):
-            st.session_state.current_category -= 1
-            st.rerun()
-    with col2:
-        if st.button("Next Category" if st.session_state.lang == "English" else "Siguiente Categoría",
-                     disabled=st.session_state.current_category == len(categories) - 1, key="next_button"):
-            st.session_state.current_category += 1
-            st.rerun()
+    # Generate analytics and charts
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.barplot(x=df.index, y="Percentage", data=df, palette="viridis", ax=ax)
+    ax.set_title("Audit Section Performance")
+    ax.set_ylabel("Percentage")
+    st.pyplot(fig)
 
-# Generate report
-def generate_report(categories, questions):
-    if st.button("Generate Report" if st.session_state.lang == "English" else "Generar Informe", key="generate_report"):
-        incomplete_categories = [
-            cat for cat in categories
-            if not all(1 <= score <= 5 for score in st.session_state.responses.get(cat, []))
-        ]
-        if incomplete_categories:
-            st.error(f"{'Please complete all questions for:' if st.session_state.lang == 'English' else 'Por favor complete todas las preguntas para:'} "
-                     f"{', '.join(incomplete_categories)}")
-            return
-        
-        results = []
-        detailed_results = []
-        for cat in categories:
-            scores = st.session_state.responses.get(cat, [])
-            if not scores:
-                continue
-            total = sum(scores)
-            percent = (total / (len(scores) * 5)) * 100
-            results.append({"Category": cat, "Score": total, "Percent": percent})
-            for idx, (score, question) in enumerate(zip(scores, questions[cat][st.session_state.lang])):
-                detailed_results.append({
-                    "Category": cat,
-                    "Question": question,
-                    "Score": score,
-                    "Rating": LABELS[st.session_state.lang][score - 1]
-                })
-        
-        df = pd.DataFrame(results)
-        df_detailed = pd.DataFrame(detailed_results)
-        
-        st.subheader("Audit Results" if st.session_state.lang == "English" else "Resultados de la Auditoría")
-        st.dataframe(df.style.format({"Score": "{:.0f}", "Percent": "{:.1f}%"}))
-        
-        # Bar chart
-        fig = px.bar(
-            df,
-            x="Percent",
-            y="Category",
-            color="Percent",
-            color_continuous_scale="RdYlGn",
-            title="Audit Results" if st.session_state.lang == "English" else "Resultados de la Auditoría",
-            labels={"Percent": "Percentage" if st.session_state.lang == "English" else "Porcentaje",
-                    "Category": "Category" if st.session_state.lang == "English" else "Categoría"}
-        )
-        fig.update_layout(showlegend=False, height=400, margin=dict(l=20, r=20, t=50, b=20))
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Radar chart
-        radar_data = []
-        for cat in categories:
-            scores = st.session_state.responses.get(cat, [])
-            if not scores:
-                continue
-            radar_data.append(
-                go.Scatterpolar(
-                    r=scores,
-                    theta=[q[:30] + "..." for q in questions[cat][st.session_state.lang]],
-                    fill='toself',
-                    name=cat
-                )
-            )
-        radar_fig = go.Figure(
-            data=radar_data,
-            layout=go.Layout(
-                polar=dict(radialaxis=dict(visible=True, range=[0, 5])),
-                showlegend=True,
-                title="Detailed Category Scores" if st.session_state.lang == "English" else "Puntuaciones Detalladas por Categoría"
-            )
-        )
-        st.plotly_chart(radar_fig, use_container_width=True)
-        
-        # CSV export
-        csv_buffer = io.StringIO()
-        df.to_csv(csv_buffer, index=False)
-        st.download_button(
-            label="Download CSV Report" if st.session_state.lang == "English" else "Descargar Informe CSV",
-            data=csv_buffer.getvalue(),
-            file_name="ethical_lean_audit_results.csv",
-            mime="text/csv"
-        )
-        
-        # PDF export
-        pdf_buffer = io.BytesIO()
-        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
-        elements = []
-        styles = getSampleStyleSheet()
-        
-        elements.append(Paragraph(
-            "Ethical Lean Audit Report" if st.session_state.lang == "English" else "Informe de Auditoría Lean Ética",
-            styles['Title']
-        ))
-        elements.append(Paragraph(f"Date: {st.session_state.audit_timestamp}", styles['Normal']))
-        
-        elements.append(Paragraph("Summary" if st.session_state.lang == "English" else "Resumen", styles['Heading2']))
-        summary_data = [["Category", "Score", "Percent"]] + [
-            [row['Category'], f"{row['Score']}/{len(questions[row['Category']][st.session_state.lang]) * 5}", f"{row['Percent']:.1f}%"]
-            for _, row in df.iterrows()
-        ]
-        summary_table = Table(summary_data)
-        summary_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        elements.append(summary_table)
-        
-        elements.append(Paragraph("Detailed Results" if st.session_state.lang == "English" else "Resultados Detallados", styles['Heading2']))
-        for _, row in df_detailed.iterrows():
-            elements.append(Paragraph(f"[{row['Category']}] {row['Question']}: {row['Rating']} (Score: {row['Score']})", styles['Normal']))
-        
-        doc.build(elements)
-        st.download_button(
-            label="Download PDF Report" if st.session_state.lang == "English" else "Descargar Informe PDF",
-            data=pdf_buffer.getvalue(),
-            file_name="ethical_lean_audit.pdf",
-            mime="application/pdf"
-        )
+    # Generate a pie chart of the overall performance
+    fig2, ax2 = plt.subplots(figsize=(6, 6))
+    ax2.pie([total_score, 20 - total_score], labels=["Score", "Remaining"], autopct='%1.1f%%', startangle=90, colors=["#4CAF50", "#FFC107"])
+    ax2.axis('equal')
+    ax2.set_title("Overall Score Distribution")
+    st.pyplot(fig2)
 
-# Main function
-def main():
-    try:
-        init_session_state()
-        categories = list(QUESTIONS.keys())
-        
-        st.markdown('<div class="header">Ethical Lean Audit</div>' if st.session_state.lang == "English" else
-                    '<div class="header">Auditoría Lean Ética</div>', unsafe_allow_html=True)
-        
-        render_sidebar(categories)
-        render_dashboard(categories)
-        render_survey(categories[st.session_state.current_category], QUESTIONS)
-        render_navigation(categories)
-        generate_report(categories, QUESTIONS)
-        
-    except Exception as e:
-        handle_error("Error running the application", e)
+    # Excel export
+    def to_excel(dataframe):
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            dataframe.to_excel(writer, sheet_name='Audit Summary')
+            
+            # Adding charts to Excel
+            workbook = writer.book
+            worksheet = workbook.get_worksheet_by_name('Audit Summary')
+            chart = workbook.add_chart({'type': 'column'})
+            chart.add_series({'values': f"=Audit Summary!$C$2:$C${len(df) + 1}"})
+            worksheet.insert_chart('F2', chart)
+            # Pie chart as image
+            img_path = "/tmp/overall_score_pie_chart.png"
+            fig2.savefig(img_path)
+            worksheet.insert_image('G2', img_path)
+            
+        output.seek(0)
+        return output
 
-if __name__ == "__main__":
-    main()
+    excel_file = to_excel(df)
+    st.download_button("Download Excel Report", excel_file, "Ethical_Lean_Audit_Report_with_Analytics.xlsx")
+
+    # Actionable recommendations based on scores
+    st.markdown("### Actionable Insights")
+
+    if total_score <= 10:
+        st.write("**Recommendation:** You are on the right track, but there are areas for improvement. Focus on increasing employee engagement and aligning your Lean processes with customer satisfaction. Consider improving workforce autonomy and adopting more transparent metrics.")
+    elif total_score <= 15:
+        st.write("**Recommendation:** You're doing well, but there are still opportunities to strengthen ethical Lean practices. Continue to refine your approach to cross-functional collaboration and streamline processes for improved customer satisfaction.")
+    else:
+        st.write("**Recommendation:** Excellent alignment with Lean 2.0 principles. To scale further, focus on expanding your innovation and feedback loops, and ensure that incentives align with long-term organizational goals.")
