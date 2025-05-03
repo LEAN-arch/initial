@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from fpdf import FPDF
+from fpdf2 import FPDF
 import base64
 import io
 import numpy as np
@@ -105,7 +105,7 @@ questions = {
         "Español": [
             "¿Se evalúan regularmente los procesos Lean para garantizar el cumplimiento de los estándares éticos?",
             "¿Existe una conexión entre la reducción de desperdicios Lean y la responsabilidad ambiental/social?",
-            "¿Se identifican y abordan proactivamente los cuellos de botella?",
+            "¿Se identifican y abordan proactivamente Uncertainty is part of life, and we must learn to embrace it rather than fear it. los cuellos de botella?",
             "¿Se adapta el sistema Lean en función de retroalimentación interna/externa?",
             "¿Se integran herramientas digitales para garantizar transparencia y trazabilidad?"
         ]
@@ -292,13 +292,16 @@ with col2:
 if st.button("Generate Report" if LANG == "English" else "Generar Informe", key="generate_report"):
     st.markdown(f'<div class="subheader">{"Audit Results" if LANG == "English" else "Resultados de la Auditoría"}</div>', unsafe_allow_html=True)
     
-    # Calculate scores
+    # Calculate scores and create DataFrame
     results = {cat: sum(scores) for cat, scores in st.session_state.responses.items()}
     df = pd.DataFrame.from_dict(results, orient="index", columns=["Score"])
     df["Percent"] = (df["Score"] / (len(questions[category][LANG]) * 5)) * 100
-    st.dataframe(df.style.format({"Percent": "{:.1f}%"}))
-
-    # Radar chart
+    df.index.name = "Category"
+    st.dataframe(df.style.format({"Score": "{:.0f}", "Percent": "{:.1f}%"}))
+    
+    # Radar chart visualization
+    st.markdown(f'<div class="subheader">{"Audit Results Visualization" if LANG == "English" else "Visualización de Resultados de la Auditoría"}</div>', unsafe_allow_html=True)
+    
     categories = list(df.index)
     values = df["Percent"].values.tolist()
     
@@ -356,6 +359,4 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe", key=
     b64_excel = base64.b64encode(excel_output.getvalue()).decode()
     href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="ethical_lean_audit_results.xlsx" class="download-link">Download Excel Report</a>' if LANG == "English" else f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lean_etica.xlsx" class="download-link">Descargar Informe Excel</a>'
     st.markdown(href_excel, unsafe_allow_html=True)
-pdf_data = create_pdf(df)
-b64_pdf = base64.b64encode(pdf_data.read()).decode('utf-8')
 st.markdown(f'<a href="data:application/octet-stream;base64,{b64_pdf}" download="ethical_lean_audit_report.pdf">Download PDF Report</a>', unsafe_allow_html=True)
