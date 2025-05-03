@@ -1,6 +1,6 @@
-streamlit==1.31.0
-pandas==2.2.0
-matplotlib==3.8.2
-fpdf==1.7.2
-numpy==1.26.3
-xlsxwriter==3.1.9
+streamlit==1.28.0 
+pandas==2.1.4 
+matplotlib==3.8.0 
+fpdf2==2.7.5 
+numpy==1.26.0 
+xlsxwriter==3.1.2
