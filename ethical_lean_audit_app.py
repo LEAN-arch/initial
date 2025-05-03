@@ -1,20 +1,23 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-from fpdf import FPDF
+import plotly.express as px
+import plotly.graph_objects as go
+from fpdf2 import FPDF
 import base64
 import io
 import numpy as np
 import seaborn as sns
+import datetime
 
-# Custom CSS for better visual appeal
+# Custom CSS for enhanced visual appeal
 st.markdown("""
     <style>
         .header { font-size: 2.5em; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 20px; }
         .subheader { font-size: 1.8em; font-weight: bold; color: #34495e; margin-top: 20px; }
         .success { color: #27ae60; font-weight: bold; margin-top: 10px; }
-        .stButton>button { width: 100%; }
-        .stRadio>div { flex-direction: row; }
+        .stButton>button { width: 100%; border-radius: 5px; padding: 10px; }
+        .stRadio>div { flex-direction: row; gap: 10px; }
+        .dashboard-box { background-color: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -27,7 +30,8 @@ def init_session_state():
         'responses': {cat: [0]*len(questions[cat]["English"]) for cat in questions},
         'current_category': 0,
         'completed_categories': set(),
-        'lang': 'English'
+        'lang': 'English',
+        'audit_timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -129,6 +133,22 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Dashboard for completed categories
+st.markdown('<div class="dashboard-box">', unsafe_allow_html=True)
+st.subheader("Progress Overview" if LANG == "English" else "Resumen de Progreso")
+completed_count = len(st.session_state.completed_categories)
+total_categories = len(questions)
+st.write(
+    f"{'Completed:' if LANG == 'English' else 'Completado:'} {completed_count}/{total_categories} "
+    f"({(completed_count/total_categories)*100:.1f}%)"
+)
+if st.session_state.completed_categories:
+    st.write(
+        f"{'Completed Categories:' if LANG == 'English' else 'Categorías Completadas:'} "
+        f"{', '.join(st.session_state.completed_categories)}"
+    )
+st.markdown('</div>', unsafe_allow_html=True)
+
 # Progress tracking
 categories = list(questions.keys())
 progress = min((st.session_state.current_category / len(categories)) * 100, 100.0)
@@ -211,6 +231,7 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe", key=
     else:
         # Prepare results data
         results = []
+        detailed_results = []
         for cat in categories:
             scores = st.session_state.responses[cat]
             total = sum(scores)
@@ -220,27 +241,76 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe", key=
                 "Score": total,
                 "Percent": percent
             })
+            for idx, (score, question) in enumerate(zip(scores, questions[cat][LANG])):
+                detailed_results.append({
+                    "Category": cat,
+                    "Question": question,
+                    "Score": score,
+                    "Rating": labels[LANG][score-1]
+                })
         
         df = pd.DataFrame(results)
+        df_detailed = pd.DataFrame(detailed_results)
         
         # Display results
         st.subheader("Audit Results" if LANG == "English" else "Resultados de la Auditoría")
         st.dataframe(df.style.format({"Score": "{:.0f}", "Percent": "{:.1f}%"}))
         
-        # Visualization
+        # Interactive Visualization
         try:
-            fig, ax = plt.subplots(figsize=(10, 6))
-            sns.barplot(data=df, x="Percent", y="Category", palette="coolwarm")
-            plt.title("Audit Results" if LANG == "English" else "Resultados de la Auditoría")
-            plt.xlabel("Percentage" if LANG == "English" else "Porcentaje")
-            plt.ylabel("Category" if LANG == "English" else "Categoría")
-            plt.tight_layout()
-            st.pyplot(fig)
-            plt.close(fig)
+            fig = px.bar(
+                df,
+                x="Percent",
+                y="Category",
+                color="Percent",
+                color_continuous_scale="RdYlGn",
+                title="Audit Results" if LANG == "English" else "Resultados de la Auditoría",
+                labels={"Percent": "Percentage" if LANG == "English" else "Porcentaje", "Category": "Category" if LANG == "English" else "Categoría"}
+            )
+            fig.update_layout(
+                showlegend=False,
+                height=400,
+                margin=dict(l=20, r=20, t=50, b=20)
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Detailed radar chart
+            radar_data = []
+            for cat in categories:
+                scores = st.session_state.responses[cat]
+                radar_data.append(
+                    go.Scatterpolar(
+                        r=scores,
+                        theta=[q[:30] + "..." for q in questions[cat][LANG]],
+                        fill='toself',
+                        name=cat
+                    )
+                )
+            radar_fig = go.Figure(
+                data=radar_data,
+                layout=go.Layout(
+                    polar=dict(radialaxis=dict(visible=True, range=[0, 5])),
+                    showlegend=True,
+                    title="Detailed Category Scores" if LANG == "English" else "Puntuaciones Detalladas por Categoría"
+                )
+            )
+            st.plotly_chart(radar_fig, use_container_width=True)
         except Exception as e:
-            st.error(f"Error generating visualization: {str(e)}")
+            st.error(f"Error generating visualizations: {str(e)}")
         
-        # PDF Report
+        # Export to CSV
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
+        csv_data = csv_buffer.getvalue()
+        b64_csv = base64.b64encode(csv_data.encode()).decode()
+        csv_href = (
+            f'<a href="data:text/csv;base64,{b64_csv}" '
+            f'download="ethical_lean_audit_results.csv">'
+            f'{"Download CSV Report" if LANG == "English" else "Descargar Informe CSV"}</a>'
+        )
+        st.markdown(csv_href, unsafe_allow_html=True)
+        
+        # Enhanced PDF Report
         try:
             pdf = FPDF()
             pdf.add_page()
@@ -250,11 +320,23 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe", key=
                 "Ethical Lean Audit Report" if LANG == "English" else "Informe de Auditoría Lean Ética",
                 0, 1, "C"
             )
+            pdf.set_font("Arial", "", 12)
+            pdf.cell(0, 10, f"Date: {st.session_state.audit_timestamp}", 0, 1)
             pdf.ln(10)
             
+            pdf.set_font("Arial", "B", 14)
+            pdf.cell(0, 10, "Summary" if LANG == "English" else "Resumen", 0, 1)
             pdf.set_font("Arial", "", 12)
             for _, row in df.iterrows():
-                pdf.cell(0, 10, f"{row['Category']}: {row['Percent']:.1f}%", 0, 1)
+                pdf.cell(0, 8, f"{row['Category']}: {row['Score']}/{len(questions[row['Category']][LANG])*5} ({row['Percent']:.1f}%)", 0, 1)
+            
+            pdf.ln(10)
+            pdf.set_font("Arial", "B", 14)
+            pdf.cell(0, 10, "Detailed Results" if LANG == "English" else "Resultados Detallados", 0, 1)
+            pdf.set_font("Arial", "", 12)
+            for _, row in df_detailed.iterrows():
+                pdf.multi_cell(0, 8, f"[{row['Category']}] {row['Question']}: {row['Rating']} (Score: {row['Score']})")
+                pdf.ln(2)
             
             pdf_output = io.BytesIO()
             pdf.output(pdf_output)
