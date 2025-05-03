@@ -9,33 +9,45 @@ import seaborn as sns
 import datetime
 import logging
 import uuid
+import sys
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Check Streamlit runtime context
+try:
+    # Ensure Streamlit is running in a valid context
+    if not hasattr(st, 'script_run_context') or st.script_run_context.get_script_run_ctx() is None:
+        logger.error("Streamlit script run context is missing. Ensure the script is run with 'streamlit run ethical_lean_audit.py'.")
+        sys.exit("Application cannot start: Missing Streamlit runtime context. Run the script using 'streamlit run ethical_lean_audit.py'.")
+except Exception as e:
+    logger.error(f"Error checking Streamlit runtime context: {str(e)}")
+    sys.exit(f"Application cannot start: Failed to verify Streamlit runtime context. Error: {str(e)}")
 
 # Set page configuration as the first Streamlit command
 try:
     st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
 except Exception as e:
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
-    logger.error(f"Error setting page config: {str(e)}")
-    st.error("Failed to initialize the application. Please refresh the page.")
-    st.stop()
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+    logger.error(f"Failed to set page config: {str(e)}")
+    sys.exit(f"Application cannot start: Failed to initialize page configuration. Error: {str(e)}. Please ensure the script is run with 'streamlit run ethical_lean_audit.py' and check the environment.")
 
 # Custom CSS
-st.markdown("""
-    <style>
-        .header { font-size: 2.5em; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 20px; }
-        .subheader { font-size: 1.8em; font-weight: bold; color: #34495e; margin-top: 20px; }
-        .success { color: #27ae60; font-weight: bold; margin-top: 10px; }
-        .stButton>button { width: 100%; border-radius: 5px; padding: 10px; }
-        .stRadio>div { flex-direction: row; gap: 10px; }
-        .dashboard-box { background-color: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-        .error { color: #e74c3c; font-weight: bold; }
-    </style>
-""", unsafe_allow_html=True)
+try:
+    st.markdown("""
+        <style>
+            .header { font-size: 2.5em; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 20px; }
+            .subheader { font-size: 1.8em; font-weight: bold; color: #34495e; margin-top: 20px; }
+            .success { color: #27ae60; font-weight: bold; margin-top: 10px; }
+            .stButton>button { width: 100%; border-radius: 5px; padding: 10px; }
+            .stRadio>div { flex-direction: row; gap: 10px; }
+            .dashboard-box { background-color: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+            .error { color: #e74c3c; font-weight: bold; }
+        </style>
+    """, unsafe_allow_html=True)
+except Exception as e:
+    logger.error(f"Error applying custom CSS: {str(e)}")
+    st.error("Failed to apply custom styles. Continuing with default styling.")
 
 # Cache questions data
 @st.cache_data
