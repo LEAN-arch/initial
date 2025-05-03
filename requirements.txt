@@ -1,6 +1,7 @@
-streamlit
-pandas
-matplotlib
-fpdf
-xlsxwriter
-numpy
+seaborn 
+streamlit 
+fpdf2 
+pandas 
+openpyxl 
+matplotlib 
+plotly
