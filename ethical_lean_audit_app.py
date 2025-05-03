@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 st.markdown("""
     <style>
         .header { font-size: 2.5em; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 20px; }
-        .subheader { font-size: fading 1.8em; font-weight: bold; color: #34495e; margin-top: 20px; }
+        .subheader { font-size: 1.8em; font-weight: bold; color: #34495e; margin-top: 20px; }
         .success { color: #27ae60; font-weight: bold; margin-top: 10px; }
         .stButton>button { width: 100%; border-radius: 5px; padding: 10px; }
         .stRadio>div { flex-direction: row; gap: 10px; }
@@ -276,7 +276,7 @@ def generate_report(categories, questions):
         ))
         elements.append(Paragraph(f"Date: {st.session_state.audit_timestamp}", styles['Normal']))
         
-        elements.append(Paragraph("Summary" if st.st.session_state.lang == "English" else "Resumen", styles['Heading2']))
+        elements.append(Paragraph("Summary" if st.session_state.lang == "English" else "Resumen", styles['Heading2']))
         summary_data = [["Category", "Score", "Percent"]] + [
             [row['Category'], f"{row['Score']}/{len(questions[row['Category']][st.session_state.lang]) * 5}", f"{row['Percent']:.1f}%"]
             for _, row in df.iterrows()
