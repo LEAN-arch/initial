@@ -1,12 +1,7 @@
-from flask import Flask, render_template, request, send_file
 import pandas as pd
-import json
 import io
-import base64
 import datetime
-from collections import defaultdict
-
-app = Flask(__name__)
+import sys
 
 # Questions data
 questions = {
@@ -32,43 +27,73 @@ questions = {
     }
 }
 
-# Store responses in memory
-responses = defaultdict(lambda: [0] * 2)
-completed_categories = set()
-current_category = 0
-lang = "English"
-timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+# Likert scale labels
+labels = {
+    "English": ["Not Practiced", "Rarely", "Partially", "Mostly", "Fully"],
+    "Español": ["No practicado", "Raramente", "Parcialmente", "Mayormente", "Totalmente"]
+}
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    global responses, completed_categories, current_category, lang
+def main():
     categories = list(questions.keys())
-    
-    if request.method == "POST":
-        action = request.form.get("action")
-        if action == "submit":
-            category = request.form.get("category")
-            scores = [int(request.form.get(f"q{idx}", 0)) for idx in range(len(questions[category][lang]))]
-            responses[category] = scores
-            if all(1 <= score <= 5 for score in scores):
-                completed_categories.add(category)
-        elif action == "next":
-            current_category = min(current_category + 1, len(categories) - 1)
-        elif action == "prev":
-            current_category = max(current_category - 1, 0)
-        elif action == "lang":
-            lang = request.form.get("lang", "English")
-        elif action == "reset":
-            responses.clear()
+    responses = {cat: [0, 0] for cat in categories}
+    completed_categories = set()
+    lang = input("Select language (English/Español): ").strip().capitalize()
+    if lang not in ["English", "Español"]:
+        lang = "English"
+    current_category = 0
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    while True:
+        category = categories[current_category]
+        print(f"\n=== {category} ===")
+        scores = responses[category]
+        for idx, q in enumerate(questions[category][lang]):
+            print(f"\n{q}")
+            print("Rate 1-5 (1: {}, 5: {}):".format(labels[lang][0], labels[lang][4]))
+            while True:
+                try:
+                    score = int(input("Enter score (1-5, 0 to skip): "))
+                    if score == 0:
+                        break
+                    if 1 <= score <= 5:
+                        scores[idx] = score
+                        break
+                    print("Invalid score. Enter 1-5 or 0 to skip.")
+                except ValueError:
+                    print("Invalid input. Enter a number 1-5 or 0 to skip.")
+
+        if all(1 <= score <= 5 for score in scores):
+            completed_categories.add(category)
+
+        score_sum = sum(scores)
+        max_score = len(questions[category][lang]) * 5
+        score_percent = (score_sum / max_score) * 100 if max_score > 0 else 0
+        print(f"\nScore: {score_sum}/{max_score} ({score_percent:.1f}%)")
+        if category in completed_categories:
+            print(f"{'Category completed!' if lang == 'English' else '¡Categoría completada!'}")
+        print(f"Progress: {len(completed_categories)}/{len(categories)} completed ({(len(completed_categories)/len(categories))*100:.1f}%)")
+
+        print("\nOptions: (p)revious, (n)ext, (r)eset, (g)enerate report, (q)uit")
+        choice = input("Choose an option: ").strip().lower()
+        if choice == "p" and current_category > 0:
+            current_category -= 1
+        elif choice == "n" and current_category < len(categories) - 1:
+            current_category += 1
+        elif choice == "r":
+            responses = {cat: [0, 0] for cat in categories}
             completed_categories.clear()
             current_category = 0
-            lang = "English"
-        elif action == "report":
-            incomplete = [cat for cat in categories if not all(1 <= score <= 5 for score in responses.get(cat, [0] * 2))]
-            if not incomplete:
+            lang = input("Select language (English/Español): ").strip().capitalize()
+            if lang not in ["English", "Español"]:
+                lang = "English"
+        elif choice == "g":
+            incomplete = [cat for cat in categories if not all(1 <= score <= 5 for score in responses.get(cat, [0, 0]))]
+            if incomplete:
+                print(f"{'Complete all questions for: ' if lang == 'English' else 'Complete todas las preguntas para: '}{', '.join(incomplete)}")
+            else:
                 results = []
                 for cat in categories:
-                    scores = responses.get(cat, [0] * 2)
+                    scores = responses.get(cat, [0, 0])
                     total = sum(scores)
                     percent = (total / (len(scores) * 5)) * 100
                     results.append({"Category": cat, "Score": total, "Percent": percent})
@@ -76,50 +101,16 @@ def index():
                 csv_buffer = io.StringIO()
                 csv_buffer.write(f"Ethical Lean Audit Report\nDate: {timestamp}\n\n")
                 df.to_csv(csv_buffer, index=False)
-                csv_data = csv_buffer.getvalue()
-                b64_csv = base64.b64encode(csv_data.encode()).decode()
-                return json.dumps({"csv": b64_csv})
-    
-    category = categories[current_category]
-    score_sum = sum(responses[category])
-    max_score = len(questions[category][lang]) * 5
-    score_percent = (score_sum / max_score) * 100 if max_score > 0 else 0
-    completed_count = len(completed_categories)
-    
-    return render_template("index.html", 
-                         questions=questions[category][lang],
-                         category=category,
-                         categories=categories,
-                         current_category=current_category,
-                         lang=lang,
-                         labels=["Not Practiced", "Rarely", "Partially", "Mostly", "Fully"] if lang == "English" else ["No practicado", "Raramente", "Parcialmente", "Mayormente", "Totalmente"],
-                         scores=responses[category],
-                         score_sum=score_sum,
-                         max_score=max_score,
-                         score_percent=score_percent,
-                         completed_count=completed_count,
-                         total_categories=len(categories),
-                         completed_categories=completed_categories)
-
-@app.route("/download")
-def download():
-    categories = list(questions.keys())
-    results = []
-    for cat in categories:
-        scores = responses.get(cat, [0] * 2)
-        total = sum(scores)
-        percent = (total / (len(scores) * 5)) * 100
-        results.append({"Category": cat, "Score": total, "Percent": percent})
-    df = pd.DataFrame(results)
-    csv_buffer = io.StringIO()
-    csv_buffer.write(f"Ethical Lean Audit Report\nDate: {timestamp}\n\n")
-    df.to_csv(csv_buffer, index=False)
-    return send_file(
-        io.BytesIO(csv_buffer.getvalue().encode()),
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name="audit_results.csv"
-    )
+                with open("audit_results.csv", "w") as f:
+                    f.write(csv_buffer.getvalue())
+                print(f"{'Report saved as audit_results.csv' if lang == 'English' else 'Informe guardado como audit_results.csv'}")
+        elif choice == "q":
+            break
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    try:
+        main()
+    except Exception as e:
+        with open("error.log", "w") as f:
+            f.write(f"Error: {str(e)}")
+        sys.exit(f"Failed to start app: {str(e)}")
