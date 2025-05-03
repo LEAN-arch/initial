@@ -173,7 +173,7 @@ if submitted:
     # Actionable recommendations
     st.markdown("### Actionable Insights")
     
-    percentage_score = (total_score / max_total_score) * 100
+    percentage_score = (total_score / max_total_score * 100) if max_total_score > 0 else 0
     if percentage_score <= 50:
         st.write("""
         **Recommendation:** Your organization is in the early stages of implementing ethical Lean practices. 
@@ -194,4 +194,4 @@ if submitted:
         """)
 
 if __name__ == "__main__":
-    st.write("Run this app with: streamlit run ethical_lean_audit.py")
+    st.write("Run this app with: streamlit run ethical_lean_audit_app.py")
