@@ -158,7 +158,7 @@ def render_survey(category, questions):
     
     score_sum = sum(st.session_state.responses[category])
     max_score = len(questions[category][st.session_state.lang]) * 5
-    score_percent = (score_sum / max_score) * 100 if max_score > 0 else 0
+    score_percent = (score_sum / max_score * 100) if max_score > 0 else 0  # Fixed line
     st.write(f"{'Current Category Score:' if st.session_state.lang == 'English' else 'Puntuación Actual:'} "
              f"{score_sum}/{max_score} ({score_percent:.1f}%)")
     
