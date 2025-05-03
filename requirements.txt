@@ -1,7 +1,6 @@
-seaborn 
-streamlit 
-fpdf2 
-pandas 
-openpyxl 
-matplotlib 
-plotly
+streamlit==1.31.0
+pandas==2.2.0
+matplotlib==3.8.2
+fpdf==1.7.2
+numpy==1.26.3
+xlsxwriter==3.1.9
