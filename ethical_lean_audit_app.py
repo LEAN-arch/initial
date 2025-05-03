@@ -1,9 +1,11 @@
+import streamlit as st
 import pandas as pd
 import io
 import datetime
-import sys
-import os
 from typing import Dict, List, Set
+
+# Set page config as the first Streamlit command
+st.set_page_config(page_title="Ethical Lean Audit", layout="wide")
 
 # Questions data
 questions = {
@@ -35,25 +37,34 @@ labels = {
     "Español": ["No practicado", "Raramente", "Parcialmente", "Mayormente", "Totalmente"]
 }
 
-def validate_score(score: str) -> int:
-    """Validate and convert score input to integer."""
-    try:
-        score_int = int(score)
-        if score_int not in range(0, 6):  # 0 to 5 inclusive
-            raise ValueError("Score must be 0-5")
-        return score_int
-    except ValueError as e:
-        raise ValueError("Invalid input. Enter a number 0-5") from e
+def initialize_session_state():
+    """Initialize session state variables."""
+    if "lang" not in st.session_state:
+        st.session_state.lang = "English"
+    if "current_category" not in st.session_state:
+        st.session_state.current_category = 0
+    if "responses" not in st.session_state:
+        st.session_state.responses = {
+            cat: [0] * len(questions[cat]["English"]) for cat in questions.keys()
+        }
+    if "completed_categories" not in st.session_state:
+        st.session_state.completed_categories = set()
+    if "timestamp" not in st.session_state:
+        st.session_state.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def validate_score(score: int) -> bool:
+    """Validate score is between 1 and 5."""
+    return 1 <= score <= 5
 
 def generate_report(responses: Dict[str, List[int]], categories: List[str], 
                    timestamp: str, lang: str) -> str:
-    """Generate and save audit report."""
+    """Generate and return audit report as CSV string."""
     results = []
     for cat in categories:
         scores = responses.get(cat, [0, 0])
         total = sum(scores)
         max_score = len(scores) * 5
-        percent = (total / max_score * 100) if max_score > 0 else 0
+        percent = (total / max_score * 100) if max_score  max_score > 0 else 0
         results.append({
             "Category": cat,
             "Score": total,
@@ -65,108 +76,94 @@ def generate_report(responses: Dict[str, List[int]], categories: List[str],
     csv_buffer = io.StringIO()
     csv_buffer.write(f"Ethical Lean Audit Report\nDate: {timestamp}\nLanguage: {lang}\n\n")
     df.to_csv(csv_buffer, index=False)
-    
-    try:
-        with open("audit_results.csv", "w", encoding='utf-8') as f:
-            f.write(csv_buffer.getvalue())
-        return f"{'Report saved as audit_results.csv' if lang == 'English' else 'Informe guardado como audit_results.csv'}"
-    except IOError as e:
-        return f"{'Failed to save report: ' if lang == 'English' else 'Error al guardar informe: '}{str(e)}"
+    return csv_buffer.getvalue()
 
 def main():
+    """Main Streamlit app logic."""
+    initialize_session_state()
     categories = list(questions.keys())
-    responses: Dict[str, List[int]] = {cat: [0] * len(questions[cat]["English"]) for cat in categories}
-    completed_categories: Set[str] = set()
     
-    # Initialize language with validation
-    while True:
-        lang = input("Select language (English/Español): ").strip().capitalize()
-        if lang in ["English", "Español"]:
-            break
-        print("Invalid language. Please select English or Español.")
+    # Language selection
+    st.sidebar.header("Settings")
+    st.session_state.lang = st.sidebar.radio(
+        "Select Language / Seleccionar Idioma",
+        ["English", "Español"],
+        index=0 if st.session_state.lang == "English" else 1
+    )
     
-    current_category = 0
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    while True:
-        try:
-            category = categories[current_category]
-            print(f"\n=== {category} ===")
-            scores = responses[category]
-            
-            for idx, q in enumerate(questions[category][lang]):
-                while True:
-                    print(f"\n{q}")
-                    print(f"Rate 1-5 (1: {labels[lang][0]}, 5: {labels[lang][4]}):")
-                    try:
-                        score = validate_score(input("Enter score (1-5, 0 to skip): "))
-                        if score == 0:
-                            break
-                        scores[idx] = score
-                        break
-                    except ValueError as e:
-                        print(str(e))
-
-            # Update completion status
-            if all(1 <= score <= 5 for score in scores):
-                completed_categories.add(category)
+    # Main content
+    st.title("Ethical Lean Audit")
+    
+    # Current category
+    category = categories[st.session_state.current_category]
+    st.header(category)
+    
+    # Display questions and collect scores
+    scores = st.session_state.responses[category]
+    for idx, q in enumerate(questions[category][st.session_state.lang]):
+        score = st.radio(
+            f"{q}",
+            options=[0, 1, 2, 3, 4, 5],
+            format_func=lambda x: "Skip" if x == 0 else labels[st.session_state.lang][x-1],
+            index=scores[idx],
+            key=f"{category}_{idx}"
+        )
+        scores[idx] = score
+    
+    # Update completion status
+    if all(validate_score(score) for score in scores):
+        st.session_state.completed_categories.add(category)
+    else:
+        st.session_state.completed_categories.discard(category)
+    
+    # Display score
+    score_sum = sum(scores)
+    max_score = len(questions[category][st.session_state.lang]) * 5
+    score_percent = (score_sum / max_score * 100) if max_score > 0 else 0
+    st.write(f"Score: {score_sum}/{max_score} ({score_percent:.1f}%)")
+    if category in st.session_state.completed_categories:
+        st.success(f"{'Category completed!' if st.session_state.lang == 'English' else '¡Categoría completada!'}")
+    st.write(f"Progress: {len(st.session_state.completed_categories)}/{len(categories)} completed "
+             f"({(len(st.session_state.completed_categories)/len(categories))*100:.1f}%)")
+    
+    # Navigation
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        if st.button("Previous", disabled=st.session_state.current_category == 0):
+            st.session_state.current_category -= 1
+            st.rerun()
+    with col2:
+        if st.button("Next", disabled=st.session_state.current_category == len(categories) - 1):
+            st.session_state.current_category += 1
+            st.rerun()
+    with col3:
+        if st.button("Reset"):
+            st.session_state.responses = {
+                cat: [0] * len(questions[cat]["English"]) for cat in categories
+            }
+            st.session_state.completed_categories.clear()
+            st.session_state.current_category = 0
+            st.rerun()
+    with col4:
+        if st.button("Generate Report"):
+            incomplete = [cat for cat in categories 
+                         if not all(validate_score(score) for score in st.session_state.responses.get(cat, [0, 0]))]
+            if incomplete:
+                st.error(f"{'Complete all questions for: ' if st.session_state.lang == 'English' else 'Complete todas las preguntas para: '}"
+                         f"{', '.join(incomplete)}")
             else:
-                completed_categories.discard(category)
-
-            # Display category score
-            score_sum = sum(scores)
-            max_score = len(questions[category][lang]) * 5
-            score_percent = (score_sum / max_score * 100) if max_score > 0 else 0
-            print(f"\nScore: {score_sum}/{max_score} ({score_percent:.1f}%)")
-            if category in completed_categories:
-                print(f"{'Category completed!' if lang == 'English' else '¡Categoría completada!'}")
-            print(f"Progress: {len(completed_categories)}/{len(categories)} completed "
-                  f"({(len(completed_categories)/len(categories))*100:.1f}%)")
-
-            # Navigation options
-            print("\nOptions: (p)revious, (n)ext, (r)eset, (g)enerate report, (q)uit")
-            choice = input("Choose an option: ").strip().lower()
-            
-            if choice == "p" and current_category > 0:
-                current_category -= 1
-            elif choice == "n" and current_category < len(categories) - 1:
-                current_category += 1
-            elif choice == "r":
-                responses = {cat: [0] * len(questions[cat]["English"]) for cat in categories}
-                completed_categories.clear()
-                current_category = 0
-                while True:
-                    lang = input("Select language (English/Español): ").strip().capitalize()
-                    if lang in ["English", "Español"]:
-                        break
-                    print("Invalid language. Please select English or Español.")
-            elif choice == "g":
-                incomplete = [cat for cat in categories 
-                            if not all(1 <= score <= 5 for score in responses.get(cat, [0, 0]))]
-                if incomplete:
-                    print(f"{'Complete all questions for: ' if lang == 'English' else 'Complete todas las preguntas para: '}"
-                          f"{', '.join(incomplete)}")
-                else:
-                    print(generate_report(responses, categories, timestamp, lang))
-            elif choice == "q":
-                break
-            else:
-                print("Invalid option. Please choose p, n, r, g, or q.")
-                
-        except KeyboardInterrupt:
-            print("\n{'Program interrupted. Exiting...' if lang == 'English' else 'Programa interrumpido. Saliendo...'}")
-            break
-        except Exception as e:
-            error_msg = f"Error: {str(e)}"
-            print(error_msg)
-            with open("error.log", "a", encoding='utf-8') as f:
-                f.write(f"{timestamp}: {error_msg}\n")
+                report_csv = generate_report(
+                    st.session_state.responses,
+                    categories,
+                    st.session_state.timestamp,
+                    st.session_state.lang
+                )
+                st.download_button(
+                    label="Download Report",
+                    data=report_csv,
+                    file_name="audit_results.csv",
+                    mime="text/csv"
+                )
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        error_msg = f"Fatal error: {str(e)}"
-        with open("error.log", "a", encoding='utf-8') as f:
-            f.write(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {error_msg}\n")
-        sys.exit(error_msg)
+    main()
