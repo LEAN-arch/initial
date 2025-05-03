@@ -7,24 +7,45 @@ import io
 import numpy as np
 import seaborn as sns
 
-# Custom CSS for visual impact
+# Custom CSS for engagement and visual appeal
 st.markdown("""
-    <stylestButton>button {
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            transition: background-color 0.3s;
+        }
+        .main {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .stButton>button {
             background-color: #005b96;
             color: white;
             border-radius: 5px;
             padding: 10px 20px;
             font-weight: bold;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, transform 0.2s;
         }
         .stButton>button:hover {
             background-color: #003366;
+            transform: scale(1.05);
         }
         .stRadio>label {
             background-color: #e6f0fa;
             padding: 8px;
             border-radius: 5px;
             margin: 5px 0;
+            transition: background-color 0.3s;
+        }
+        .stRadio>label:hover {
+            background-color: #d1e6ff;
         }
         .header {
             color: #005b96;
@@ -55,14 +76,74 @@ st.markdown("""
             color: #d32f2f;
             font-weight: bold;
         }
+        .success {
+            color: #2e7d32;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .dark-theme {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+        .dark-theme .main {
+            background-color: #2e2e2e;
+            box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+        }
+        .dark-theme .stButton>button {
+            background-color: #0288d1;
+        }
+        .dark-theme .stButton>button:hover {
+            background-color: #01579b;
+        }
+        .dark-theme .stRadio>label {
+            background-color: #424242;
+            color: #e0e0e0;
+        }
+        .dark-theme .stRadio>label:hover {
+            background-color: #616161;
+        }
+        .dark-theme .header, .dark-theme .subheader {
+            color: #0288d1;
+        }
+        .milestone {
+            text-align: center;
+            font-size: 1.2em;
+            color: #2e7d32;
+            margin: 10px 0;
+        }
     </style>
+    <script>
+        // Confetti animation for milestones
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+    </script>
 """, unsafe_allow_html=True)
+
+# Include confetti.js
+st.markdown('<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>', unsafe_allow_html=True)
 
 # Set page configuration
 st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
 
+# Theme selection
+theme = st.sidebar.selectbox("Theme / Tema", ["Light", "Dark"], help="Choose your preferred theme / Elige tu tema preferido")
+if theme == "Dark":
+    st.markdown('<style>body, .main { background-color: #1e1e1e; color: #e0e0e0; } .main { background-color: #2e2e2e; }</style>', unsafe_allow_html=True)
+
 # Bilingual support
-LANG = st.sidebar.selectbox("Language / Idioma", ["English", "Español"], help="Select your preferred language / Selecciona tu idioma preferido")
+LANG = st.sidebar.selectbox("Language / Idioma", ["English", "Español"], help="Select your preferred language / Selecciona tu idioma preferido", key="lang_select")
 
 # Likert scale labels
 labels = {
@@ -70,7 +151,7 @@ labels = {
     "Español": ["No practicado", "Raramente practicado", "Parcialmente implementado", "Mayormente practicado", "Totalmente integrado"]
 }
 
-# Audit categories and questions in both languages
+# Audit categories and questions
 questions = {
     "Employee Empowerment and Engagement": {
         "English": [
@@ -239,56 +320,76 @@ if 'responses' not in st.session_state:
     st.session_state.responses = {cat: [0] * len(questions[cat][LANG]) for cat in questions}
 if 'current_category' not in st.session_state:
     st.session_state.current_category = 0
+if 'completed_categories' not in st.session_state:
+    st.session_state.completed_categories = set()
 
 # Reset session state button
-if st.sidebar.button("Reset Session" if LANG == "English" else "Restablecer Sesión"):
+if st.sidebar.button("Reset Session" if LANG == "English" else "Restablecer Sesión", key="reset_session"):
     st.session_state.clear()
     st.rerun()
 
-# Main title with logo placeholder
+# Main title with logo
 st.markdown('<div class="header">Ethical Lean Audit</div>' if LANG == "English" else '<div class="header">Auditoría Lean Ética</div>', unsafe_allow_html=True)
 st.markdown("![Logo](https://via.placeholder.com/100x50?text=Your+Logo)" if LANG == "English" else "![Logo](https://via.placeholder.com/100x50?text=Tu+Logo)", unsafe_allow_html=True)
 
-# Progress bar
+# Progress bar with milestones
 categories = list(questions.keys())
 progress = (st.session_state.current_category / len(categories)) * 100
 st.progress(progress)
+completed_count = len(st.session_state.completed_categories)
+if completed_count > 0 and completed_count % 3 == 0:
+    st.markdown(f'<div class="milestone">🎉 Milestone: {completed_count} categories completed!</div>', unsafe_allow_html=True)
+    st.markdown('<script>triggerConfetti();</script>', unsafe_allow_html=True)
 
 # Category navigation
 st.sidebar.subheader("Progress" if LANG == "English" else "Progreso")
 category_index = st.sidebar.slider(
     "Select Category / Seleccionar Categoría",
     0, len(categories) - 1, st.session_state.current_category,
-    disabled=False
+    disabled=False,
+    key="category_slider"
 )
 st.session_state.current_category = category_index
 category = categories[category_index]
 
-# Collect responses
+# Collect responses with dynamic score preview
 st.markdown(f'<div class="subheader">{category}</div>', unsafe_allow_html=True)
+current_scores = st.session_state.responses[category]
+score_sum = sum(score for score in current_scores if isinstance(score, int) and 1 <= score <= 5)
+max_score = len(questions[category][LANG]) * 5
+score_percent = (score_sum / max_score) * 100 if max_score > 0 else 0
+st.write(f"Current Category Score: {score_sum}/{max_score} ({score_percent:.1f}%)" if LANG == "English" else f"Puntuación Actual de la Categoría: {score_sum}/{max_score} ({score_percent:.1f}%)")
+
 for idx, q in enumerate(questions[category][LANG]):
     score = st.radio(
         f"{q}",
         list(range(1, 6)),
         format_func=lambda x: f"{x} - {labels[LANG][x-1]}",
         key=f"{category}_{idx}",
-        horizontal=True
+        horizontal=True,
+        label_visibility="visible"
     )
     st.session_state.responses[category][idx] = score
+
+# Mark category as completed
+if all(isinstance(score, int) and 1 <= score <= 5 for score in current_scores):
+    st.session_state.completed_categories.add(category)
+    st.markdown(f'<div class="success">Category completed! Great job!</div>' if LANG == "English" else f'<div class="success">¡Categoría completada! ¡Buen trabajo!</div>', unsafe_allow_html=True)
 
 # Navigation buttons
 col1, col2 = st.columns(2)
 with col1:
-    if st.button("Previous Category" if LANG == "English" else "Categoría Anterior", disabled=category_index == 0):
+    if st.button("Previous Category" if LANG == "English" else "Categoría Anterior", disabled=category_index == 0, key="prev_category"):
         st.session_state.current_category -= 1
         st.rerun()
 with col2:
-    if st.button("Next Category" if LANG == "English" else "Siguiente Categoría", disabled=category_index == len(categories) - 1):
+    if st.button("Next Category" if LANG == "English" else "Siguiente Categoría", disabled=category_index == len(categories) - 1, key="next_category"):
         st.session_state.current_category += 1
         st.rerun()
 
 # Generate report
-if st.button("Generate Report" if LANG == "English" else "Generar Informe",    # Validate responses
+if st.button("Generate Report" if LANG == "English" else "Generar Informe", key="generate_report"):
+    # Validate responses
     incomplete_categories = [cat for cat, scores in st.session_state.responses.items() if not all(isinstance(score, int) and 1 <= score <= 5 for score in scores)]
     if incomplete_categories:
         st.markdown(f'<div class="error">Please complete all questions for: {", ".join(incomplete_categories)}</div>', unsafe_allow_html=True)
@@ -317,7 +418,7 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe",    #
     st.dataframe(df.style.format({"Score": "{:.0f}", "Percent": "{:.1f}%"}))
     
     # Visualization selection
-    viz_type = st.selectbox("Select Visualization" if LANG == "English" else "Seleccionar Visualización", ["Radar Chart", "Bar Plot"])
+    viz_type = st.selectbox("Select Visualization" if LANG == "English" else "Seleccionar Visualización", ["Radar Chart", "Bar Plot"], key="viz_select")
     
     if viz_type == "Radar Chart":
         st.markdown(f'<div class="subheader">{"Audit Results Visualization" if LANG == "English" else "Visualización de Resultados de la Auditoría"}</div>', unsafe_allow_html=True)
@@ -403,3 +504,31 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe",    #
         st.markdown(href_excel, unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error generating Excel report: {str(e)}")
+
+    # Completion Certificate
+    if len(st.session_state.completed_categories) == len(categories):
+        st.markdown(f'<div class="success">Congratulations! You have completed the Ethical Lean Audit!</div>' if LANG == "English" else f'<div class="success">¡Felicidades! Has completado la Auditoría Lean Ética!</div>', unsafe_allow_html=True)
+        st.markdown('<script>triggerConfetti();</script>', unsafe_allow_html=True)
+        
+        try:
+            cert_pdf = PDF()
+            cert_pdf.add_page()
+            cert_pdf.set_font("Helvetica", "B", 16)
+            cert_pdf.set_text_color(0, 91, 150)
+            cert_pdf.cell(0, 20, "Certificate of Completion" if LANG == "English" else "Certificado de Finalización", 0, 1, "C")
+            cert_pdf.set_font("Helvetica", size=12)
+            cert_pdf.cell(0, 10, "Ethical Lean Audit" if LANG == "English" else "Auditoría Lean Ética", 0, 1, "C")
+            cert_pdf.ln(10)
+            cert_pdf.cell(0, 10, "Awarded to: [Your Name]" if LANG == "English" else "Otorgado a: [Tu Nombre]", 0, 1, "C")
+            cert_pdf.cell(0, 10, f"Date: {pd.Timestamp.now().strftime('%Y-%m-%d')}", 0, 1, "C")
+            cert_pdf.ln(10)
+            cert_pdf.cell(0, 10, "Thank you for your commitment to ethical Lean practices!" if LANG == "English" else "¡Gracias por tu compromiso con las prácticas Lean éticas!", 0, 1, "C")
+            
+            cert_output = io.BytesIO()
+            cert_pdf.output(cert_output)
+            cert_output.seek(0)
+            b64_cert = base64.b64encode(cert_output.getvalue()).decode()
+            href_cert = f'<a href="data:application/pdf;base64,{b64_cert}" download="ethical_lean_audit_certificate.pdf" class="download-link">Download Completion Certificate</a>' if LANG == "English" else f'<a href="data:application/pdf;base64,{b64_cert}" download="certificado_auditoria_lean_etica.pdf" class="download-link">Descargar Certificado de Finalización</a>'
+            st.markdown(href_cert, unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Error generating certificate: {str(e)}")
