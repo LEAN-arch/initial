@@ -1,4 +1,17 @@
 import streamlit as st
+
+# Set page configuration as the absolute first Streamlit command
+try:
+    st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
+except Exception as e:
+    import logging
+    import sys
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+    logger.error(f"Failed to set page config: {str(e)}")
+    sys.exit(f"Application cannot start: Failed to initialize page configuration. Error: {str(e)}. Please ensure the script is run with 'streamlit run ethical_lean_audit.py'.")
+
+# Import remaining dependencies
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -9,28 +22,10 @@ import seaborn as sns
 import datetime
 import logging
 import uuid
-import sys
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-# Check Streamlit runtime context
-try:
-    # Ensure Streamlit is running in a valid context
-    if not hasattr(st, 'script_run_context') or st.script_run_context.get_script_run_ctx() is None:
-        logger.error("Streamlit script run context is missing. Ensure the script is run with 'streamlit run ethical_lean_audit.py'.")
-        sys.exit("Application cannot start: Missing Streamlit runtime context. Run the script using 'streamlit run ethical_lean_audit.py'.")
-except Exception as e:
-    logger.error(f"Error checking Streamlit runtime context: {str(e)}")
-    sys.exit(f"Application cannot start: Failed to verify Streamlit runtime context. Error: {str(e)}")
-
-# Set page configuration as the first Streamlit command
-try:
-    st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
-except Exception as e:
-    logger.error(f"Failed to set page config: {str(e)}")
-    sys.exit(f"Application cannot start: Failed to initialize page configuration. Error: {str(e)}. Please ensure the script is run with 'streamlit run ethical_lean_audit.py' and check the environment.")
 
 # Custom CSS
 try:
