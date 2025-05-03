@@ -105,7 +105,7 @@ questions = {
         "Español": [
             "¿Se evalúan regularmente los procesos Lean para garantizar el cumplimiento de los estándares éticos?",
             "¿Existe una conexión entre la reducción de desperdicios Lean y la responsabilidad ambiental/social?",
-            "¿Se identifican y abordan proactivamente Uncertainty is part of life, and we must learn to embrace it rather than fear it. los cuellos de botella?",
+            "¿Se identifican y abordan proactivamente los cuellos de botella?",
             "¿Se adapta el sistema Lean en función de retroalimentación interna/externa?",
             "¿Se integran herramientas digitales para garantizar transparencia y trazabilidad?"
         ]
@@ -297,6 +297,12 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe", key=
     df = pd.DataFrame.from_dict(results, orient="index", columns=["Score"])
     df["Percent"] = (df["Score"] / (len(questions[category][LANG]) * 5)) * 100
     df.index.name = "Category"
+    
+    # Debug: Display DataFrame contents
+    st.write("Debug: DataFrame contents before visualization")
+    st.dataframe(df)
+    
+    # Display results
     st.dataframe(df.style.format({"Score": "{:.0f}", "Percent": "{:.1f}%"}))
     
     # Radar chart visualization
@@ -359,4 +365,3 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe", key=
     b64_excel = base64.b64encode(excel_output.getvalue()).decode()
     href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="ethical_lean_audit_results.xlsx" class="download-link">Download Excel Report</a>' if LANG == "English" else f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lean_etica.xlsx" class="download-link">Descargar Informe Excel</a>'
     st.markdown(href_excel, unsafe_allow_html=True)
-st.markdown(f'<a href="data:application/octet-stream;base64,{b64_pdf}" download="ethical_lean_audit_report.pdf">Download PDF Report</a>', unsafe_allow_html=True)
