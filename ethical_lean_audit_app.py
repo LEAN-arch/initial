@@ -650,7 +650,8 @@ else:
                 st.markdown(f'<div class="card-modern" role="region" aria-label="Category {display_category} Questions">', unsafe_allow_html=True)
                 st.markdown(f'<h2 class="section-title">{display_category}</h2>', unsafe_allow_html=True)
                 
-                with st.expander(TRANSLATIONS[st.session_state.language]["response_guide"], expanded=True):
+                # Display response guide only once in the expander
+                with st.expander("Instrucciones / Instructions", expanded=True):
                     st.markdown(f'<div class="response-guide">{TRANSLATIONS[st.session_state.language]["response_guide"]}</div>', unsafe_allow_html=True)
 
                 for idx, (q, q_type, _) in enumerate(questions[category][st.session_state.language]):
