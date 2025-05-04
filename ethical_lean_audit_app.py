@@ -8,7 +8,7 @@ import uuid
 import re
 from datetime import datetime
 from typing import Dict, List, Tuple
-from excel_report_generator import generate_excel_report  # Import the new module
+from excel_report_generator import generate_excel_report  # Import the Excel module
 
 # Constants
 SCORE_THRESHOLDS = {
@@ -943,6 +943,7 @@ with st.container():
             # Download Excel report
             with st.spinner(TRANSLATIONS[st.session_state.language]["generating_excel"]):
                 try:
+                    # Ensure all required parameters are passed to generate_excel_report
                     excel_file = generate_excel_report(
                         df=df,
                         df_display=df_display,
@@ -967,7 +968,10 @@ with st.container():
                         type="primary"
                     )
                 except Exception as e:
-                    st.error(TRANSLATIONS[st.session_state.language]["excel_error"].format(str(e)), icon="❌")
+                    st.error(
+                        TRANSLATIONS[st.session_state.language]["excel_error"].format(str(e)),
+                        icon="❌"
+                    )
 
             st.markdown('</div>', unsafe_allow_html=True)
 
