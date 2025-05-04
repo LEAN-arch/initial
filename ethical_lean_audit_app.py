@@ -67,8 +67,22 @@ st.markdown("""
 # Set page configuration
 st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
 
+# Initialize session state for language and responses
+if 'language' not in st.session_state:
+    st.session_state.language = "English"
+
+if 'responses' not in st.session_state:
+    st.session_state.responses = {}
+if 'current_category' not in st.session_state:
+    st.session_state.current_category = 0
+
 # Bilingual support
-LANG = st.sidebar.selectbox("Language / Idioma", ["English", "Español"], help="Select your preferred language / Selecciona tu idioma preferido")
+LANG = st.sidebar.selectbox(
+    "Language / Idioma", 
+    ["English", "Español"], 
+    help="Select your preferred language / Selecciona tu idioma preferido"
+)
+st.session_state.language = LANG
 
 # Likert scale labels
 labels = {
@@ -240,19 +254,29 @@ questions = {
     }
 }
 
-# Initialize session state for responses and progress
-if 'responses' not in st.session_state:
-    st.session_state.responses = {cat: [0] * len(questions[cat][LANG]) for cat in questions}
-if 'current_category' not in st.session_state:
-    st.session_state.current_category = 0
+# Validate question counts
+for cat in questions:
+    if len(questions[cat]["English"]) != len(questions[cat]["Español"]):
+        st.error(f"Question count mismatch in category {cat} between English and Spanish.")
+        st.stop()
 
-# Main title with logo placeholder
-st.markdown('<div class="header">Ethical Lean Audit</div>' if LANG == "English" else '<div class="header">Auditoría Lean Ética</div>', unsafe_allow_html=True)
-st.markdown("![Logo](https://via.placeholder.com/100x50?text=Your+Logo)" if LANG == "English" else "![Logo](https://via.placeholder.com/100x50?text=Tu+Logo)", unsafe_allow_html=True)
+# Initialize responses for the current language if not already done
+if not st.session_state.responses or len(st.session_state.responses) != len(questions):
+    st.session_state.responses = {cat: [0] * len(questions[cat][LANG]) for cat in questions}
+
+# Main title
+st.markdown(
+    '<div class="header">Ethical Lean Audit</div>' if LANG == "English" else 
+    '<div class="header">Auditoría Lean Ética</div>', 
+    unsafe_allow_html=True
+)
+
+# Replace placeholder logo with a local image (uncomment and provide path if available)
+# st.image("path/to/local/logo.png", width=100, caption="Company Logo" if LANG == "English" else "Logo de la Empresa")
 
 # Progress bar
 categories = list(questions.keys())
-progress = (st.session_state.current_category / len(categories)) * 100
+progress = min((st.session_state.current_category + 1) / len(categories), 1.0)
 st.progress(progress)
 
 # Category navigation
@@ -273,7 +297,8 @@ for idx, q in enumerate(questions[category][LANG]):
         list(range(1, 6)),
         format_func=lambda x: f"{x} - {labels[LANG][x-1]}",
         key=f"{category}_{idx}",
-        horizontal=True
+        horizontal=True,
+        help=f"Select a score for {q}"
     )
     st.session_state.responses[category][idx] = score
 
@@ -282,47 +307,57 @@ col1, col2 = st.columns(2)
 with col1:
     if st.button("Previous Category" if LANG == "English" else "Categoría Anterior", disabled=category_index == 0):
         st.session_state.current_category -= 1
-        st.rerun()
 with col2:
     if st.button("Next Category" if LANG == "English" else "Siguiente Categoría", disabled=category_index == len(categories) - 1):
         st.session_state.current_category += 1
-        st.rerun()
 
 # Generate report
 if st.button("Generate Report" if LANG == "English" else "Generar Informe", key="generate_report"):
-    st.markdown(f'<div class="subheader">{"Audit Results" if LANG == "English" else "Resultados de la Auditoría"}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="subheader">{"Audit Results" if LANG == "English" else "Resultados de la Auditoría"}</div>',
+        unsafe_allow_html=True
+    )
     
     # Calculate scores
     results = {cat: sum(scores) for cat, scores in st.session_state.responses.items()}
     df = pd.DataFrame.from_dict(results, orient="index", columns=["Score"])
-    df["Percent"] = (df["Score"] / (len(questions[category][LANG]) * 5)) * 100
+    df["Percent"] = [((score / (len(questions[cat][LANG]) * 5)) * 100) for cat, score in results.items()]
     st.dataframe(df.style.format({"Percent": "{:.1f}%"}))
 
     # Radar chart
+    @st.cache_data
+    def generate_radar_chart(categories, values):
+        fig, ax = plt.subplots(figsize=(12, 8), subplot_kw=dict(polar=True))
+        angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
+        values += values[:1]
+        angles += angles[:1]
+        ax.plot(angles, values, linewidth=2, linestyle='solid', label='Score', color='#005b96')
+        ax.fill(angles, values, '#e6f0fa', alpha=0.5)
+        ax.set_xticks(angles[:-1])
+        ax.set_xticklabels(categories, fontsize=8, wrap=True, color='#333', ha='center')
+        for label, angle in zip(ax.get_xticklabels(), angles[:-1]):
+            label.set_rotation(angle * 180 / np.pi - 90)
+        ax.set_yticklabels([])
+        ax.set_title(
+            "Ethical Lean Audit Radar" if st.session_state.language == "English" else 
+            "Radar de Auditoría Lean Ética", 
+            size=18, pad=20, color='#005b96'
+        )
+        ax.grid(True, color='#ccc', linestyle='--')
+        plt.tight_layout()
+        return fig
+
     categories = list(df.index)
     values = df["Percent"].values.tolist()
-    
-    fig, ax = plt.subplots(figsize=(12, 8), subplot_kw=dict(polar=True))
-    angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
-    values += values[:1]
-    angles += angles[:1]
-    
-    ax.plot(angles, values, linewidth=2, linestyle='solid', label='Score', color='#005b96')
-    ax.fill(angles, values, '#e6f0fa', alpha=0.5)
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(categories, fontsize=10, wrap=True, color='#333')
-    ax.set_yticklabels([])
-    ax.set_title("Ethical Lean Audit Radar" if LANG == "English" else "Radar de Auditoría Lean Ética", size=18, pad=20, color='#005b96')
-    ax.grid(True, color='#ccc', linestyle='--')
-    plt.tight_layout()
-    st.pyplot(fig)
+    st.pyplot(generate_radar_chart(categories, values))
 
     # PDF Report
     class PDF(FPDF):
         def header(self):
             self.set_font("Helvetica", "B", 14)
             self.set_text_color(0, 91, 150)
-            self.cell(0, 10, "Ethical Lean Audit Report" if LANG == "English" else "Informe de Auditoría Lean Ética", 0, 1, "C")
+            title = "Ethical Lean Audit Report" if st.session_state.language == "English" else "Informe de Auditoría Lean Ética"
+            self.cell(0, 10, title, 0, 1, "C")
             self.ln(5)
         
         def footer(self):
@@ -331,29 +366,54 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe", key=
             self.set_text_color(100)
             self.cell(0, 10, f"Page {self.page_no()}", 0, 0, "C")
 
-    pdf = PDF()
-    pdf.add_page()
-    pdf.set_font("Helvetica", size=12)
-    pdf.set_text_color(51)
-    pdf.cell(0, 10, "Audit Results" if LANG == "English" else "Resultados de la Auditoría", ln=True)
-    pdf.ln(5)
-    
-    for cat, row in df.iterrows():
-        pdf.cell(0, 10, f"{cat}: {row['Percent']:.1f}%", ln=True)
-    
-    pdf_output = io.BytesIO()
-    pdf.output(pdf_output)
-    pdf_output.seek(0)
-    b64_pdf = base64.b64encode(pdf_output.getvalue()).decode()
-    href_pdf = f'<a href="data:application/pdf;base64,{b64_pdf}" download="ethical_lean_audit_report.pdf" class="download-link">Download PDF Report</a>' if LANG == "English" else f'<a href="data:application/pdf;base64,{b64_pdf}" download="informe_auditoria_lean_etica.pdf" class="download-link">Descargar Informe PDF</a>'
-    st.markdown(href_pdf, unsafe_allow_html=True)
+    try:
+        pdf = PDF()
+        pdf.add_page()
+        pdf.set_font("Helvetica", size=12)
+        pdf.set_text_color(51)
+        pdf.cell(
+            0, 10, 
+            "Audit Results" if st.session_state.language == "English" else "Resultados de la Auditoría", 
+            ln=True
+        )
+        pdf.ln(5)
+        
+        for cat, row in df.iterrows():
+            pdf.cell(0, 10, f"{cat}: {row['Percent']:.1f}%", ln=True)
+        
+        pdf_output = io.BytesIO()
+        pdf.output(dest='F', name=pdf_output)
+        pdf_output.seek(0)
+        b64_pdf = base64.b64encode(pdf_output.getvalue()).decode()
+        href_pdf = (
+            f'<a href="data:application/pdf;base64,{b64_pdf}" download="ethical_lean_audit_report.pdf" class="download-link">Download PDF Report</a>' 
+            if st.session_state.language == "English" else 
+            f'<a href="data:application/pdf;base64,{b64_pdf}" download="informe_auditoria_lean_etica.pdf" class="download-link">Descargar Informe PDF</a>'
+        )
+        st.markdown(href_pdf, unsafe_allow_html=True)
+        pdf_output.close()
+    except Exception as e:
+        st.error(f"Failed to generate PDF: {str(e)}")
 
     # Excel export
-    excel_output = io.BytesIO()
-    with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, sheet_name='Audit Results' if LANG == "English" else 'Resultados de la Auditoría', float_format="%.1f")
-    excel_output.seek(0)
-    b64_excel = base64.b64encode(excel_output.getvalue()).decode()
-    href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="ethical_lean_audit_results.xlsx" class="download-link">Download Excel Report</a>' if LANG == "English" else f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lean_etica.xlsx" class="download-link">Descargar Informe Excel</a>'
-    st.markdown(href_excel, unsafe_allow_html=True)
-
+    try:
+        excel_output = io.BytesIO()
+        with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
+            df.to_excel(
+                writer, 
+                sheet_name='Audit Results' if st.session_state.language == "English" else 'Resultados de la Auditoría', 
+                float_format="%.1f"
+            )
+        excel_output.seek(0)
+        b64_excel = base64.b64encode(excel_output.getvalue()).decode()
+        href_excel = (
+            f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="ethical_lean_audit_results.xlsx" class="download-link">Download Excel Report</a>' 
+            if st.session_state.language == "English" else 
+            f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lean_etica.xlsx" class="download-link">Descargar Informe Excel</a>'
+        )
+        st.markdown(href_excel, unsafe_allow_html=True)
+        excel_output.close()
+    except ImportError:
+        st.error("Excel export requires 'xlsxwriter'. Please install it using `pip install xlsxwriter`.")
+    except Exception as e:
+        st.error(f"Failed to generate Excel file: {str(e)}")
