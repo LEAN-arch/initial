@@ -6,7 +6,7 @@ from fpdf import FPDF
 import base64
 import io
 import numpy as np
-import os
+import textwrap
 
 # Set page configuration
 st.set_page_config(page_title="Auditoría Ética de Lugar de Trabajo Lean", layout="wide", initial_sidebar_state="expanded")
@@ -238,7 +238,6 @@ st.markdown("""
             visibility: visible;
             opacity: 1;
         }
-        /* Responsive Design */
         @media (max-width: 768px) {
             .main-container {
                 padding: 1rem;
@@ -271,7 +270,6 @@ st.markdown("""
                 gap: 0.5rem;
             }
         }
-        /* Accessibility */
         [role="radiogroup"] {
             margin: 0.5rem 0;
         }
@@ -872,8 +870,8 @@ if not st.session_state.show_intro:
                     "Congratulations on an outstanding workplace! Partner with LEAN 2.0 Institute to sustain these strengths and lead with innovation."
                 )
             ad_text.append(
-                'Contáctanos en <a href="https://lean2institute.mystrikingly.com/" target="_blank" class="download-link">https://lean2institute.mystrikingly.com/</a> o envíanos un correo a info@lean2institute.com para una consulta estratégica.' if st.session_state.language == "Español" else
-                'Contact us at <a href="https://lean2institute.mystrikingly.com/" target="_blank" class="download-link">https://lean2institute.mystrikingly.com/</a> or email us at info@lean2institute.com for a strategic consultation.'
+                "Contáctanos en https://lean2institute.mystrikingly.com/ o envíanos un correo a info@lean2institute.com para una consulta estratégica." if st.session_state.language == "Español" else
+                "Contact us at https://lean2institute.mystrikingly.com/ or email us at info@lean2institute.com for a strategic consultation."
             )
             st.markdown("<div class='insights'>" + "<br>".join(ad_text) + "</div>", unsafe_allow_html=True)
 
@@ -886,86 +884,92 @@ if not st.session_state.show_intro:
             col1, col2 = st.columns(2)
 
             # PDF Report
-            font_path = "DejaVuSans.ttf"
             with col1:
                 with st.spinner("Generando PDF..." if st.session_state.language == "Español" else "Generating PDF..."):
                     try:
                         pdf = FPDF()
-                        pdf.set_margins(15, 15, 15)
-                        if os.path.exists(font_path):
-                            pdf.add_font('DejaVu', '', font_path, uni=True)
-                            font_name = 'DejaVu'
-                        else:
-                            font_name = 'Arial'
-                            st.warning(
-                                "Fuente 'DejaVuSans.ttf' no encontrada. Usando Arial como respaldo." if st.session_state.language == "Español" else
-                                "Font 'DejaVuSans.ttf' not found. Using Arial as fallback."
-                            )
+                        pdf.set_margins(20, 20, 20)
                         pdf.add_page()
-
-                        # Title and Logo
-                        pdf.set_font(font_name, 'B', 16)
+                        font_name = 'Helvetica'
+                        pdf.set_font(font_name, 'B', 14)
                         pdf.set_text_color(30, 136, 229)
                         pdf.cell(0, 10, "Informe de Auditoría del Lugar de Trabajo Ético" if st.session_state.language == "Español" else "Ethical Workplace Audit Report", ln=True, align="C")
-                        pdf.ln(5)
+                        pdf.ln(10)
 
                         # Overall Grade
-                        pdf.set_font(font_name, 'B', 12)
+                        pdf.set_font(font_name, 'B', 11)
                         pdf.set_text_color(51)
-                        pdf.multi_cell(0, 10, f"Calificación General del Lugar de Trabajo: {grade} ({overall_score:.1f}%)" if st.session_state.language == "Español" else
-                                            f"Overall Workplace Grade: {grade} ({overall_score:.1f}%)")
-                        pdf.set_font(font_name, '', 12)
-                        pdf.multi_cell(0, 10, grade_description)
-                        pdf.ln(5)
+                        wrapped_grade = textwrap.wrap(f"Calificación General del Lugar de Trabajo: {grade} ({overall_score:.1f}%)" if st.session_state.language == "Español" else
+                                                     f"Overall Workplace Grade: {grade} ({overall_score:.1f}%)", width=80)
+                        for line in wrapped_grade:
+                            pdf.multi_cell(0, 8, line)
+                        pdf.set_font(font_name, '', 10)
+                        wrapped_description = textwrap.wrap(grade_description, width=80)
+                        for line in wrapped_description:
+                            pdf.multi_cell(0, 8, line)
+                        pdf.ln(8)
 
                         # Audit Results
-                        pdf.set_font(font_name, 'B', 12)
-                        pdf.multi_cell(0, 10, "Resultados de la Auditoría" if st.session_state.language == "Español" else "Audit Results")
-                        pdf.set_font(font_name, '', 12)
+                        pdf.set_font(font_name, 'B', 11)
+                        pdf.multi_cell(0, 8, "Resultados de la Auditoría" if st.session_state.language == "Español" else "Audit Results")
+                        pdf.set_font(font_name, '', 10)
                         pdf.ln(5)
                         for cat, row in df.iterrows():
-                            pdf.multi_cell(0, 10, f"{cat}: {row['Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Prioridad: {row['Prioridad' if st.session_state.language == 'Español' else 'Priority']})")
+                            result_text = f"{cat}: {row['Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Prioridad: {row['Prioridad' if st.session_state.language == 'Español' else 'Priority']})"
+                            wrapped_result = textwrap.wrap(result_text, width=80)
+                            for line in wrapped_result:
+                                pdf.multi_cell(0, 8, line)
+                        pdf.ln(8)
 
                         # Action Plan
                         pdf.add_page()
-                        pdf.set_font(font_name, 'B', 12)
-                        pdf.multi_cell(0, 10, "Plan de Acción" if st.session_state.language == "Español" else "Action Plan")
-                        pdf.set_font(font_name, '', 12)
+                        pdf.set_font(font_name, 'B', 11)
+                        pdf.multi_cell(0, 8, "Plan de Acción" if st.session_state.language == "Español" else "Action Plan")
+                        pdf.set_font(font_name, '', 10)
                         pdf.ln(5)
                         for cat in categories:
                             if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70:
-                                pdf.set_font(font_name, 'B', 12)
-                                pdf.multi_cell(0, 10, cat)
-                                pdf.set_font(font_name, '', 12)
+                                pdf.set_font(font_name, 'B', 11)
+                                wrapped_cat = textwrap.wrap(cat, width=80)
+                                for line in wrapped_cat:
+                                    pdf.multi_cell(0, 8, line)
+                                pdf.set_font(font_name, '', 10)
                                 for idx, score in enumerate(st.session_state.responses[cat]):
                                     if score < 70:
                                         question = questions[cat][st.session_state.language][idx][0]
                                         rec = recommendations[cat][idx]
-                                        pdf.multi_cell(0, 10, f"- {question}: {rec}")
+                                        action_text = f"- {question}: {rec}"
+                                        wrapped_action = textwrap.wrap(action_text, width=75)
+                                        for line in wrapped_action:
+                                            pdf.multi_cell(0, 8, line)
                                 pdf.ln(5)
 
                         # LEAN 2.0 Institute Advertisement
                         pdf.add_page()
-                        pdf.set_font(font_name, 'B', 12)
-                        pdf.multi_cell(0, 10, "Asóciate con LEAN 2.0 Institute" if st.session_state.language == "Español" else "Partner with LEAN 2.0 Institute")
-                        pdf.set_font(font_name, '', 12)
+                        pdf.set_font(font_name, 'B', 11)
+                        pdf.multi_cell(0, 8, "Asóciate con LEAN 2.0 Institute" if st.session_state.language == "Español" else "Partner with LEAN 2.0 Institute")
+                        pdf.set_font(font_name, '', 10)
                         pdf.ln(5)
                         for text in ad_text:
-                            pdf.multi_cell(0, 10, text.replace('<a href="https://lean2institute.mystrikingly.com/" target="_blank" class="download-link">https://lean2institute.mystrikingly.com/</a>', 'https://lean2institute.mystrikingly.com/'))
+                            wrapped_text = textwrap.wrap(text, width=80)
+                            for line in wrapped_text:
+                                pdf.multi_cell(0, 8, line)
 
                         # Certificate
                         pdf.add_page()
-                        pdf.set_font(font_name, 'B', 16)
+                        pdf.set_font(font_name, 'B', 14)
                         pdf.set_text_color(67, 160, 71)
                         pdf.multi_cell(0, 10, "Certificado de Finalización" if st.session_state.language == "Español" else "Certificate of Completion", align="C")
                         pdf.ln(10)
-                        pdf.set_font(font_name, '', 12)
+                        pdf.set_font(font_name, '', 10)
                         pdf.set_text_color(51)
-                        pdf.multi_cell(
-                            0, 10, 
+                        cert_text = (
                             "¡Felicidades por completar la Auditoría del Lugar de Trabajo Ético! Tus respuestas están ayudando a construir un entorno laboral ético y sostenible. Contáctanos en https://lean2institute.mystrikingly.com/ para apoyo estratégico." if st.session_state.language == "Español" else 
                             "Congratulations on completing the Ethical Workplace Audit! Your responses are helping build an ethical and sustainable workplace. Contact us at https://lean2institute.mystrikingly.com/ for strategic support."
                         )
+                        wrapped_cert = textwrap.wrap(cert_text, width=80)
+                        for line in wrapped_cert:
+                            pdf.multi_cell(0, 8, line)
 
                         pdf_output = io.BytesIO()
                         pdf.output(pdf_output)
@@ -978,7 +982,8 @@ if not st.session_state.show_intro:
                         st.markdown(href_pdf, unsafe_allow_html=True)
                         pdf_output.close()
                     except Exception as e:
-                        st.error(f"No se pudo generar el PDF: {str(e)}" if st.session_state.language == "Español" else f"Failed to generate PDF: {str(e)}")
+                        st.error(f"Error al generar el PDF: {str(e)}. Por favor, intenta de nuevo o contacta a soporte." if st.session_state.language == "Español" else
+                                 f"Error generating PDF: {str(e)}. Please try again or contact support.")
 
             # Excel export
             with col2:
