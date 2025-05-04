@@ -394,36 +394,39 @@ if st.session_state.show_intro:
             unsafe_allow_html=True
         )
         with st.expander("", expanded=True):
-            intro_content = (
-                f"""
-                <div class="intro-content">
-                    Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde {TOTAL_QUESTIONS} preguntas en {len(questions)} categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: <a href="mailto:{CONFIG['contact']['email']}">{CONFIG['contact']['email']}</a> 🌐 Website: <a href="{CONFIG['contact']['website']}">{CONFIG['contact']['website']}</a>
-                    
-                    <h3 class="subsection-title">Pasos:</h3>
-                    <ol class="steps-list" role="list" aria-label="Pasos para completar la auditoría">
-                        <li>Responde las preguntas de cada categoría.</li>
-                        <li>Revisa y descarga tu informe.</li>
-                    </ol>
-                    
-                    ¡Empecemos!
-                </div>
+            if st.session_state.language == "Español":
+                intro_text = f"""
+                    <div class="intro-content">
+                        Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde {TOTAL_QUESTIONS} preguntas en {len(questions)} categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: <a href="mailto:{CONFIG['contact']['email']}">{CONFIG['contact']['email']}</a> 🌐 Website: <a href="{CONFIG['contact']['website']}">{CONFIG['contact']['website']}</a>
+                    </div>
                 """
-                if st.session_state.language == "Español" else
-                f"""
-                <div class="intro-content">
-                    This assessment is designed for management and HR to provide an objective evaluation of your workplace. Answer {TOTAL_QUESTIONS} questions across {len(questions)} categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations we can help implement. Upon completion, contact us for personalized consultations: ✉️ Email: <a href="mailto:{CONFIG['contact']['email']}">{CONFIG['contact']['email']}</a> 🌐 Website: <a href="{CONFIG['contact']['website']}">{CONFIG['contact']['website']}</a>
-                    
-                    <h3 class="subsection-title">Steps:</h3>
-                    <ol class="steps-list" role="list" aria-label="Steps to complete the audit">
-                        <li>Answer questions for each category.</li>
-                        <li>Review and download your report.</li>
-                    </ol>
-                    
-                    Let’s get started!
-                </div>
+                steps_content = f"""
+                    <div class="steps-content">
+                        <h3 class="subsection-title">Pasos:</h3>
+                        <ol class="steps-list" role="list" aria-label="Pasos para completar la auditoría">
+                            <li>Responde las preguntas de cada categoría.</li>
+                            <li>Revisa y descarga tu informe.</li>
+                        </ol>
+                    </div>
                 """
-            )
-            st.markdown(intro_content, unsafe_allow_html=True)
+            else:
+                intro_text = f"""
+                    <div class="intro-content">
+                        This assessment is designed for management and HR to provide an objective evaluation of your workplace. Answer {TOTAL_QUESTIONS} questions across {len(questions)} categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations we can help implement. Upon completion, contact us for personalized consultations: ✉️ Email: <a href="mailto:{CONFIG['contact']['email']}">{CONFIG['contact']['email']}</a> 🌐 Website: <a href="{CONFIG['contact']['website']}">{CONFIG['contact']['website']}</a>
+                    </div>
+                """
+                steps_content = f"""
+                    <div class="steps-content">
+                        <h3 class="subsection-title">Steps:</h3>
+                        <ol class="steps-list" role="list" aria-label="Steps to complete the audit">
+                            <li>Answer questions for each category.</li>
+                            <li>Review and download your report.</li>
+                        </ol>
+                    </div>
+                """
+            st.markdown(intro_text, unsafe_allow_html=True)
+            st.markdown(steps_content, unsafe_allow_html=True)
+            st.markdown("¡Empecemos!" if st.session_state.language == "Español" else "Let’s get started!", unsafe_allow_html=True)
             if st.button(
                 "Iniciar Auditoría / Start Audit",
                 use_container_width=True,
