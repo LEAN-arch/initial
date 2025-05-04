@@ -6,6 +6,9 @@ import base64
 import io
 import numpy as np
 
+# Set page configuration as the first Streamlit command
+st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
+
 # Custom CSS for enhanced visual impact
 st.markdown("""
     <style>
@@ -63,9 +66,6 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
-
-# Set page configuration
-st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
 
 # Initialize session state for language and responses
 if 'language' not in st.session_state:
