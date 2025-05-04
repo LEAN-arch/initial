@@ -90,7 +90,7 @@ def load_static_data():
                 ("7. ¿Cuántos casos de comportamiento ético destacado fueron reconocidos formalmente en los últimos 12 meses?", "count", "Crea un programa formal de reconocimiento para comportamientos éticos, con incentivos claros.")
             ],
             "English": [
-                ("5. How frequently did leaders share written updates on decisions affecting employees in the past 12 months?", "frequency", "Implement monthly newsletters to transparently communicate leadership decisions."),
+                ("5.-Level did leaders share written updates on decisions affecting employees in the past 12 months?", "frequency", "Implement monthly newsletters to transparently communicate leadership decisions."),
                 ("6. What percentage of new or revised workplace policies in the past year included formal employee consultation?", "percentage", "Include employee representatives in reviewing all new workplace policies."),
                 ("7. How many instances of exemplary ethical behavior were formally recognized in the past 12 months?", "count", "Create a formal recognition program for ethical behavior with clear incentives.")
             ]
@@ -824,7 +824,7 @@ if not st.session_state.show_intro:
                 unsafe_allow_html=True
             )
             ad_text = []
-            if overall_score <  < SCORE_THRESHOLDS["GOOD"]:
+            if overall_score < SCORE_THRESHOLDS["GOOD"]:
                 ad_text.append(
                     "Los resultados de tu auditoría indican oportunidades para optimizar el lugar de trabajo. LEAN 2Ԙ Institute ofrece consultoría especializada para directivos, gerentes y Recursos Humanos, transformando tu entorno laboral en uno ético y eficiente." if st.session_state.language == "Español" else
                     "Your audit results indicate opportunities to optimize the workplace. LEAN 2.0 Institute offers specialized consulting for directors, managers and HR, transforming your workplace into an ethical and efficient environment."
