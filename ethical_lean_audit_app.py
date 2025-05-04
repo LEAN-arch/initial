@@ -413,6 +413,7 @@ questions = {
 # Sidebar navigation
 with st.sidebar:
     st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.sidebar.image("assets/FOBO2.png", width=200)
     
     # Language selection with on_change callback
     def update_language():
