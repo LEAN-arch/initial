@@ -298,7 +298,7 @@ category_mapping = {
 
 # Initialize session state with validation
 def initialize_session_state():
-    """Initialize session state with default values and validation."""
+    """Initialize session state with default values and repair responses if needed."""
     defaults = {
         "language": "Español",
         "responses": {},
@@ -307,7 +307,7 @@ def initialize_session_state():
         "show_intro": True,
         "language_changed": False,
         "show_results": False,
-        "reset_log": []  # Debug log for tracking resets
+        "reset_log": []  # Debug log for tracking adjustments
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -317,23 +317,25 @@ def initialize_session_state():
     if st.session_state.language not in ["Español", "English"]:
         st.session_state.language = "Español"
         st.session_state.prev_language = "Español"
+        st.session_state.reset_log.append("Language reset to Español due to invalid value")
     
     # Initialize or repair responses
     expected_counts = {cat: len(questions[cat]["Español"]) for cat in questions}
-    if not st.session_state.responses or len(st.session_state.responses) != len(questions):
-        # Full reset only if responses are empty or categories don't match
+    if not st.session_state.responses:
+        # Initialize responses if empty
         st.session_state.responses = {
             cat: [None] * expected_counts[cat] for cat in questions
         }
-        st.session_state.reset_log.append("Full reset: Empty or mismatched categories")
+        st.session_state.reset_log.append("Initialized empty responses")
     else:
-        # Repair responses for each category without overwriting valid data
+        # Repair responses for each category
         for cat in questions:
             if cat not in st.session_state.responses:
+                # Add missing category
                 st.session_state.responses[cat] = [None] * expected_counts[cat]
                 st.session_state.reset_log.append(f"Added missing category: {cat}")
             elif len(st.session_state.responses[cat]) != expected_counts[cat]:
-                # Adjust length of responses if mismatched
+                # Adjust response list length
                 current_responses = st.session_state.responses[cat]
                 st.session_state.responses[cat] = (
                     current_responses[:expected_counts[cat]] +
@@ -341,16 +343,16 @@ def initialize_session_state():
                 ) if len(current_responses) < expected_counts[cat] else current_responses[:expected_counts[cat]]
                 st.session_state.reset_log.append(f"Adjusted responses for {cat}: Expected {expected_counts[cat]}, Found {len(current_responses)}")
     
-    # Debug: Display reset log if recent reset occurred
-    if st.session_state.reset_log and len(st.session_state.reset_log) > 0:
-        st.warning(f"Debug: Response state adjusted. Log: {', '.join(st.session_state.reset_log[-1:])}")
+    # Display debug log only for unexpected adjustments
+    if st.session_state.reset_log and any("Added missing category" in log or "Adjusted responses" in log for log in st.session_state.reset_log[-1:]):
+        st.warning(f"Debug: Response state adjusted. Log: {st.session_state.reset_log[-1]}")
 
 initialize_session_state()
 
 # Sidebar navigation
 with st.sidebar:
     st.markdown('<div class="card" role="navigation" aria-label="Navegación de la auditoría">', unsafe_allow_html=True)
-    st.sidebar.image("assets/FOBO2.png", width=220)
+    
     # Language selection
     def update_language():
         """Handle language change with confirmation."""
@@ -369,6 +371,7 @@ with st.sidebar:
             st.session_state.show_results = False
             st.session_state.language_changed = False
             st.session_state.language_change_confirmed = False
+            st.session_state.reset_log.append("Responses reset due to language change")
     
     st.selectbox(
         "Idioma / Language",
@@ -832,7 +835,7 @@ if not st.session_state.show_intro:
             ad_text = []
             if overall_score < SCORE_THRESHOLDS["GOOD"]:
                 ad_text.append(
-                    "Los resultados de tu auditoría indican oportunidades para optimizar el lugar de trabajo. LEAN 2.0 Institute ofrece consultoría especializada para directivos, gerentes y Recursos Humanos, transformando tu entorno laboral en uno ético y eficiente." if st.session_state.language == "Español" else
+                    "Los resultados de tu auditoría indican oportunidades para optimizar el lugar de trabajo. LEAN 2Ԙ Institute ofrece consultoría especializada para directivos, gerentes y Recursos Humanos, transformando tu entorno laboral en uno ético y eficiente." if st.session_state.language == "Español" else
                     "Your audit results indicate opportunities to optimize the workplace. LEAN 2.0 Institute offers specialized consulting for directors, managers and HR, transforming your workplace into an ethical and efficient environment."
                 )
                 if df[TRANSLATIONS[st.session_state.language]["percent"]].min() < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
