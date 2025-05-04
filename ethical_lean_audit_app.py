@@ -452,11 +452,11 @@ if not st.session_state.responses or len(st.session_state.responses) != len(ques
 if st.session_state.show_intro:
     with st.container():
         st.markdown('<div class="main-container">', unsafe_allow_html=True)
-        st.markdown('<div class="header">¡Bienvenido a la Auditoría! / Welcome to the Audit!</div>', unsafe_allow_html=True)
+        st.markdown('<div class="header">¡Bienvenido a LEAN 2.0 Institute! Evaluemos juntos el nivel de bienestar en tu entorno laboral 🤝/ Welcome to LEAN 2.0 Institute! Let’s assess together the level of well-being in your work environment 🤝</div>', unsafe_allow_html=True)
         with st.expander("", expanded=True):
             st.markdown(
                 """
-                Esta auditoría está diseñada para directivos y profesionales de Recursos Humanos para evaluar de manera objetiva el entorno laboral. Responde preguntas en 5 categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables. Al completar la auditoría, contacta a LEAN 2.0 Institute en <a href="https://lean2institute.mystrikingly.com/" target="_blank">https://lean2institute.mystrikingly.com/</a> para consultas personalizadas.
+                Esta auditoría está diseñada para directivos, gerentes y profesionales de Recursos Humanos para evaluar de manera objetiva el entorno laboral. Responde preguntas en 5 categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables. Al completar la auditoría, contacta a LEAN 2.0 Institute en <a href="https://lean2institute.mystrikingly.com/" target="_blank">https://lean2institute.mystrikingly.com/</a> para consultas personalizadas.
                 
                 **Pasos**:
                 1. Responde las preguntas de cada categoría.
@@ -466,7 +466,7 @@ if st.session_state.show_intro:
                 """
                 if st.session_state.language == "Español" else
                 """
-                This audit is designed for directors and HR professionals to objectively assess the workplace environment. Answer questions across 5 categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations. Upon completion, contact LEAN 2.0 Institute at <a href="https://lean2institute.mystrikingly.com/" target="_blank">https://lean2institute.mystrikingly.com/</a> for personalized consultation.
+                This audit is designed for directors, managers and HR professionals to objectively assess the workplace environment. Answer questions across 5 categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations. Upon completion, contact LEAN 2.0 Institute at <a href="https://lean2institute.mystrikingly.com/" target="_blank">https://lean2institute.mystrikingly.com/</a> for personalized consultation.
                 
                 **Steps**:
                 1. Answer questions for each category.
@@ -543,7 +543,7 @@ if not st.session_state.show_intro:
             "count": {
                 "Español": {
                     "descriptions": [
-                        "Ningún empleado o caso afectado (0%).",
+                        "Ningún empleado o caso (0%).",
                         "Menos de un cuarto de los empleados (1-25%).",
                         "Entre un cuarto y la mitad (25-50%).",
                         "Más de la mitad pero no la mayoría (50-75%).",
@@ -553,7 +553,7 @@ if not st.session_state.show_intro:
                 },
                 "English": {
                     "descriptions": [
-                        "No employees or cases affected (0%).",
+                        "No employees or cases (0%).",
                         "Less than a quarter of employees (1-25%).",
                         "Between a quarter and half (25-50%).",
                         "More than half but not most (50-75%).",
@@ -748,8 +748,8 @@ if not st.session_state.show_intro:
                 unsafe_allow_html=True
             )
             st.markdown(
-                '<div class="badge">🏆 ¡Auditoría Completada! ¡Gracias por tu compromiso con un lugar de trabajo ético!</div>' if st.session_state.language == "Español" else
-                '<div class="badge">🏆 Audit Completed! Thank you for your commitment to an ethical workplace!</div>', 
+                '<div class="badge">🏆 ¡Auditoría Completada! ¡Gracias por tu compromiso con la construcción de un entorno laboral saludable, seguro y respetuoso para todas las personas!</div>' if st.session_state.language == "Español" else
+                '<div class="badge">🏆 Audit Completed! Thank you for your commitment to fostering a healthy, safe, and respectful work environment for everyone!</div>', 
                 unsafe_allow_html=True
             )
 
@@ -959,8 +959,8 @@ if not st.session_state.show_intro:
             ad_text = []
             if overall_score < 85:
                 ad_text.append(
-                    "Los resultados de tu auditoría indican oportunidades para optimizar el lugar de trabajo. LEAN 2.0 Institute ofrece consultoría especializada para directivos y HR, transformando tu entorno laboral en uno ético y eficiente." if st.session_state.language == "Español" else
-                    "Your audit results indicate opportunities to optimize the workplace. LEAN 2.0 Institute offers specialized consulting for directors and HR, transforming your workplace into an ethical and efficient environment."
+                    "Los resultados de tu auditoría indican oportunidades para optimizar el lugar de trabajo. LEAN 2.0 Institute ofrece consultoría especializada para directivos, gerentes y Recursos Humanos, transformando tu entorno laboral en uno ético y eficiente." if st.session_state.language == "Español" else
+                    "Your audit results indicate opportunities to optimize the workplace. LEAN 2.0 Institute offers specialized consulting for directors, managers and HR, transforming your workplace into an ethical and efficient environment."
                 )
                 if df["Porcentaje" if st.session_state.language == "Español" else "Percent"].min() < 70:
                     low_categories = df[df["Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70].index.tolist()
@@ -988,8 +988,8 @@ if not st.session_state.show_intro:
                     "Congratulations on an outstanding workplace! Partner with LEAN 2.0 Institute to sustain these strengths and lead with innovation."
                 )
             ad_text.append(
-                "Contáctanos en https://lean2institute.mystrikingly.com/ o envíanos un correo a info@lean2institute.com para una consulta estratégica." if st.session_state.language == "Español" else
-                "Contact us at https://lean2institute.mystrikingly.com/ or email us at info@lean2institute.com for a strategic consultation."
+                "Contáctanos en https://lean2institute.mystrikingly.com/ o envíanos un correo a contacto@lean2institute.com para una consulta estratégica." if st.session_state.language == "Español" else
+                "Contact us at https://lean2institute.mystrikingly.com/ or email us at contacto@lean2institute.com for a strategic consultation."
             )
             st.markdown("<div class='insights'>" + "<br>".join(ad_text) + "</div>", unsafe_allow_html=True)
 
