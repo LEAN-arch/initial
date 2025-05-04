@@ -9,7 +9,6 @@ import uuid
 import re
 from datetime import datetime
 from typing import Dict, List, Tuple
-import markdown
 
 # Constants
 SCORE_THRESHOLDS = {
@@ -54,7 +53,35 @@ TRANSLATIONS = {
         "email_label": "Correo electrónico para enviar el informe",
         "email_success": "Informe enviado exitosamente a {}.",
         "email_error": "Error al enviar el informe: {}.",
-        "contact_info": "Contáctanos en {} o {} para soporte adicional."
+        "contact_info": "Contáctanos en {} o {} para soporte adicional.",
+        "high_priority_categories": "Categorías con Alta Prioridad",
+        "average_score": "Puntuación Promedio",
+        "chart_title": "Fortalezas y Oportunidades del Lugar de Trabajo",
+        "score_percent": "Puntuación (%)",
+        "question_breakdown": "Análisis Detallado: Perspectivas a Nivel de Pregunta",
+        "select_category": "Seleccionar Categoría para Explorar",
+        "question_scores_for": "Puntuaciones de Preguntas para",
+        "actionable_insights": "Perspectivas Accionables",
+        "all_categories_above_70": "¡Todas las categorías obtuvieron más del 70%! Continúa manteniendo estas fortalezas.",
+        "summary": "Resumen",
+        "results": "Resultados",
+        "findings": "Hallazgos",
+        "overall_score": "Puntuación General",
+        "grade": "Calificación",
+        "findings_summary": "Resumen de Hallazgos",
+        "findings_summary_text": "{} categorías requieren acción urgente (<{}%), {} necesitan mejoras específicas ({}-{}%). La puntuación general es {}% ({}).",
+        "action_required": "Acción {} requerida.",
+        "findings_and_suggestions": "Hallazgos y Sugerencias",
+        "contact": "Contacto",
+        "generating_excel": "Generando Excel...",
+        "generating_pdf": "Generando PDF...",
+        "excel_error": "No se pudo generar el archivo Excel: {}",
+        "pdf_error": "No se pudo generar el archivo PDF: {}",
+        "grade_excellent_desc": "Tu lugar de trabajo demuestra prácticas sobresalientes. ¡Continúa fortaleciendo estas áreas!",
+        "grade_good_desc": "Tu lugar de trabajo tiene fortalezas, pero requiere mejoras específicas para alcanzar la excelencia.",
+        "grade_needs_improvement_desc": "Se identificaron debilidades moderadas. Prioriza acciones correctivas en áreas críticas.",
+        "grade_critical_desc": "Existen problemas significativos que requieren intervención urgente. Considera apoyo externo.",
+        "suggestion": "Sugerencia"
     },
     "English": {
         "title": "Ethical Lean Workplace Audit",
@@ -84,7 +111,35 @@ TRANSLATIONS = {
         "email_label": "Email address to send the report",
         "email_success": "Report successfully sent to {}.",
         "email_error": "Failed to send report: {}.",
-        "contact_info": "Contact us at {} or {} for additional support."
+        "contact_info": "Contact us at {} or {} for additional support.",
+        "high_priority_categories": "High Priority Categories",
+        "average_score": "Average Score",
+        "chart_title": "Workplace Strengths and Opportunities",
+        "score_percent": "Score (%)",
+        "question_breakdown": "Drill Down: Question-Level Insights",
+        "select_category": "Select Category to Explore",
+        "question_scores_for": "Question Scores for",
+        "actionable_insights": "Actionable Insights",
+        "all_categories_above_70": "All categories scored above 70%! Continue maintaining these strengths.",
+        "summary": "Summary",
+        "results": "Results",
+        "findings": "Findings",
+        "overall_score": "Overall Score",
+        "grade": "Grade",
+        "findings_summary": "Findings Summary",
+        "findings_summary_text": "{} categories require urgent action (<{}%), {} need specific improvements ({}-{}%). Overall score is {}% ({}).",
+        "action_required": "{} action required.",
+        "findings_and_suggestions": "Findings and Suggestions",
+        "contact": "Contact",
+        "generating_excel": "Generating Excel...",
+        "generating_pdf": "Generating PDF...",
+        "excel_error": "Failed to generate Excel file: {}",
+        "pdf_error": "Failed to generate PDF file: {}",
+        "grade_excellent_desc": "Your workplace demonstrates outstanding practices. Continue strengthening these areas!",
+        "grade_good_desc": "Your workplace has strengths but requires specific improvements to achieve excellence.",
+        "grade_needs_improvement_desc": "Moderate weaknesses identified. Prioritize corrective actions in critical areas.",
+        "grade_critical_desc": "Significant issues exist requiring urgent intervention. Consider external support.",
+        "suggestion": "Suggestion"
     }
 }
 
@@ -388,25 +443,25 @@ def get_grade(score: float) -> Tuple[str, str, str]:
     if score >= SCORE_THRESHOLDS["GOOD"]:
         return (
             "Excelente" if lang == "Español" else "Excellent",
-            TRANSLATIONS[lang]["grade_excellent_desc"] if lang == "Español" else "Your workplace demonstrates outstanding practices. Continue strengthening these areas!",
+            TRANSLATIONS[lang]["grade_excellent_desc"],
             "grade-excellent"
         )
     elif score >= SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
         return (
             "Bueno" if lang == "Español" else "Good",
-            TRANSLATIONS[lang]["grade_good_desc"] if lang == "Español" else "Your workplace has strengths but requires specific improvements to achieve excellence.",
+            TRANSLATIONS[lang]["grade_good_desc"],
             "grade-good"
         )
     elif score >= SCORE_THRESHOLDS["CRITICAL"]:
         return (
             "Necesita Mejora" if lang == "Español" else "Needs Improvement",
-            TRANSLATIONS[lang]["grade_needs_improvement_desc"] if lang == "Español" else "Moderate weaknesses identified. Prioritize corrective actions in critical areas.",
+            TRANSLATIONS[lang]["grade_needs_improvement_desc"],
             "grade-needs-improvement"
         )
     else:
         return (
             "Crítico" if lang == "Español" else "Critical",
-            TRANSLATIONS[lang]["grade_critical_desc"] if lang == "Español" else "Significant issues exist requiring urgent intervention. Consider external support.",
+            TRANSLATIONS[lang]["grade_critical_desc"],
             "grade-critical"
         )
 
