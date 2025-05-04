@@ -397,16 +397,16 @@ def load_css():
         .card-modern { background: #FFFFFF; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1rem; min-height: 200px; }
         .progress-circle { text-align: center; margin: 1rem 0; height: 150px; }
         .progress-ring__background { fill: none; stroke: #E0E0E0; stroke-width: 12; }
-        .progress-ring__circle { fill: none; stroke: #1E88E5; stroke-width: 12; transition: stroke-dashoffset: 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .progress-ring__circle { fill: none; stroke: #1E88E5; stroke-width: 12; transition: stroke-dashoffset 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; }
         .progress-label { font-size: 1rem; color: #424242; margin-top: 0.5rem; }
         .question-container { display: flex; align-items: center; margin-bottom: 0.5rem; }
         .question-text { font-weight: 500; color: #212121; margin-right: 0.5rem; }
         .required { color: #D32F2F; font-weight: bold; }
         .tooltip { position: relative; display: inline-block; }
         .tooltip-icon { background: #1E88E5; color: white; border-radius: 50%; width: 20px; height: 20px; text-align: center; line-height: 20px; cursor: help; }
-        .tooltip-text { visibility: hidden; width: 200px; background: #424242; color: #FFFFFF; text-align: center; border-radius: 6px; padding: 5px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -100px; opacity: 0; transition: opacity: 0.3s; }
+        .tooltip-text { visibility: hidden; width: 200px; background: #424242; color: #FFFFFF; text-align: center; border-radius: 6px; padding: 5px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -100px; opacity: 0; transition: opacity 0.3s; }
         .tooltip:hover .tooltip-text { visibility: visible; opacity: 1; }
-        .sticky-nav { position: sticky; bottom: 0; background: #F5F5F5; padding: 1rem; border-radius: 8px; box-shadow: 0 -2px: 4px rgba(0,0,0,0.1); z-index: 10; }
+        .sticky-nav { position: sticky; bottom: 0; background: #F5F5F5; padding: 1rem; border-radius: 8px; box-shadow: 0 -2px 4px rgba(0,0,0,0.1); z-index: 10; }
         .grade-excellent { background: #43A047; color: #FFFFFF; padding: 0.5rem; border-radius: 4px; }
         .grade-good { background: #FFD54F; color: #212121; padding: 0.5rem; border-radius: 4px; }
         .grade-needs-improvement { background: #FF9800; color: #FFFFFF; padding: 0.5rem; border-radius: 4px; }
@@ -415,8 +415,8 @@ def load_css():
         .alert-info { background: #E3F2FD; color: #1E88E5; }
         .alert-success { background: #E8F5E9; color: #43A047; }
         .alert-warning { background: #FFF3E0; color: #FF9800; }
-        .badge { background: #1E88E5; color: #FFFFFF; padding: 0.5rem: 1rem; border-radius: 16px; display: inline-block; margin: 1rem: 0; }
-        .progress-bar-container { margin: 1rem: 0; height: 30px; }
+        .badge { background: #1E88E5; color: #FFFFFF; padding: 0.5rem 1rem; border-radius: 16px; display: inline-block; margin: 1rem 0; }
+        .progress-bar-container { margin: 1rem 0; height: 30px; }
         .progress-bar { height: 20px; background: #E0E0E0; border-radius: 10px; overflow: hidden; }
         .progress-bar-fill { height: 100%; background: #1E88E5; transition: width: 0.35s; }
         @media (max-width: 768px) { 
@@ -742,7 +742,6 @@ with st.container():
                 TRANSLATIONS[st.session_state.language]["percent"]: TRANSLATIONS[st.session_state.language]["score_percent"]
             },
             color=TRANSLATIONS[st.session_state.language]["percent"],
-            color  
             color_continuous_scale=CHART_COLORS,
             range_x=[0, 100],
             height=CHART_HEIGHT
