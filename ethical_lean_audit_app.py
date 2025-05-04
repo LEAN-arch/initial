@@ -69,7 +69,7 @@ TRANSLATIONS = {
         "overall_score": "Puntuación General",
         "grade": "Calificación",
         "findings_summary": "Resumen de Hallazgos",
-        "findings_summary_text": "{} categorías requieren acción urgente (<{}%), {} necesitan mejoras específicas ({}-{}%). La puntuación general es {}% ({}).",
+        "findings_summary_text": "{} categorías requieren acción urgente (<{}%), {} necesitan mejoras específicas ({}-{}%). La puntuación general es {}%.",
         "action_required": "Acción {} requerida.",
         "findings_and_suggestions": "Hallazgos y Sugerencias",
         "contact": "Contacto",
@@ -127,7 +127,7 @@ TRANSLATIONS = {
         "overall_score": "Overall Score",
         "grade": "Grade",
         "findings_summary": "Findings Summary",
-        "findings_summary_text": "{} categories require urgent action (<{}%), {} need specific improvements ({}-{}%). Overall score is {}% ({}).",
+        "findings_summary_text": "{} categories require urgent action (<{}%), {} need specific improvements ({}-{}%). Overall score is {}%.",
         "action_required": "{} action required.",
         "findings_and_suggestions": "Findings and Suggestions",
         "contact": "Contact",
@@ -896,14 +896,19 @@ else:
                     border_format = workbook.add_format({'border': 1})
 
                     # Summary Sheet
+                    critical_count = len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
+                    improvement_count = len(df[(df[TRANSLATIONS[st.session_state.language]["percent"]] >= SCORE_THRESHOLDS["CRITICAL"]) & (df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"])])
                     summary_df = pd.DataFrame({
                         TRANSLATIONS[st.session_state.language]["overall_score"]: [f"{overall_score:.1f}%"],
                         TRANSLATIONS[st.session_state.language]["grade"]: [grade],
                         TRANSLATIONS[st.session_state.language]["findings_summary"]: [
                             TRANSLATIONS[st.session_state.language]["findings_summary_text"].format(
-                                len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]]),
-                                len(df[(df[TRANSLATIONS[st.session_state.language]["percent"]] >= SCORE_THRESHOLDS["CRITICAL"]) & (df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"])]),
-                                overall_score, grade
+                                critical_count,
+                                SCORE_THRESHOLDS["CRITICAL"],
+                                improvement_count,
+                                SCORE_THRESHOLDS["CRITICAL"],
+                                SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]-1,
+                                overall_score
                             )
                         ]
                     })
@@ -960,6 +965,13 @@ else:
 
             def generate_pdf_report() -> str:
                 """Generate LaTeX code for PDF report."""
+                critical_count = len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
+                improvement_count = len(df[(df[TRANSLATIONS[st.session_state.language]["percent"]] >= SCORE_THRESHOLDS["CRITICAL"]) & (df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"])])
+                results_rows = "".join([
+                    f"{next(k for k, v in category_mapping[st.session_state.language].items() if v == idx)} & {row[TRANSLATIONS[st.session_state.language]['percent']]:.1f}\\% & {row[TRANSLATIONS[st.session_state.language]['priority']]} \\\\" 
+                    for idx, row in df.iterrows()
+                ])
+                insights_latex = "".join([f"\\item {insight.replace('**', '\\textbf{').replace('**', '}')}" for insight in insights])
                 latex_content = f"""
                 \\documentclass{{article}}
                 \\usepackage[utf8]{{inputenc}}
@@ -984,9 +996,9 @@ else:
                 \\textbf{{{TRANSLATIONS[st.session_state.language]["overall_score"]}}}: {overall_score:.1f}\\% \\\\
                 \\textbf{{{TRANSLATIONS[st.session_state.language]["grade"]}}}: \\textcolor{{{grade_class.replace('grade-', '')}}}{{{grade}}} \\\\
                 \\textbf{{{TRANSLATIONS[st.session_state.language]["findings_summary"]}}}:
-                {len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])} categories require urgent action (<{SCORE_THRESHOLDS["CRITICAL"]}\\%),
-                {len(df[(df[TRANSLATIONS[st.session_state.language]["percent"]] >= SCORE_THRESHOLDS["CRITICAL"]) & (df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"])])} need specific improvements ({SCORE_THRESHOLDS["CRITICAL"]}-{SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]-1}\\%).
-                Overall score is {overall_score:.1f}\\% ({grade}).
+                {critical_count} categories require urgent action (<{SCORE_THRESHOLDS["CRITICAL"]}\\%),
+                {improvement_count} need specific improvements ({SCORE_THRESHOLDS["CRITICAL"]}-{SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]-1}\\%).
+                Overall score is {overall_score:.1f}\\%.
 
                 \\section*{{{TRANSLATIONS[st.session_state.language]["results"]}}}
                 \\begin{{table}}[h]
@@ -995,14 +1007,14 @@ else:
                         \\toprule
                         {TRANSLATIONS[st.session_state.language]["category"]} & {TRANSLATIONS[st.session_state.language]["score"]} & {TRANSLATIONS[st.session_state.language]["priority"]} \\\\
                         \\midrule
-                        {"".join([f"{next(k for k, v in category_mapping[st.session_state.language].items() if v == idx)} & {row[TRANSLATIONS[st.session_state.language]['percent']]:.1f}\\% & {row[TRANSLATIONS[st.session_state.language]['priority']]} \\\\" for idx, row in df.iterrows()])}
+                        {results_rows}
                         \\bottomrule
                     \\end{{tabular}}
                 \\end{{table}}
 
                 \\section*{{{TRANSLATIONS[st.session_state.language]["actionable_insights"]}}}
                 \\begin{{itemize}}
-                    {"".join([f"\\item {insight.replace('**', '\\textbf{').replace('**', '}')}" for insight in insights])}
+                    {insights_latex if insights_latex else "\\item No actionable insights required at this time."}
                 \\end{{itemize}}
 
                 \\section*{{{TRANSLATIONS[st.session_state.language]["contact"]}}}
@@ -1015,13 +1027,15 @@ else:
                 """
                 return latex_content
 
-            # Email report (simulated)
-            def send_email_report(email: str) -> bool:
+            # Email report
+            def send_email_report(email: str) -> Tuple[bool, str]:
                 """Simulate sending email with report link."""
+                if not email:
+                    return False, "Email address is empty."
                 if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-                    return False
+                    return False, "Invalid email address format."
                 # Simulate email sending
-                return True
+                return True, "Email sent successfully."
 
             st.markdown('<h3 class="subsection-title">Descarga tu Informe</h3>', unsafe_allow_html=True)
             with st.spinner(TRANSLATIONS[st.session_state.language]["generating_excel"]):
@@ -1049,10 +1063,11 @@ else:
 
             email_input = st.text_input(TRANSLATIONS[st.session_state.language]["email_label"])
             if st.button(TRANSLATIONS[st.session_state.language]["email_report"]):
-                if send_email_report(email_input):
+                success, message = send_email_report(email_input)
+                if success:
                     st.success(TRANSLATIONS[st.session_state.language]["email_success"].format(email_input))
                 else:
-                    st.error(TRANSLATIONS[st.session_state.language]["email_error"].format("Invalid email address"))
+                    st.error(TRANSLATIONS[st.session_state.language]["email_error"].format(message))
 
             st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</section>', unsafe_allow_html=True)
