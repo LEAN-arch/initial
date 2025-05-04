@@ -7,74 +7,100 @@ import io
 import numpy as np
 
 # Set page configuration as the first Streamlit command
-st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Ethical Lean Workplace Audit", layout="wide", initial_sidebar_state="expanded")
 
-# Custom CSS for enhanced visual impact
+# Custom CSS for a vibrant, engaging interface
 st.markdown("""
     <style>
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f9f9f9;
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f4f8;
         }
         .main {
             background-color: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            margin: auto;
         }
         .stButton>button {
-            background-color: #005b96;
+            background-color: #007bff;
             color: white;
-            border-radius: 5px;
-            padding: 10px 20px;
+            border-radius: 8px;
+            padding: 12px 24px;
             font-weight: bold;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s ease;
         }
         .stButton>button:hover {
-            background-color: #003366;
+            background-color: #0056b3;
         }
         .stRadio>label {
-            background-color: #e6f0fa;
-            padding: 8px;
-            border-radius: 5px;
-            margin: 5px 0;
+            background-color: #e9f7ff;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: 1.1em;
         }
         .header {
-            color: #005b96;
-            font-size: 2.5em;
+            color: #007bff;
+            font-size: 2.8em;
             text-align: center;
             margin-bottom: 20px;
+            font-weight: bold;
         }
         .subheader {
             color: #333;
-            font-size: 1.5em;
-            margin-top: 20px;
+            font-size: 1.8em;
+            margin-top: 25px;
+            text-align: center;
         }
         .sidebar .sidebar-content {
-            background-color: #f0f4f8;
+            background-color: #ffffff;
             border-radius: 10px;
             padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         .download-link {
-            color: #005b96;
+            color: #007bff;
             font-weight: bold;
             text-decoration: none;
+            font-size: 1.1em;
         }
         .download-link:hover {
-            color: #003366;
+            color: #0056b3;
             text-decoration: underline;
+        }
+        .motivation {
+            color: #28a745;
+            font-size: 1.2em;
+            text-align: center;
+            margin: 20px 0;
+            font-style: italic;
+        }
+        .badge {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1.2em;
+            text-align: center;
+            margin: 20px auto;
+            display: block;
+            width: fit-content;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state for language and responses
+# Initialize session state
 if 'language' not in st.session_state:
     st.session_state.language = "English"
-
 if 'responses' not in st.session_state:
     st.session_state.responses = {}
 if 'current_category' not in st.session_state:
     st.session_state.current_category = 0
+if 'prev_language' not in st.session_state:
+    st.session_state.prev_language = st.session_state.language
 
 # Bilingual support
 LANG = st.sidebar.selectbox(
@@ -82,174 +108,83 @@ LANG = st.sidebar.selectbox(
     ["English", "Español"], 
     help="Select your preferred language / Selecciona tu idioma preferido"
 )
+
+# Reset session state if language changes
+if LANG != st.session_state.prev_language:
+    st.session_state.current_category = 0
+    st.session_state.responses = {}
+    st.session_state.prev_language = LANG
+
 st.session_state.language = LANG
 
 # Likert scale labels
 labels = {
-    "English": ["Not Practiced", "Rarely Practiced", "Partially Implemented", "Mostly Practiced", "Fully Integrated"],
-    "Español": ["No practicado", "Raramente practicado", "Parcialmente implementado", "Mayormente practicado", "Totalmente integrado"]
+    "English": ["Not at All", "Rarely", "Somewhat", "Mostly", "Fully"],
+    "Español": ["Nada", "Raramente", "Parcialmente", "Mayormente", "Completamente"]
 }
 
-# Audit categories and questions in both languages
+# Curated audit categories and questions
 questions = {
-    "Employee Empowerment and Engagement": {
+    "Empowering Employees": {
         "English": [
-            "Are employees actively involved in decision-making processes that directly impact their daily work and job satisfaction?",
-            "Do employees feel their contributions to continuous improvement are valued and recognized by leadership?",
-            "Is there a structured feedback system where employees can openly express concerns and suggest improvements?",
-            "Are all employees given equal access to training and career development opportunities?",
-            "Is there a culture of trust and respect where employees are encouraged to suggest innovations?"
+            "How effectively are employees empowered to contribute to ethical workplace practices?",
+            "To what extent do employees feel their ideas for improvement are valued and acted upon?",
+            "How well does the workplace foster a culture of trust and open communication?",
+            "Are employees provided with meaningful opportunities for growth and development?"
         ],
         "Español": [
-            "¿Están los empleados activamente involucrados en los procesos de toma de decisiones que impactan directamente en su trabajo diario y satisfacción laboral?",
-            "¿Sienten los empleados que sus contribuciones a la mejora continua son valoradas y reconocidas por el liderazgo?",
-            "¿Existe un sistema estructurado de retroalimentación donde los empleados puedan expresar abiertamente preocupaciones y sugerir mejoras?",
-            "¿Tienen todos los empleados igual acceso a oportunidades de capacitación y desarrollo profesional?",
-            "¿Hay una cultura de confianza y respeto donde se fomenta que los empleados sugieran innovaciones?"
+            "¿Con qué eficacia se empodera a los empleados para contribuir a prácticas laborales éticas?",
+            "¿Hasta qué punto sienten los empleados que sus ideas de mejora son valoradas y puestas en práctica?",
+            "¿Qué tan bien fomenta el lugar de trabajo una cultura de confianza y comunicación abierta?",
+            "¿Se les proporciona a los empleados oportunidades significativas para el crecimiento y desarrollo?"
         ]
     },
-    "Operational Integrity and Continuous Improvement": {
+    "Ethical Leadership": {
         "English": [
-            "Are Lean processes regularly assessed for compliance with ethical standards?",
-            "Is there a link between Lean waste reduction and environmental/social responsibility?",
-            "Are bottlenecks proactively identified and addressed?",
-            "Does the Lean system adapt based on internal/external feedback?",
-            "Are digital tools integrated to ensure transparency and traceability?"
+            "How consistently do leaders demonstrate ethical and transparent decision-making?",
+            "To what degree are ethical values integrated into workplace policies and practices?",
+            "How effectively do leaders encourage accountability for ethical behavior?"
         ],
         "Español": [
-            "¿Se evalúan regularmente los procesos Lean para garantizar el cumplimiento de los estándares éticos?",
-            "¿Existe una conexión entre la reducción de desperdicios Lean y la responsabilidad ambiental/social?",
-            "¿Se identifican y abordan proactivamente los cuellos de botella?",
-            "¿Se adapta el sistema Lean en función de retroalimentación interna/externa?",
-            "¿Se integran herramientas digitales para garantizar transparencia y trazabilidad?"
+            "¿Con qué consistencia demuestran los líderes una toma de decisiones ética y transparente?",
+            "¿En qué medida se integran los valores éticos en las políticas y prácticas del lugar de trabajo?",
+            "¿Qué tan efectivamente fomentan los líderes la responsabilidad por el comportamiento ético?"
         ]
     },
-    "Customer Satisfaction and Value": {
+    "Human-Centered Operations": {
         "English": [
-            "Is customer satisfaction a key metric for Lean success?",
-            "Is feedback integrated into continuous improvement?",
-            "Do Lean processes prioritize value over efficiency?",
-            "Is customer satisfaction regularly measured?",
-            "Are product/service improvements validated by customers?"
+            "How well do workplace processes prioritize employee well-being alongside efficiency?",
+            "To what extent are lean practices designed to enhance human dignity and respect?",
+            "How effectively does the workplace adapt to feedback to improve human-centered operations?"
         ],
         "Español": [
-            "¿Es la satisfacción del cliente una métrica clave para el éxito de Lean?",
-            "¿Se integra la retroalimentación en la mejora continua?",
-            "¿Priorizan los procesos Lean el valor sobre la eficiencia?",
-            "¿Se mide regularmente la satisfacción del cliente?",
-            "¿Se validan las mejoras de productos/servicios con los clientes?"
+            "¿Qué tan bien priorizan los procesos del lugar de trabajo el bienestar de los empleados junto con la eficiencia?",
+            "¿En qué medida están diseñadas las prácticas lean para mejorar la dignidad y el respeto humano?",
+            "¿Qué tan efectivamente se adapta el lugar de trabajo a la retroalimentación para mejorar las operaciones centradas en las personas?"
         ]
     },
-    "Ethical Leadership and Decision-Making": {
+    "Sustainable and Ethical Practices": {
         "English": [
-            "Does leadership model ethical behavior and transparency?",
-            "Are ethical considerations part of Lean tool implementation?",
-            "Is the workforce impact of Lean transparent to stakeholders?",
-            "Are social and ethical Lean impacts tracked and addressed?",
-            "Are leaders accountable for ethical Lean implementation?"
+            "How strongly does the workplace integrate sustainability into its lean strategies?",
+            "To what extent are suppliers and partners chosen based on ethical and sustainable practices?",
+            "How effectively does the workplace reduce its environmental impact through lean practices?"
         ],
         "Español": [
-            "¿Modela el liderazgo un comportamiento ético y transparencia?",
-            "¿Forman parte las consideraciones éticas de la implementación de herramientas Lean?",
-            "¿Es transparente el impacto de Lean en la fuerza laboral para las partes interesadas?",
-            "¿Se rastrean y abordan los impactos sociales y éticos de Lean?",
-            "¿Son los líderes responsables de la implementación ética de Lean?"
+            "¿Con qué fuerza integra el lugar de trabajo la sostenibilidad en sus estrategias lean?",
+            "¿En qué medida se eligen proveedores y socios basados en prácticas éticas y sostenibles?",
+            "¿Qué tan efectivamente reduce el lugar de trabajo su impacto ambiental a través de prácticas lean?"
         ]
     },
-    "Sustainability and Long-Term Impact": {
+    "Well-Being and Balance": {
         "English": [
-            "Does Lean focus on long-term sustainable practices?",
-            "Are Lean principles part of CSR strategies?",
-            "Is carbon footprint reduction part of Lean?",
-            "Are sustainability metrics part of Lean performance?",
-            "Is there a scaling plan that maintains ethics and sustainability?"
+            "How well does the workplace support employee well-being and work-life balance?",
+            "To what extent are stress and burnout proactively monitored and addressed?",
+            "How effectively does the workplace foster a culture of empathy and support?"
         ],
         "Español": [
-            "¿Se enfoca Lean en prácticas sostenibles a largo plazo?",
-            "¿Forman parte los principios Lean de las estrategias de responsabilidad social corporativa?",
-            "¿Es la reducción de la huella de carbono parte de Lean?",
-            "¿Forman parte las métricas de sostenibilidad del rendimiento Lean?",
-            "¿Existe un plan de escalado que mantenga la ética y la sostenibilidad?"
-        ]
-    },
-    "Supplier and Partner Relationships": {
-        "English": [
-            "Are Lean principles applied fairly to suppliers?",
-            "Does Lean avoid unfair labor or environmental harm in supply chains?",
-            "Do suppliers collaborate in Lean process improvements?",
-            "Are ethical suppliers prioritized?",
-            "Are supplier ethics regularly assessed?"
-        ],
-        "Español": [
-            "¿Se aplican los principios Lean de manera justa a los proveedores?",
-            "¿Evita Lean el daño laboral o ambiental injusto en las cadenas de suministro?",
-            "¿Colaboran los proveedores en las mejoras de procesos Lean?",
-            "¿Se priorizan los proveedores éticos?",
-            "¿Se evalúan regularmente la ética de los proveedores?"
-        ]
-    },
-    "Lean System Transparency and Adaptability": {
-        "English": [
-            "Are Lean processes transparent to stakeholders?",
-            "Is the Lean system flexible to change?",
-            "Are Lean strategies regularly reviewed?",
-            "Can employees propose Lean process changes?",
-            "Is continuous learning fostered in Lean culture?"
-        ],
-        "Español": [
-            "¿Son los procesos Lean transparentes para las partes interesadas?",
-            "¿Es el sistema Lean flexible al cambio?",
-            "¿Se revisan regularmente las estrategias Lean?",
-            "¿Pueden los empleados proponer cambios en los procesos Lean?",
-            "¿Se fomenta el aprendizaje continuo en la cultura Lean?"
-        ]
-    },
-    "Cultural Alignment and Organizational Health": {
-        "English": [
-            "Is Lean aligned with organizational mission and culture?",
-            "Are Lean tools adapted to company culture?",
-            "Is cross-departmental collaboration promoted?",
-            "Are voices from all levels heard in Lean?",
-            "Is psychological safety encouraged?"
-        ],
-        "Español": [
-            "¿Está Lean alineado con la misión y la cultura organizacional?",
-            "¿Se adaptan las herramientas Lean a la cultura de la empresa?",
-            "¿Se promueve la colaboración interdepartamental?",
-            "¿Se escuchan las voces de todos los niveles en Lean?",
-            "¿Se fomenta la seguridad psicológica?"
-        ]
-    },
-    "Employee Well-Being and Work-Life Balance": {
-        "English": [
-            "Is employee well-being prioritized in Lean?",
-            "Are stress and burnout monitored?",
-            "Are workloads regularly assessed and adjusted?",
-            "Is there a culture of empathy and support?",
-            "Is Lean performance measured holistically (efficiency + satisfaction)?"
-        ],
-        "Español": [
-            "¿Se prioriza el bienestar de los empleados en Lean?",
-            "¿Se monitorean el estrés y el agotamiento?",
-            "¿Se evalúan y ajustan regularmente las cargas de trabajo?",
-            "¿Hay una cultura de empatía y apoyo?",
-            "¿Se mide el rendimiento Lean de manera holística (eficiencia + satisfacción)?"
-        ]
-    },
-    "Ethical Decision-Making and Transparency in Metrics": {
-        "English": [
-            "Are ethical frameworks used in Lean performance evaluation?",
-            "Are KPIs aligned with ethical values?",
-            "Are Lean outcomes celebrated fairly?",
-            "Are ethical implications reviewed before Lean decisions?",
-            "Are Lean metrics shared externally for accountability?"
-        ],
-        "Español": [
-            "¿Se utilizan marcos éticos en la evaluación del rendimiento Lean?",
-            "¿Están los KPI alineados con valores éticos?",
-            "¿Se celebran los resultados Lean de manera justa?",
-            "¿Se revisan las implicaciones éticas antes de las decisiones Lean?",
-            "¿Se comparten las métricas Lean externamente para rendir cuentas?"
+            "¿Qué tan bien apoya el lugar de trabajo el bienestar de los empleados y el equilibrio entre trabajo y vida?",
+            "¿En qué medida se monitorean y abordan proactivamente el estrés y el agotamiento?",
+            "¿Qué tan efectivamente fomenta el lugar de trabajo una cultura de empatía y apoyo?"
         ]
     }
 }
@@ -264,29 +199,46 @@ for cat in questions:
 if not st.session_state.responses or len(st.session_state.responses) != len(questions):
     st.session_state.responses = {cat: [0] * len(questions[cat][LANG]) for cat in questions}
 
-# Main title
+# Welcome message
 st.markdown(
-    '<div class="header">Ethical Lean Audit</div>' if LANG == "English" else 
-    '<div class="header">Auditoría Lean Ética</div>', 
+    '<div class="header">Shape an Ethical & Human-Centered Workplace!</div>' if LANG == "English" else 
+    '<div class="header">¡Construye un Lugar de Trabajo Ético y Centrado en las Personas!</div>', 
+    unsafe_allow_html=True
+)
+st.markdown(
+    "Your input is vital to creating a workplace that’s ethical, lean, and truly human-centered. Let’s make a difference together!" if LANG == "English" else
+    "Tu aporte es clave para crear un lugar de trabajo ético, lean y verdaderamente centrado en las personas. ¡Hagamos la diferencia juntos!", 
     unsafe_allow_html=True
 )
 
-# Replace placeholder logo with a local image (uncomment and provide path if available)
-# st.image("path/to/local/logo.png", width=100, caption="Company Logo" if LANG == "English" else "Logo de la Empresa")
-
-# Progress bar
+# Progress bar with milestones
 categories = list(questions.keys())
 progress = min((st.session_state.current_category + 1) / len(categories), 1.0)
 st.progress(progress)
+# Motivational messages at milestones
+if progress >= 0.5 and st.session_state.current_category < len(categories) - 1:
+    st.markdown(
+        '<div class="motivation">Halfway there! Your insights are shaping a better workplace!</div>' if LANG == "English" else
+        '<div class="motivation">¡A mitad de camino! ¡Tus ideas están moldeando un mejor lugar de trabajo!</div>', 
+        unsafe_allow_html=True
+    )
+elif progress == 1.0:
+    st.markdown(
+        '<div class="motivation">Almost done! Just one step left to complete your impact!</div>' if LANG == "English" else
+        '<div class="motivation">¡Casi listo! ¡Solo un paso más para completar tu impacto!</div>', 
+        unsafe_allow_html=True
+    )
 
 # Category navigation
-st.sidebar.subheader("Progress" if LANG == "English" else "Progreso")
+st.sidebar.subheader("Your Progress" if LANG == "English" else "Tu Progreso")
 category_index = st.sidebar.slider(
     "Select Category / Seleccionar Categoría",
     0, len(categories) - 1, st.session_state.current_category,
-    disabled=False
+    disabled=False,
+    help="Choose a category to provide your insights / Elige una categoría para compartir tus ideas"
 )
 st.session_state.current_category = category_index
+category_index = min(category_index, len(categories) - 1)
 category = categories[category_index]
 
 # Collect responses for the current category
@@ -298,7 +250,8 @@ for idx, q in enumerate(questions[category][LANG]):
         format_func=lambda x: f"{x} - {labels[LANG][x-1]}",
         key=f"{category}_{idx}",
         horizontal=True,
-        help=f"Select a score for {q}"
+        help="Your response helps build a more ethical and human-centered workplace!" if LANG == "English" else
+             "¡Tu respuesta ayuda a construir un lugar de trabajo más ético y centrado en las personas!"
     )
     st.session_state.responses[category][idx] = score
 
@@ -306,15 +259,20 @@ for idx, q in enumerate(questions[category][LANG]):
 col1, col2 = st.columns(2)
 with col1:
     if st.button("Previous Category" if LANG == "English" else "Categoría Anterior", disabled=category_index == 0):
-        st.session_state.current_category -= 1
+        st.session_state.current_category = max(category_index - 1, 0)
 with col2:
     if st.button("Next Category" if LANG == "English" else "Siguiente Categoría", disabled=category_index == len(categories) - 1):
-        st.session_state.current_category += 1
+        st.session_state.current_category = min(category_index + 1, len(categories) - 1)
 
 # Generate report
 if st.button("Generate Report" if LANG == "English" else "Generar Informe", key="generate_report"):
     st.markdown(
-        f'<div class="subheader">{"Audit Results" if LANG == "English" else "Resultados de la Auditoría"}</div>',
+        f'<div class="subheader">{"Your Workplace Impact Report" if LANG == "English" else "Tu Informe de Impacto en el Lugar de Trabajo"}</div>',
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        '<div class="badge">🏆 Audit Completed! Thank you for shaping an ethical workplace!</div>' if LANG == "English" else
+        '<div class="badge">🏆 ¡Auditoría Completada! ¡Gracias por construir un lugar de trabajo ético!</div>', 
         unsafe_allow_html=True
     )
     
@@ -327,21 +285,21 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe", key=
     # Radar chart
     @st.cache_data
     def generate_radar_chart(categories, values):
-        fig, ax = plt.subplots(figsize=(12, 8), subplot_kw=dict(polar=True))
+        fig, ax = plt.subplots(figsize=(10, 7), subplot_kw=dict(polar=True))
         angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
         values += values[:1]
         angles += angles[:1]
-        ax.plot(angles, values, linewidth=2, linestyle='solid', label='Score', color='#005b96')
-        ax.fill(angles, values, '#e6f0fa', alpha=0.5)
+        ax.plot(angles, values, linewidth=2, linestyle='solid', label='Score', color='#007bff')
+        ax.fill(angles, values, '#e9f7ff', alpha=0.5)
         ax.set_xticks(angles[:-1])
-        ax.set_xticklabels(categories, fontsize=8, wrap=True, color='#333', ha='center')
+        ax.set_xticklabels(categories, fontsize=10, wrap=True, color='#333', ha='center')
         for label, angle in zip(ax.get_xticklabels(), angles[:-1]):
             label.set_rotation(angle * 180 / np.pi - 90)
         ax.set_yticklabels([])
         ax.set_title(
-            "Ethical Lean Audit Radar" if st.session_state.language == "English" else 
-            "Radar de Auditoría Lean Ética", 
-            size=18, pad=20, color='#005b96'
+            "Ethical Workplace Radar" if st.session_state.language == "English" else 
+            "Radar del Lugar de Trabajo Ético", 
+            size=16, pad=20, color='#007bff'
         )
         ax.grid(True, color='#ccc', linestyle='--')
         plt.tight_layout()
@@ -351,12 +309,12 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe", key=
     values = df["Percent"].values.tolist()
     st.pyplot(generate_radar_chart(categories, values))
 
-    # PDF Report
+    # PDF Report with Completion Certificate
     class PDF(FPDF):
         def header(self):
             self.set_font("Helvetica", "B", 14)
-            self.set_text_color(0, 91, 150)
-            title = "Ethical Lean Audit Report" if st.session_state.language == "English" else "Informe de Auditoría Lean Ética"
+            self.set_text_color(0, 123, 255)
+            title = "Ethical Workplace Audit Report" if st.session_state.language == "English" else "Informe de Auditoría del Lugar de Trabajo Ético"
             self.cell(0, 10, title, 0, 1, "C")
             self.ln(5)
         
@@ -381,14 +339,28 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe", key=
         for cat, row in df.iterrows():
             pdf.cell(0, 10, f"{cat}: {row['Percent']:.1f}%", ln=True)
         
+        pdf.add_page()
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.set_text_color(40, 167, 69)
+        pdf.cell(0, 10, "Certificate of Completion" if st.session_state.language == "English" else "Certificado de Finalización", ln=True, align="C")
+        pdf.ln(10)
+        pdf.set_font("Helvetica", size=12)
+        pdf.set_text_color(51)
+        pdf.multi_cell(
+            0, 10, 
+            "Congratulations on completing the Ethical Workplace Audit! Your insights are helping to create a more ethical, human-centered, and sustainable workplace." 
+            if st.session_state.language == "English" else 
+            "¡Felicidades por completar la Auditoría del Lugar de Trabajo Ético! Tus aportes están ayudando a crear un lugar de trabajo más ético, centrado en las personas y sostenible."
+        )
+        
         pdf_output = io.BytesIO()
         pdf.output(dest='F', name=pdf_output)
         pdf_output.seek(0)
         b64_pdf = base64.b64encode(pdf_output.getvalue()).decode()
         href_pdf = (
-            f'<a href="data:application/pdf;base64,{b64_pdf}" download="ethical_lean_audit_report.pdf" class="download-link">Download PDF Report</a>' 
+            f'<a href="data:application/pdf;base64,{b64_pdf}" download="ethical_workplace_audit_report.pdf" class="download-link">Download PDF Report & Certificate</a>' 
             if st.session_state.language == "English" else 
-            f'<a href="data:application/pdf;base64,{b64_pdf}" download="informe_auditoria_lean_etica.pdf" class="download-link">Descargar Informe PDF</a>'
+            f'<a href="data:application/pdf;base64,{b64_pdf}" download="informe_auditoria_lugar_trabajo_etico.pdf" class="download-link">Descargar Informe PDF y Certificado</a>'
         )
         st.markdown(href_pdf, unsafe_allow_html=True)
         pdf_output.close()
@@ -407,9 +379,9 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe", key=
         excel_output.seek(0)
         b64_excel = base64.b64encode(excel_output.getvalue()).decode()
         href_excel = (
-            f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="ethical_lean_audit_results.xlsx" class="download-link">Download Excel Report</a>' 
+            f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="ethical_workplace_audit_results.xlsx" class="download-link">Download Excel Report</a>' 
             if st.session_state.language == "English" else 
-            f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lean_etica.xlsx" class="download-link">Descargar Informe Excel</a>'
+            f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lugar_trabajo_etico.xlsx" class="download-link">Descargar Informe Excel</a>'
         )
         st.markdown(href_excel, unsafe_allow_html=True)
         excel_output.close()
