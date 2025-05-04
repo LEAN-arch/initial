@@ -24,8 +24,8 @@ def generate_excel_report(
     REPORT_DATE: str
 ) -> io.BytesIO:
     """
-    Generate a single-sheet Excel report with all content on the first worksheet,
-    featuring translations, a bar chart, and a persuasive narrative to contract LEAN 2.0 Institute services.
+    Generate a single-sheet Excel report with all content on one worksheet,
+    ensuring a persuasive narrative to contract LEAN 2.0 Institute services.
 
     Args:
         df: DataFrame with category scores and priorities
@@ -318,7 +318,7 @@ def generate_excel_report(
                 translations[language]["type"]: translations[language]["category_type"]
             })
             for idx, q_score in enumerate(responses[cat]):
-                if q_score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] and len(action_plan_data) < 20:  # Limit to 20 rows
+                if q_score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] and len(action_plan_data) < 20:
                     question, _, rec = questions[cat][language][idx]
                     q_effort = (
                         "Alto" if q_score < SCORE_THRESHOLDS["CRITICAL"]/2 else
@@ -414,6 +414,13 @@ def generate_excel_report(
         for row in range(59, 59 + len(contact_df)):
             worksheet.write(row, 0, contact_df[translations[language]["metric"]][row-59], cell_format)
         worksheet.merge_range('A61:G62', translations[language]["marketing_message"], wrap_format)
+
+        # Verify single worksheet
+        worksheets = workbook.worksheets()
+        logger.debug("Total worksheets: %d", len(worksheets))
+        if len(worksheets) > 1:
+            logger.error("Multiple worksheets detected: %s", [ws.get_name() for ws in worksheets])
+            raise ValueError(f"Multiple worksheets created: {[ws.get_name() for ws in worksheets]}")
 
     logger.debug("Excel report generation completed with single worksheet: %s", sheet_name)
     excel_output.seek(0)
