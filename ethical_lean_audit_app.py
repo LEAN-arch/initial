@@ -256,22 +256,23 @@ st.markdown("""
             margin: 1rem 0;
             border-left: 4px solid var(--primary);
         }
-        .reference-table table {
+        .reference-table .stDataFrame {
             width: 100%;
             border-collapse: collapse;
         }
-        .reference-table th, .reference-table td {
+        .reference-table .stDataFrame th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
             padding: 0.5rem;
             text-align: left;
             border-bottom: 1px solid #BBDEFB;
         }
-        .reference-table th {
-            background-color: var(--primary);
-            color: white;
-            font-weight: 600;
-        }
-        .reference-table td {
+        .reference-table .stDataFrame td {
             background-color: var(--surface);
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #BBDEFB;
         }
         @media (max-width: 768px) {
             .main-container {
@@ -304,7 +305,7 @@ st.markdown("""
                 flex-direction: column;
                 gap: 0.5rem;
             }
-            .reference-table th, .reference-table td {
+            .reference-table .stDataFrame th, .reference-table .stDataFrame td {
                 font-size: 0.9rem;
                 padding: 0.3rem;
             }
@@ -621,43 +622,25 @@ if not st.session_state.show_intro:
                         "Refer to this guide to understand the response options for each question type."
                     )
                     st.markdown('<div class="reference-table">', unsafe_allow_html=True)
-                    st.markdown(
-                        """
-                        <table>
-                            <tr>
-                                <th>Tipo</th>
-                                <th>Opción</th>
-                                <th>Descripción</th>
-                            </tr>
-                        """ + "".join(
-                            f"""
-                            <tr>
-                                <td>{'Porcentaje' if st.session_state.language == 'Español' else 'Percentage'}</td>
-                                <td>{opt}</td>
-                                <td>{desc}</td>
-                            </tr>
-                            """ for opt, desc in response_options["percentage"]["reference"][st.session_state.language]
-                        ) + "".join(
-                            f"""
-                            <tr>
-                                <td>{'Frecuencia' if st.session_state.language == 'Español' else 'Frequency'}</td>
-                                <td>{opt}</td>
-                                <td>{desc}</td>
-                            </tr>
-                            """ for opt, desc in response_options["frequency"]["reference"][st.session_state.language]
-                        ) + "".join(
-                            f"""
-                            <tr>
-                                <td>{'Cantidad' if st.session_state.language == 'Español' else 'Count'}</td>
-                                <td>{opt}</td>
-                                <td>{desc}</td>
-                            </tr>
-                            """ for opt, desc in response_options["count"]["reference"][st.session_state.language]
-                        ) + """
-                        </table>
-                        """,
-                        unsafe_allow_html=True
+                    # Create DataFrame for reference table
+                    reference_data = []
+                    type_label = "Porcentaje" if st.session_state.language == "Español" else "Percentage"
+                    for opt, desc in response_options["percentage"]["reference"][st.session_state.language]:
+                        reference_data.append([type_label, opt, desc])
+                    type_label = "Frecuencia" if st.session_state.language == "Español" else "Frequency"
+                    for opt, desc in response_options["frequency"]["reference"][st.session_state.language]:
+                        reference_data.append([type_label, opt, desc])
+                    type_label = "Cantidad" if st.session_state.language == "Español" else "Count"
+                    for opt, desc in response_options["count"]["reference"][st.session_state.language]:
+                        reference_data.append([type_label, opt, desc])
+                    
+                    reference_df = pd.DataFrame(
+                        reference_data,
+                        columns=["Tipo" if st.session_state.language == "Español" else "Type",
+                                 "Opción" if st.session_state.language == "Español" else "Option",
+                                 "Descripción" if st.session_state.language == "Español" else "Description"]
                     )
+                    st.dataframe(reference_df, use_container_width=True, hide_index=True)
                     st.markdown('</div>', unsafe_allow_html=True)
 
                 for idx, (q, q_type) in enumerate(questions[category][st.session_state.language]):
@@ -1089,7 +1072,7 @@ if not st.session_state.show_intro:
                                         question = questions[cat][st.session_state.language][idx][0]
                                         rec = recommendations[cat][idx]
                                         action_text = f"- {question}: {rec}"
-                                        wrapped  wrapped_action = textwrap.wrap(action_text, width=75)
+                                        wrapped_action = textwrap.wrap(action_text, width=75)
                                         for line in wrapped_action:
                                             pdf.multi_cell(0, 8, line)
                                 pdf.ln(5)
