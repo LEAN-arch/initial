@@ -838,7 +838,10 @@ if not st.session_state.show_intro:
                 x="Porcentaje" if st.session_state.language == "Español" else "Percent",
                 orientation='h',
                 title="Fortalezas y Oportunidades del Lugar de Trabajo" if st.session_state.language == "Español" else "Workplace Strengths and Opportunities",
-                labels={"index": "Categoría" if st.session_state.language == "Español" else "Category", "Porcentaje" if st.session_state.language == "Español" else "Percent": "Puntuación (%)" if st.session_state.language == "Esp SECRETARY OF STATE
+                labels={
+                    "index": "Categoría" if st.session_state.language == "Español" else "Category",
+                    "Porcentaje" if st.session_state.language == "Español" else "Percent": "Puntuación (%)" if st.session_state.language == "Español" else "Score (%)"
+                },
                 color="Porcentaje" if st.session_state.language == "Español" else "Percent",
                 color_continuous_scale=["#D32F2F", "#FFD54F", "#43A047"],
                 range_x=[0, 100],
