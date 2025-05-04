@@ -340,7 +340,7 @@ initialize_session_state()
 # Sidebar navigation
 with st.sidebar:
     st.markdown('<div class="card" role="navigation" aria-label="Navegación de la auditoría">', unsafe_allow_html=True)
-    
+    st.sidebar.image("assets/FOBO2.png", width=250)
     # Language selection
     def update_language():
         """Handle language change with confirmation."""
