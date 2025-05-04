@@ -306,7 +306,8 @@ def initialize_session_state():
         "prev_language": "Español",
         "show_intro": True,
         "language_changed": False,
-        "show_results": False
+        "show_results": False,
+        "reset_log": []  # Debug log for tracking resets
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -317,30 +318,39 @@ def initialize_session_state():
         st.session_state.language = "Español"
         st.session_state.prev_language = "Español"
     
-    # Initialize responses with validation
+    # Initialize or repair responses
     expected_counts = {cat: len(questions[cat]["Español"]) for cat in questions}
-    total_expected_questions = sum(expected_counts.values())
-    if (not st.session_state.responses or 
-        len(st.session_state.responses) != len(questions) or
-        any(len(st.session_state.responses[cat]) != expected_counts[cat] for cat in questions)):
-        if st.session_state.responses:
-            st.warning("Estado de respuestas inválido detectado. Reiniciando respuestas para mantener la integridad de los datos." if st.session_state.language == "Español" else "Invalid response state detected. Resetting responses to maintain data integrity.")
+    if not st.session_state.responses or len(st.session_state.responses) != len(questions):
+        # Full reset only if responses are empty or categories don't match
         st.session_state.responses = {
-            cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions
+            cat: [None] * expected_counts[cat] for cat in questions
         }
+        st.session_state.reset_log.append("Full reset: Empty or mismatched categories")
+    else:
+        # Repair responses for each category without overwriting valid data
+        for cat in questions:
+            if cat not in st.session_state.responses:
+                st.session_state.responses[cat] = [None] * expected_counts[cat]
+                st.session_state.reset_log.append(f"Added missing category: {cat}")
+            elif len(st.session_state.responses[cat]) != expected_counts[cat]:
+                # Adjust length of responses if mismatched
+                current_responses = st.session_state.responses[cat]
+                st.session_state.responses[cat] = (
+                    current_responses[:expected_counts[cat]] +
+                    [None] * (expected_counts[cat] - len(current_responses))
+                ) if len(current_responses) < expected_counts[cat] else current_responses[:expected_counts[cat]]
+                st.session_state.reset_log.append(f"Adjusted responses for {cat}: Expected {expected_counts[cat]}, Found {len(current_responses)}")
     
-    # Validate question counts across languages
-    for cat in questions:
-        if len(questions[cat]["Español"]) != len(questions[cat]["English"]):
-            st.error(f"Error: El número de preguntas en {cat} no coincide entre Español ({len(questions[cat]['Español'])}) e Inglés ({len(questions[cat]['English'])}).")
-            st.session_state.responses[cat] = [None] * len(questions[cat][st.session_state.language])
+    # Debug: Display reset log if recent reset occurred
+    if st.session_state.reset_log and len(st.session_state.reset_log) > 0:
+        st.warning(f"Debug: Response state adjusted. Log: {', '.join(st.session_state.reset_log[-1:])}")
 
 initialize_session_state()
 
 # Sidebar navigation
 with st.sidebar:
     st.markdown('<div class="card" role="navigation" aria-label="Navegación de la auditoría">', unsafe_allow_html=True)
-    st.sidebar.image("assets/FOBO2.png", width=250)
+    st.sidebar.image("assets/FOBO2.png", width=220)
     # Language selection
     def update_language():
         """Handle language change with confirmation."""
@@ -399,7 +409,7 @@ if st.session_state.show_intro:
     with st.container():
         st.markdown('<div class="main-container" role="main">', unsafe_allow_html=True)
         st.markdown(
-            f"""<div class="header" role="heading" aria-level="1">🤝 ¡Bienvenido a LEAN 2.0 Institute! Evaluemos tu entorno laboral. / Welcome to LEAN 2.0 Institute! Let's assess your work environment.</div>""",
+            f'<div class="header" role="heading" aria-level="1">🤝 ¡Bienvenido a LEFingerprint 2.0 Institute! Evalúa tu entorno laboral. / Welcome to LEAN 2.0 Institute! Assess your work environment.</div>',
             unsafe_allow_html=True
         )
         with st.expander("", expanded=True):
