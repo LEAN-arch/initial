@@ -97,6 +97,32 @@ def generate_excel_report(
     from datetime import datetime
     report_date_formatted = datetime.strptime(REPORT_DATE, "%Y-%m-%d").strftime(TRANSLATIONS[language]["date_format"])
 
+    # Enhanced Data Validation
+    if df.empty or df_display.empty or not responses:
+        raise ValueError("Input data is empty or invalid")
+    required_columns = [TRANSLATIONS[language]["score"], TRANSLATIONS[language]["percent"], TRANSLATIONS[language]["priority"]]
+    if not all(col in df.columns for col in required_columns):
+        raise ValueError(f"Required columns missing in df: {required_columns}")
+    if not df.index.is_unique:
+        raise ValueError("DataFrame index must be unique for categories")
+    if not all(cat in df.index for cat in questions.keys()):
+        raise ValueError("Not all question categories are present in DataFrame index")
+    if not pd.api.types.is_numeric_dtype(df[TRANSLATIONS[language]["percent"]]):
+        raise ValueError(f"Column {TRANSLATIONS[language]['percent']} must contain numeric values")
+    if df[TRANSLATIONS[language]["percent"]].isnull().any():
+        raise ValueError(f"Column {TRANSLATIONS[language]['percent']} contains missing values")
+    for cat in responses:
+        if not responses[cat] or any(score is None for score in responses[cat]):
+            raise ValueError(f"Invalid or missing responses in category {cat}")
+    # Validate translation keys
+    required_keys = ["report_title", "summary", "results", "actionable_charts", "contact", "category",
+                    "score", "score_percent", "percent", "priority", "high_priority", "medium_priority",
+                    "low_priority", "high_priority_categories", "overall_score", "grade", "question",
+                    "suggestion", "chart_title", "marketing_message", "date_format"]
+    if not all(key in TRANSLATIONS[language] for key in required_keys):
+        missing = [key for key in required_keys if key not in TRANSLATIONS[language]]
+        raise ValueError(f"Missing translation keys for {language}: {missing}")
+
     excel_output = io.BytesIO()
     with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
         workbook = writer.book
@@ -144,28 +170,6 @@ def generate_excel_report(
         alt_row_format = workbook.add_format({
             'bg_color': '#F5F5F5', 'font_size': 10, 'font_name': 'Arial', 'border': 1, 'valign': 'top'
         })
-
-        # Data Validation
-        if df.empty or df_display.empty or not responses:
-            raise ValueError("Input data is empty or invalid")
-        if not all(col in df.columns for col in [TRANSLATIONS[language]["score"], TRANSLATIONS[language]["percent"], TRANSLATIONS[language]["priority"]]):
-            raise ValueError("Required columns missing in df")
-        for cat in responses:
-            if not responses[cat] or any(score is None for score in responses[cat]):
-                raise ValueError(f"Invalid or missing responses in category {cat}")
-        # Validate translation keys
-        required_keys = ["report_title", "summary", "results", "actionable_charts", "contact", "category",
-                        "score", "score_percent", "percent", "priority", "high_priority", "medium_priority",
-                        "low_priority", "high_priority_categories", "overall_score", "grade", "question",
-                        "suggestion", "chart_title", "marketing_message", "date_format"]
-        if not all(key in TRANSLATIONS[language] for key in required_keys):
-            missing = [key for key in required_keys if key not in TRANSLATIONS[language]]
-            raise ValueError(f"Missing translation keys for {language}: {missing}")
-        # Validate DataFrame index
-        if not df.index.is_unique:
-            raise ValueError("DataFrame index must be unique for categories")
-        if not all(cat in df.index for cat in questions.keys()):
-            raise ValueError("Not all question categories are present in DataFrame index")
 
         # Cover Sheet
         cover_sheet = workbook.add_worksheet("Cover")
@@ -308,7 +312,6 @@ def generate_excel_report(
         action_plan_data = []
         for cat in questions.keys():
             display_cat = next(k for k, v in category_mapping[language].items() if v == cat)
-            # Ensure score is a scalar
             try:
                 score = df.loc[cat, TRANSLATIONS[language]["percent"]].item()
             except (ValueError, KeyError) as e:
@@ -476,7 +479,7 @@ def generate_excel_report(
             worksheet_viz.write(row, 4, summary_stats_df["Métrica" if language == "Español" else "Metric"][row-5], cell_format if (row-5) % 2 else alt_row_format)
 
         # Box Plot
-        box_data = []
+        box meatballs = []
         for cat in questions.keys():
             display_cat = next(k for k, v in category_mapping[language].items() if v == cat)
             for q_score in responses[cat]:
