@@ -16,7 +16,6 @@ SCORE_THRESHOLDS = {
     "GOOD": 85,
 }
 TOTAL_QUESTIONS = 25
-PROGRESS_DISPLAY_THRESHOLD = 20
 CHART_COLORS = ["#D32F2F", "#FFD54F", "#43A047"]
 CHART_HEIGHT = 400
 QUESTION_TRUNCATE_LENGTH = 100
@@ -38,7 +37,7 @@ TRANSLATIONS = {
         "report_title": "Tu Informe de Bienestar Laboral",
         "download_excel": "Descargar Informe Excel",
         "report_filename_excel": "resultados_auditoria_lugar_trabajo_etico.xlsx",
-        "unanswered_error": "Preguntas sin responder ({}). Por favor, completa todas las preguntas para ver los resultados.",
+        "unanswered_error": "No se pueden mostrar los resultados. Hay {} preguntas sin responder. Por favor, completa todas las preguntas.",
         "missing_questions": "Preguntas faltantes:",
         "all_answered": "¡Todas las preguntas han sido respondidas! Revisa los resultados abajo.",
         "response_guide": "Selecciona la descripción que mejor represente la situación para cada pregunta. Las opciones describen el grado, frecuencia o cantidad aplicable.",
@@ -73,7 +72,8 @@ TRANSLATIONS = {
         "grade_critical_desc": "Existen problemas significativos que requieren intervención urgente. Considera apoyo externo.",
         "suggestion": "Sugerencia",
         "actionable_charts": "Gráficos Accionables",
-        "marketing_message": "¡Transforme su lugar de trabajo con LEAN 2.0 Institute! Colaboramos con usted para implementar soluciones sostenibles que aborden los hallazgos de esta auditoría, promoviendo un entorno laboral ético, inclusivo y productivo. Contáctenos para comenzar hoy mismo."
+        "marketing_message": "¡Transforme su lugar de trabajo con LEAN 2.0 Institute! Colaboramos con usted para implementar soluciones sostenibles que aborden los hallazgos de esta auditoría, promoviendo un entorno laboral ético, inclusivo y productivo. Contáctenos para comenzar hoy mismo.",
+        "submit_answers": "Enviar Respuestas"
     },
     "English": {
         "title": "Ethical Lean Workplace Audit",
@@ -89,7 +89,7 @@ TRANSLATIONS = {
         "report_title": "Your Workplace Wellness Report",
         "download_excel": "Download Excel Report",
         "report_filename_excel": "ethical_workplace_audit_results.xlsx",
-        "unanswered_error": "Unanswered questions ({}). Please complete all questions to view results.",
+        "unanswered_error": "Cannot display results. There are {} unanswered questions. Please complete all questions.",
         "missing_questions": "Missing Questions:",
         "all_answered": "All questions have been answered! Review results below.",
         "response_guide": "Select the description that best represents the situation for each question. The options describe the degree, frequency, or quantity applicable.",
@@ -124,7 +124,8 @@ TRANSLATIONS = {
         "grade_critical_desc": "Significant issues exist requiring urgent intervention. Consider external support.",
         "suggestion": "Suggestion",
         "actionable_charts": "Actionable Charts",
-        "marketing_message": "Transform your workplace with LEAN 2.0 Institute! We partner with you to implement sustainable solutions that address the findings of this audit, fostering an ethical, inclusive, and productive work environment. Contact us to start today."
+        "marketing_message": "Transform your workplace with LEAN 2.0 Institute! We partner with you to implement sustainable solutions that address the findings of this audit, fostering an ethical, inclusive, and productive work environment. Contact us to start today.",
+        "submit_answers": "Submit Answers"
     }
 }
 
@@ -351,7 +352,8 @@ def initialize_session_state():
         "language_changed": False,
         "reset_confirmed": False,
         "report_id": str(uuid.uuid4()),
-        "last_scroll_position": 0
+        "last_scroll_position": 0,
+        "submit_clicked": False
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -395,10 +397,6 @@ def load_css():
         .main-title { font-size: 2.5rem; color: #1E88E5; text-align: center; }
         .section-title { font-size: 1.8rem; color: #424242; margin-bottom: 1rem; }
         .card-modern { background: #FFFFFF; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1rem; min-height: 200px; }
-        .progress-circle { text-align: center; margin: 1rem 0; height: 150px; }
-        .progress-ring__background { fill: none; stroke: #E0E0E0; stroke-width: 12; }
-        .progress-ring__circle { fill: none; stroke: #1E88E5; stroke-width: 12; transition: stroke-dashoffset 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; }
-        .progress-label { font-size: 1rem; color: #424242; margin-top: 0.5rem; }
         .question-container { display: flex; align-items: center; margin-bottom: 0.5rem; }
         .question-text { font-weight: 500; color: #212121; margin-right: 0.5rem; }
         .required { color: #D32F2F; font-weight: bold; }
@@ -416,14 +414,10 @@ def load_css():
         .alert-success { background: #E8F5E9; color: #43A047; }
         .alert-warning { background: #FFF3E0; color: #FF9800; }
         .badge { background: #1E88E5; color: #FFFFFF; padding: 0.5rem 1rem; border-radius: 16px; display: inline-block; margin: 1rem 0; }
-        .progress-bar-container { margin: 1rem 0; height: 30px; }
-        .progress-bar { height: 20px; background: #E0E0E0; border-radius: 10px; overflow: hidden; }
-        .progress-bar-fill { height: 100%; background: #1E88E5; transition: width: 0.35s; }
         @media (max-width: 768px) { 
             .main-title { font-size: 2rem; } 
             .section-title { font-size: 1.5rem; } 
             .card-modern { padding: 1rem; } 
-            .progress-circle { height: 120px; }
         }
     """
     st.markdown(f"<style>{default_css}</style>", unsafe_allow_html=True)
@@ -497,6 +491,7 @@ def update_language():
         st.session_state.language_changed = False
         st.session_state.language_change_confirmed = False
         st.session_state.report_id = str(uuid.uuid4())
+        st.session_state.submit_clicked = False
 
 def reset_audit():
     if st.session_state.get("reset_confirmed", False):
@@ -505,6 +500,7 @@ def reset_audit():
         }
         st.session_state.reset_confirmed = False
         st.session_state.report_id = str(uuid.uuid4())
+        st.session_state.submit_clicked = False
 
 # Sidebar
 with st.sidebar:
@@ -564,78 +560,6 @@ with st.container():
         unsafe_allow_html=True
     )
 
-    # Progress indicators
-    completed_questions = sum(
-        sum(1 for score in scores if score is not None)
-        for scores in st.session_state.responses.values()
-    )
-    completion_percentage = (completed_questions / TOTAL_QUESTIONS) * 100 if TOTAL_QUESTIONS > 0 else 0
-    st.markdown(
-        f"""
-        <div class="progress-circle" role="progressbar" aria-valuenow="{completion_percentage:.1f}" aria-valuemin="0" aria-valuemax="100">
-            <svg class="progress-ring" width="120" height="120">
-                <circle class="progress-ring__background" cx="60" cy="60" r="54" />
-                <circle class="progress-ring__circle" cx="60" cy="60" r="54" stroke-dasharray="339.292" stroke-dashoffset="{339.292 * (1 - completion_percentage / 100)}" />
-                <text x="50%" y="50%" text-anchor="middle" dy=".3em">{completed_questions}/{TOTAL_QUESTIONS}</text>
-            </svg>
-            <div class="progress-label">{completion_percentage:.1f}% Completado</div>
-        </div>
-        <div class="progress-bar-container">
-            <div class="progress-bar">
-                <div class="progress-bar-fill" style="width: {completion_percentage}%"></div>
-            </div>
-        </div>
-        <span class="sr-only">{completed_questions} de {TOTAL_QUESTIONS} preguntas completadas ({completion_percentage:.1f}%)</span>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # Check audit completion
-    audit_complete = all(
-        all(score is not None for score in scores)
-        for scores in st.session_state.responses.values()
-    )
-
-    # Display unanswered questions
-    if completion_percentage >= PROGRESS_DISPLAY_THRESHOLD and not audit_complete:
-        unanswered_questions = []
-        question_counter = 1
-        for cat in questions.keys():
-            for i, (q, _, _) in enumerate(questions[cat][st.session_state.language]):
-                if st.session_state.responses[cat][i] is None:
-                    display_cat = next(
-                        k for k, v in category_mapping[st.session_state.language].items() if v == cat
-                    )
-                    truncated_q = (
-                        q[:QUESTION_TRUNCATE_LENGTH] + ("..." if len(q) > QUESTION_TRUNCATE_LENGTH else "")
-                    )
-                    unanswered_questions.append(
-                        f"{display_cat}: Pregunta {question_counter} - {truncated_q}"
-                    )
-                question_counter += 1
-        st.error(
-            TRANSLATIONS[st.session_state.language]["unanswered_error"].format(
-                len(unanswered_questions)
-            ),
-            icon="⚠️"
-        )
-        st.markdown(
-            f"""
-            <div class="alert alert-warning" role="alert">
-                <strong>{TRANSLATIONS[st.session_state.language]["missing_questions"]}</strong>
-                <ul>
-                    {"".join([f"<li>{sanitize_input(q)}</li>" for q in unanswered_questions])}
-                </ul>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    elif audit_complete:
-        st.success(
-            TRANSLATIONS[st.session_state.language]["all_answered"],
-            icon="✅"
-        )
-
     # Display all categories and questions
     for idx, display_category in enumerate(display_categories):
         category = category_mapping[st.session_state.language][display_category]
@@ -675,305 +599,359 @@ with st.container():
                     st.session_state.responses[category][q_idx] = scores[score_idx]
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # Results section
-    if audit_complete:
-        st.markdown(f'<div class="card-modern report-section" role="region" aria-label="{TRANSLATIONS[st.session_state.language]["report_title"]}">', unsafe_allow_html=True)
-        st.markdown(f'<h2 class="section-title">{TRANSLATIONS[st.session_state.language]["report_title"]}</h2>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="badge">🏆 ¡Auditoría Completada! ¡Gracias por tu compromiso con la construcción de un entorno laboral saludable, seguro y respetuoso para todas las personas!</div>' if st.session_state.language == "Español" else
-            '<div class="badge">🏆 Audit Completed! Thank you for your commitment to fostering a healthy, safe, and respectful work environment for everyone!</div>',
-            unsafe_allow_html=True
-        )
+    # Submit Answers button
+    if st.button(
+        TRANSLATIONS[st.session_state.language]["submit_answers"],
+        key="submit_answers",
+        type="primary",
+        use_container_width=True
+    ):
+        st.session_state.submit_clicked = True
 
-        # Calculate scores
-        results = {cat: sum(scores) / len(scores) for cat, scores in st.session_state.responses.items()}
-        df = pd.DataFrame.from_dict(results, orient="index", columns=[TRANSLATIONS[st.session_state.language]["score"]])
-        df[TRANSLATIONS[st.session_state.language]["percent"]] = df[TRANSLATIONS[st.session_state.language]["score"]]
-        df[TRANSLATIONS[st.session_state.language]["priority"]] = df[TRANSLATIONS[st.session_state.language]["percent"]].apply(
-            lambda x: TRANSLATIONS[st.session_state.language]["high_priority"] if x < SCORE_THRESHOLDS["CRITICAL"] else 
-                      TRANSLATIONS[st.session_state.language]["medium_priority"] if x < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] else 
-                      TRANSLATIONS[st.session_state.language]["low_priority"]
-        )
+    # Check audit completion
+    audit_complete = all(
+        all(score is not None for score in scores)
+        for scores in st.session_state.responses.values()
+    )
 
-        # Summary dashboard
-        st.markdown('<h3 class="subsection-title">Resumen Ejecutivo</h3>', unsafe_allow_html=True)
-        col1, col2, col3 = st.columns([2, 1, 1])
-        with col1:
-            overall_score = df[TRANSLATIONS[st.session_state.language]["percent"]].mean()
-            grade, grade_description, grade_class = get_grade(overall_score)
+    # Handle submit logic
+    if st.session_state.submit_clicked:
+        if not audit_complete:
+            unanswered_questions = []
+            question_counter = 1
+            for cat in questions.keys():
+                for i, (q, _, _) in enumerate(questions[cat][st.session_state.language]):
+                    if st.session_state.responses[cat][i] is None:
+                        display_cat = next(
+                            k for k, v in category_mapping[st.session_state.language].items() if v == cat
+                        )
+                        truncated_q = (
+                            q[:QUESTION_TRUNCATE_LENGTH] + ("..." if len(q) > QUESTION_TRUNCATE_LENGTH else "")
+                        )
+                        unanswered_questions.append(
+                            f"{display_cat}: Pregunta {question_counter} - {truncated_q}"
+                        )
+                    question_counter += 1
+            st.error(
+                TRANSLATIONS[st.session_state.language]["unanswered_error"].format(
+                    len(unanswered_questions)
+                ),
+                icon="⚠️"
+            )
             st.markdown(
-                f'<div class="grade {grade_class}">Calificación General: {grade} ({overall_score:.1f}%)</div>' if st.session_state.language == "Español" else
-                f'<div class="grade {grade_class}">Overall Grade: {grade} ({overall_score:.1f}%)</div>',
+                f"""
+                <div class="alert alert-warning" role="alert">
+                    <strong>{TRANSLATIONS[st.session_state.language]["missing_questions"]}</strong>
+                    <ul>
+                        {"".join([f"<li>{sanitize_input(q)}</li>" for q in unanswered_questions])}
+                    </ul>
+                </div>
+                """,
                 unsafe_allow_html=True
             )
-            st.markdown(f'<p class="grade-description">{grade_description}</p>', unsafe_allow_html=True)
-        with col2:
-            st.metric(
-                TRANSLATIONS[st.session_state.language]["high_priority_categories"],
-                len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
+        else:
+            st.success(
+                TRANSLATIONS[st.session_state.language]["all_answered"],
+                icon="✅"
             )
-        with col3:
-            st.metric(
-                TRANSLATIONS[st.session_state.language]["average_score"],
-                f"{overall_score:.1f}%"
+            # Results section
+            st.markdown(f'<div class="card-modern report-section" role="region" aria-label="{TRANSLATIONS[st.session_state.language]["report_title"]}">', unsafe_allow_html=True)
+            st.markdown(f'<h2 class="section-title">{TRANSLATIONS[st.session_state.language]["report_title"]}</h2>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="badge">🏆 ¡Auditoría Completada! ¡Gracias por tu compromiso con la construcción de un entorno laboral saludable, seguro y respetuoso para todas las personas!</div>' if st.session_state.language == "Español" else
+                '<div class="badge">🏆 Audit Completed! Thank you for your commitment to fostering a healthy, safe, and respectful work environment for everyone!</div>',
+                unsafe_allow_html=True
             )
 
-        # Color-coded dataframe
-        def color_percent(val):
-            color = CHART_COLORS[0] if val < SCORE_THRESHOLDS["CRITICAL"] else CHART_COLORS[1] if val < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] else CHART_COLORS[2]
-            return f'background-color: {color}; color: white;'
-
-        st.dataframe(
-            df.style.applymap(color_percent, subset=[TRANSLATIONS[st.session_state.language]["percent"]]).format({TRANSLATIONS[st.session_state.language]["percent"]: "{:.1f}%"}),
-            use_container_width=True
-        )
-
-        # Bar chart
-        df_display = df.copy()
-        df_display.index = [next(k for k, v in category_mapping[st.session_state.language].items() if v == idx) for idx in df.index]
-        fig = px.bar(
-            df_display.reset_index(),
-            y="index",
-            x=TRANSLATIONS[st.session_state.language]["percent"],
-            orientation='h',
-            title=TRANSLATIONS[st.session_state.language]["chart_title"],
-            labels={
-                "index": TRANSLATIONS[st.session_state.language]["category"],
-                TRANSLATIONS[st.session_state.language]["percent"]: TRANSLATIONS[st.session_state.language]["score_percent"]
-            },
-            color=TRANSLATIONS[st.session_state.language]["percent"],
-            color_continuous_scale=CHART_COLORS,
-            range_x=[0, 100],
-            height=CHART_HEIGHT
-        )
-        fig.update_layout(
-            showlegend=False,
-            title_x=0.5,
-            xaxis_title=TRANSLATIONS[st.session_state.language]["score_percent"],
-            yaxis_title=TRANSLATIONS[st.session_state.language]["category"],
-            coloraxis_showscale=False
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Question-level breakdown
-        with st.expander(TRANSLATIONS[st.session_state.language]["question_breakdown"]):
-            selected_display_category = st.selectbox(
-                TRANSLATIONS[st.session_state.language]["select_category"],
-                display_categories,
-                key="category_explore"
+            # Calculate scores
+            results = {cat: sum(scores) / len(scores) for cat, scores in st.session_state.responses.items()}
+            df = pd.DataFrame.from_dict(results, orient="index", columns=[TRANSLATIONS[st.session_state.language]["score"]])
+            df[TRANSLATIONS[st.session_state.language]["percent"]] = df[TRANSLATIONS[st.session_state.language]["score"]]
+            df[TRANSLATIONS[st.session_state.language]["priority"]] = df[TRANSLATIONS[st.session_state.language]["percent"]].apply(
+                lambda x: TRANSLATIONS[st.session_state.language]["high_priority"] if x < SCORE_THRESHOLDS["CRITICAL"] else 
+                          TRANSLATIONS[st.session_state.language]["medium_priority"] if x < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] else 
+                          TRANSLATIONS[st.session_state.language]["low_priority"]
             )
-            selected_category = category_mapping[st.session_state.language][selected_display_category]
-            question_scores = pd.DataFrame({
-                TRANSLATIONS[st.session_state.language]["question"]: [q for q, _, _ in questions[selected_category][st.session_state.language]],
-                TRANSLATIONS[st.session_state.language]["score"]: st.session_state.responses[selected_category]
-            })
-            fig_questions = px.bar(
-                question_scores,
-                x=TRANSLATIONS[st.session_state.language]["score"],
-                y=TRANSLATIONS[st.session_state.language]["question"],
+
+            # Summary dashboard
+            st.markdown('<h3 class="subsection-title">Resumen Ejecutivo</h3>', unsafe_allow_html=True)
+            col1, col2, col3 = st.columns([2, 1, 1])
+            with col1:
+                overall_score = df[TRANSLATIONS[st.session_state.language]["percent"]].mean()
+                grade, grade_description, grade_class = get_grade(overall_score)
+                st.markdown(
+                    f'<div class="grade {grade_class}">Calificación General: {grade} ({overall_score:.1f}%)</div>' if st.session_state.language == "Español" else
+                    f'<div class="grade {grade_class}">Overall Grade: {grade} ({overall_score:.1f}%)</div>',
+                    unsafe_allow_html=True
+                )
+                st.markdown(f'<p class="grade-description">{grade_description}</p>', unsafe_allow_html=True)
+            with col2:
+                st.metric(
+                    TRANSLATIONS[st.session_state.language]["high_priority_categories"],
+                    len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
+                )
+            with col3:
+                st.metric(
+                    TRANSLATIONS[st.session_state.language]["average_score"],
+                    f"{overall_score:.1f}%"
+                )
+
+            # Color-coded dataframe
+            def color_percent(val):
+                color = CHART_COLORS[0] if val < SCORE_THRESHOLDS["CRITICAL"] else CHART_COLORS[1] if val < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] else CHART_COLORS[2]
+                return f'background-color: {color}; color: white;'
+
+            st.dataframe(
+                df.style.applymap(color_percent, subset=[TRANSLATIONS[st.session_state.language]["percent"]]).format({TRANSLATIONS[st.session_state.language]["percent"]: "{:.1f}%"}),
+                use_container_width=True
+            )
+
+            # Bar chart
+            df_display = df.copy()
+            df_display.index = [next(k for k, v in category_mapping[st.session_state.language].items() if v == idx) for idx in df.index]
+            fig = px.bar(
+                df_display.reset_index(),
+                y="index",
+                x=TRANSLATIONS[st.session_state.language]["percent"],
                 orientation='h',
-                title=f"{TRANSLATIONS[st.session_state.language]['question_scores_for']} {selected_display_category}",
-                color=TRANSLATIONS[st.session_state.language]["score"],
+                title=TRANSLATIONS[st.session_state.language]["chart_title"],
+                labels={
+                    "index": TRANSLATIONS[st.session_state.language]["category"],
+                    TRANSLATIONS[st.session_state.language]["percent"]: TRANSLATIONS[st.session_state.language]["score_percent"]
+                },
+                color=TRANSLATIONS[st.session_state.language]["percent"],
                 color_continuous_scale=CHART_COLORS,
                 range_x=[0, 100],
-                height=300 + len(question_scores) * 50
+                height=CHART_HEIGHT
             )
-            fig_questions.update_layout(
+            fig.update_layout(
                 showlegend=False,
                 title_x=0.5,
                 xaxis_title=TRANSLATIONS[st.session_state.language]["score_percent"],
-                yaxis_title=TRANSLATIONS[st.session_state.language]["question"],
+                yaxis_title=TRANSLATIONS[st.session_state.language]["category"],
                 coloraxis_showscale=False
             )
-            st.plotly_chart(fig_questions, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
-        # Actionable insights
-        with st.expander(TRANSLATIONS[st.session_state.language]["actionable_insights"]):
-            insights = []
-            for cat in questions.keys():
-                display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
-                score = df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]]
-                if score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
-                    insights.append(
-                        f"**{display_cat}** scored {score:.1f}% ({TRANSLATIONS[st.session_state.language]['high_priority'] if score < SCORE_THRESHOLDS['CRITICAL'] else TRANSLATIONS[st.session_state.language]['medium_priority']}). Focus on immediate improvements."
-                    )
-            if insights:
-                st.markdown("<div class='alert alert-info'>" + "<br>".join(insights) + "</div>", unsafe_allow_html=True)
-            else:
-                st.markdown(
-                    f"<div class='alert alert-success'>{TRANSLATIONS[st.session_state.language]['all_categories_above_70']}</div>",
-                    unsafe_allow_html=True
+            # Question-level breakdown
+            with st.expander(TRANSLATIONS[st.session_state.language]["question_breakdown"]):
+                selected_display_category = st.selectbox(
+                    TRANSLATIONS[st.session_state.language]["select_category"],
+                    display_categories,
+                    key="category_explore"
                 )
-
-        # Download Excel report
-        def generate_excel_report() -> io.BytesIO:
-            excel_output = io.BytesIO()
-            with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
-                workbook = writer.book
-                bold = workbook.add_format({'bold': True})
-                percent_format = workbook.add_format({'num_format': '0.0%'})
-                wrap_format = workbook.add_format({'text_wrap': True})
-                border_format = workbook.add_format({'border': 1})
-                header_format = workbook.add_format({'bold': True, 'bg_color': '#1E88E5', 'color': 'white', 'border': 1})
-
-                # Summary Sheet
-                critical_count = len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
-                improvement_count = len(df[(df[TRANSLATIONS[st.session_state.language]["percent"]] >= SCORE_THRESHOLDS["CRITICAL"]) & (df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"])])
-                summary_df = pd.DataFrame({
-                    TRANSLATIONS[st.session_state.language]["overall_score"]: [f"{overall_score:.1f}%"],
-                    TRANSLATIONS[st.session_state.language]["grade"]: [grade],
-                    TRANSLATIONS[st.session_state.language]["findings_summary"]: [
-                        TRANSLATIONS[st.session_state.language]["findings_summary_text"].format(
-                            critical_count,
-                            SCORE_THRESHOLDS["CRITICAL"],
-                            improvement_count,
-                            SCORE_THRESHOLDS["CRITICAL"],
-                            SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]-1,
-                            overall_score
-                        )
-                    ]
+                selected_category = category_mapping[st.session_state.language][selected_display_category]
+                question_scores = pd.DataFrame({
+                    TRANSLATIONS[st.session_state.language]["question"]: [q for q, _, _ in questions[selected_category][st.session_state.language]],
+                    TRANSLATIONS[st.session_state.language]["score"]: st.session_state.responses[selected_category]
                 })
-                summary_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["summary"], index=False, startrow=2)
-                worksheet_summary = writer.sheets[TRANSLATIONS[st.session_state.language]["summary"]]
-                worksheet_summary.write('A1', TRANSLATIONS[st.session_state.language]["report_title"], bold)
-                worksheet_summary.write('A2', f"Date: {REPORT_DATE}", bold)
-                worksheet_summary.set_column('A:A', 20)
-                worksheet_summary.set_column('B:B', 15)
-                worksheet_summary.set_column('C:C', 80, wrap_format)
-                for col_num, value in enumerate(summary_df.columns.values):
-                    worksheet_summary.write(2, col_num, value, header_format)
-
-                # Results Sheet
-                df_display.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["results"], float_format="%.1f", startrow=2)
-                worksheet_results = writer.sheets[TRANSLATIONS[st.session_state.language]["results"]]
-                worksheet_results.write('A1', TRANSLATIONS[st.session_state.language]["results"], bold)
-                worksheet_results.write('A2', f"Date: {REPORT_DATE}", bold)
-                worksheet_results.set_column('A:A', 30)
-                worksheet_results.set_column('B:C', 15)
-                worksheet_results.set_column('D:D', 20)
-                for col_num, value in enumerate(df_display.columns.values):
-                    worksheet_results.write(2, col_num + 1, value, header_format)
-                worksheet_results.write(2, 0, TRANSLATIONS[st.session_state.language]["category"], header_format)
-
-                # Findings Sheet
-                findings_data = []
-                for cat in questions.keys():
-                    display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
-                    if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
-                        findings_data.append([
-                            display_cat,
-                            f"{df.loc[cat, TRANSLATIONS[st.session_state.language]['percent']]:.1f}%",
-                            TRANSLATIONS[st.session_state.language]["high_priority"] if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"] else TRANSLATIONS[st.session_state.language]["medium_priority"],
-                            TRANSLATIONS[st.session_state.language]["action_required"].format(
-                                "Urgent" if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"] else "Specific"
-                            )
-                        ])
-                        for idx, score in enumerate(st.session_state.responses[cat]):
-                            if score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
-                                question, _, rec = questions[cat][st.session_state.language][idx]
-                                findings_data.append([
-                                    "", "", "", f"{TRANSLATIONS[st.session_state.language]['question']}: {question[:50]}... - {TRANSLATIONS[st.session_state.language]['suggestion']}: {rec}"
-                                ])
-                findings_df = pd.DataFrame(
-                    findings_data,
-                    columns=[
-                        TRANSLATIONS[st.session_state.language]["category"],
-                        TRANSLATIONS[st.session_state.language]["score"],
-                        TRANSLATIONS[st.session_state.language]["priority"],
-                        TRANSLATIONS[st.session_state.language]["findings_and_suggestions"]
-                    ]
+                fig_questions = px.bar(
+                    question_scores,
+                    x=TRANSLATIONS[st.session_state.language]["score"],
+                    y=TRANSLATIONS[st.session_state.language]["question"],
+                    orientation='h',
+                    title=f"{TRANSLATIONS[st.session_state.language]['question_scores_for']} {selected_display_category}",
+                    color=TRANSLATIONS[st.session_state.language]["score"],
+                    color_continuous_scale=CHART_COLORS,
+                    range_x=[0, 100],
+                    height=300 + len(question_scores) * 50
                 )
-                findings_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["findings"], index=False, startrow=2)
-                worksheet_findings = writer.sheets[TRANSLATIONS[st.session_state.language]["findings"]]
-                worksheet_findings.write('A1', TRANSLATIONS[st.session_state.language]["findings"], bold)
-                worksheet_findings.write('A2', f"Date: {REPORT_DATE}", bold)
-                worksheet_findings.set_column('A:A', 30)
-                worksheet_findings.set_column('B:C', 15)
-                worksheet_findings.set_column('D:D', 80, wrap_format)
-                for col_num, value in enumerate(findings_df.columns.values):
-                    worksheet_findings.write(2, col_num, value, header_format)
+                fig_questions.update_layout(
+                    showlegend=False,
+                    title_x=0.5,
+                    xaxis_title=TRANSLATIONS[st.session_state.language]["score_percent"],
+                    yaxis_title=TRANSLATIONS[st.session_state.language]["question"],
+                    coloraxis_showscale=False
+                )
+                st.plotly_chart(fig_questions, use_container_width=True)
 
-                # Actionable Insights Sheet
-                insights_data = []
+            # Actionable insights
+            with st.expander(TRANSLATIONS[st.session_state.language]["actionable_insights"]):
+                insights = []
                 for cat in questions.keys():
                     display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
                     score = df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]]
                     if score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
-                        insights_data.append([display_cat, f"{score:.1f}%", "Focus on immediate improvements."])
-                insights_df = pd.DataFrame(
-                    insights_data,
-                    columns=[
-                        TRANSLATIONS[st.session_state.language]["category"],
-                        TRANSLATIONS[st.session_state.language]["score"],
-                        TRANSLATIONS[st.session_state.language]["actionable_insights"]
-                    ]
-                )
-                insights_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_insights"], index=False, startrow=2)
-                worksheet_insights = writer.sheets[TRANSLATIONS[st.session_state.language]["actionable_insights"]]
-                worksheet_insights.write('A1', TRANSLATIONS[st.session_state.language]["actionable_insights"], bold)
-                worksheet_insights.write('A2', f"Date: {REPORT_DATE}", bold)
-                worksheet_insights.set_column('A:A', 30)
-                worksheet_insights.set_column('B:B', 15)
-                worksheet_insights.set_column('C:C', 50, wrap_format)
-                for col_num, value in enumerate(insights_df.columns.values):
-                    worksheet_insights.write(2, col_num, value, header_format)
+                        insights.append(
+                            f"**{display_cat}** scored {score:.1f}% ({TRANSLATIONS[st.session_state.language]['high_priority'] if score < SCORE_THRESHOLDS['CRITICAL'] else TRANSLATIONS[st.session_state.language]['medium_priority']}). Focus on immediate improvements."
+                        )
+                if insights:
+                    st.markdown("<div class='alert alert-info'>" + "<br>".join(insights) + "</div>", unsafe_allow_html=True)
+                else:
+                    st.markdown(
+                        f"<div class='alert alert-success'>{TRANSLATIONS[st.session_state.language]['all_categories_above_70']}</div>",
+                        unsafe_allow_html=True
+                    )
 
-                # Actionable Charts Sheet
-                worksheet_charts = workbook.add_worksheet(TRANSLATIONS[st.session_state.language]["actionable_charts"])
-                worksheet_charts.write('A1', TRANSLATIONS[st.session_state.language]["actionable_charts"], bold)
-                worksheet_charts.write('A2', f"Date: {REPORT_DATE}", bold)
-                chart_data = df_display[[TRANSLATIONS[st.session_state.language]["percent"]]].reset_index()
-                chart_data.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_charts"], startrow=4, index=False)
-                worksheet_charts.set_column('A:A', 30)
-                worksheet_charts.set_column('B:B', 15)
-                worksheet_charts.write('A4', TRANSLATIONS[st.session_state.language]["category"], header_format)
-                worksheet_charts.write('B4', TRANSLATIONS[st.session_state.language]["score_percent"], header_format)
-                bar_chart = workbook.add_chart({'type': 'bar'})
-                bar_chart.add_series({
-                    'name': TRANSLATIONS[st.session_state.language]["score_percent"],
-                    'categories': f"='{TRANSLATIONS[st.session_state.language]['actionable_charts']}'!$A$5:$A${4 + len(chart_data)}",
-                    'values': f"='{TRANSLATIONS[st.session_state.language]['actionable_charts']}'!$B$5:$B${4 + len(chart_data)}",
-                    'fill': {'color': '#1E88E5'}
-                })
-                bar_chart.set_title({'name': TRANSLATIONS[st.session_state.language]["chart_title"]})
-                bar_chart.set_x_axis({'name': TRANSLATIONS[st.session_state.language]["score_percent"], 'min': 0, 'max': 100})
-                bar_chart.set_y_axis({'name': TRANSLATIONS[st.session_state.language]["category"]})
-                worksheet_charts.insert_chart('D5', bar_chart)
+            # Download Excel report
+            def generate_excel_report() -> io.BytesIO:
+                excel_output = io.BytesIO()
+                with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
+                    workbook = writer.book
+                    bold = workbook.add_format({'bold': True})
+                    percent_format = workbook.add_format({'num_format': '0.0%'})
+                    wrap_format = workbook.add_format({'text_wrap': True})
+                    border_format = workbook.add_format({'border': 1})
+                    header_format = workbook.add_format({'bold': True, 'bg_color': '#1E88E5', 'color': 'white', 'border': 1})
 
-                # Contact Sheet
-                contact_df = pd.DataFrame({
-                    "Contact Method": ["Email", "Website"],
-                    "Details": [CONFIG["contact"]["email"], CONFIG["contact"]["website"]]
-                })
-                contact_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["contact"], index=False, startrow=2)
-                worksheet_contact = writer.sheets[TRANSLATIONS[st.session_state.language]["contact"]]
-                worksheet_contact.write('A1', TRANSLATIONS[st.session_state.language]["contact"], bold)
-                worksheet_contact.write('A2', f"Date: {REPORT_DATE}", bold)
-                worksheet_contact.set_column('A:A', 20)
-                worksheet_contact.set_column('B:B', 50)
-                for col_num, value in enumerate(contact_df.columns.values):
-                    worksheet_contact.write(2, col_num, value, header_format)
-                worksheet_contact.write('A6', "Collaborate with Us", bold)
-                worksheet_contact.write('A7', TRANSLATIONS[st.session_state.language]["marketing_message"], wrap_format)
+                    # Summary Sheet
+                    critical_count = len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
+                    improvement_count = len(df[(df[TRANSLATIONS[st.session_state.language]["percent"]] >= SCORE_THRESHOLDS["CRITICAL"]) & (df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"])])
+                    summary_df = pd.DataFrame({
+                        TRANSLATIONS[st.session_state.language]["overall_score"]: [f"{overall_score:.1f}%"],
+                        TRANSLATIONS[st.session_state.language]["grade"]: [grade],
+                        TRANSLATIONS[st.session_state.language]["findings_summary"]: [
+                            TRANSLATIONS[st.session_state.language]["findings_summary_text"].format(
+                                critical_count,
+                                SCORE_THRESHOLDS["CRITICAL"],
+                                improvement_count,
+                                SCORE_THRESHOLDS["CRITICAL"],
+                                SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]-1,
+                                overall_score
+                            )
+                        ]
+                    })
+                    summary_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["summary"], index=False, startrow=2)
+                    worksheet_summary = writer.sheets[TRANSLATIONS[st.session_state.language]["summary"]]
+                    worksheet_summary.write('A1', TRANSLATIONS[st.session_state.language]["report_title"], bold)
+                    worksheet_summary.write('A2', f"Date: {REPORT_DATE}", bold)
+                    worksheet_summary.set_column('A:A', 20)
+                    worksheet_summary.set_column('B:B', 15)
+                    worksheet_summary.set_column('C:C', 80, wrap_format)
+                    for col_num, value in enumerate(summary_df.columns.values):
+                        worksheet_summary.write(2, col_num, value, header_format)
 
-            excel_output.seek(0)
-            return excel_output
+                    # Results Sheet
+                    df_display.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["results"], float_format="%.1f", startrow=2)
+                    worksheet_results = writer.sheets[TRANSLATIONS[st.session_state.language]["results"]]
+                    worksheet_results.write('A1', TRANSLATIONS[st.session_state.language]["results"], bold)
+                    worksheet_results.write('A2', f"Date: {REPORT_DATE}", bold)
+                    worksheet_results.set_column('A:A', 30)
+                    worksheet_results.set_column('B:C', 15)
+                    worksheet_results.set_column('D:D', 20)
+                    for col_num, value in enumerate(df_display.columns.values):
+                        worksheet_results.write(2, col_num + 1, value, header_format)
+                    worksheet_results.write(2, 0, TRANSLATIONS[st.session_state.language]["category"], header_format)
 
-        with st.spinner(TRANSLATIONS[st.session_state.language]["generating_excel"]):
-            try:
-                excel_file = generate_excel_report()
-                st.download_button(
-                    label=TRANSLATIONS[st.session_state.language]["download_excel"],
-                    data=excel_file,
-                    file_name=TRANSLATIONS[st.session_state.language]["report_filename_excel"],
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key="download_excel",
-                    use_container_width=True,
-                    type="primary"
-                )
-            except Exception as e:
-                st.error(TRANSLATIONS[st.session_state.language]["excel_error"].format(str(e)), icon="❌")
+                    # Findings Sheet
+                    findings_data = []
+                    for cat in questions.keys():
+                        display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
+                        if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
+                            findings_data.append([
+                                display_cat,
+                                f"{df.loc[cat, TRANSLATIONS[st.session_state.language]['percent']]:.1f}%",
+                                TRANSLATIONS[st.session_state.language]["high_priority"] if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"] else TRANSLATIONS[st.session_state.language]["medium_priority"],
+                                TRANSLATIONS[st.session_state.language]["action_required"].format(
+                                    "Urgent" if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"] else "Specific"
+                                )
+                            ])
+                            for idx, score in enumerate(st.session_state.responses[cat]):
+                                if score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
+                                    question, _, rec = questions[cat][st.session_state.language][idx]
+                                    findings_data.append([
+                                        "", "", "", f"{TRANSLATIONS[st.session_state.language]['question']}: {question[:50]}... - {TRANSLATIONS[st.session_state.language]['suggestion']}: {rec}"
+                                    ])
+                    findings_df = pd.DataFrame(
+                        findings_data,
+                        columns=[
+                            TRANSLATIONS[st.session_state.language]["category"],
+                            TRANSLATIONS[st.session_state.language]["score"],
+                            TRANSLATIONS[st.session_state.language]["priority"],
+                            TRANSLATIONS[st.session_state.language]["findings_and_suggestions"]
+                        ]
+                    )
+                    findings_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["findings"], index=False, startrow=2)
+                    worksheet_findings = writer.sheets[TRANSLATIONS[st.session_state.language]["findings"]]
+                    worksheet_findings.write('A1', TRANSLATIONS[st.session_state.language]["findings"], bold)
+                    worksheet_findings.write('A2', f"Date: {REPORT_DATE}", bold)
+                    worksheet_findings.set_column('A:A', 30)
+                    worksheet_findings.set_column('B:C', 15)
+                    worksheet_findings.set_column('D:D', 80, wrap_format)
+                    for col_num, value in enumerate(findings_df.columns.values):
+                        worksheet_findings.write(2, col_num, value, header_format)
 
-        st.markdown('</div>', unsafe_allow_html=True)
+                    # Actionable Insights Sheet
+                    insights_data = []
+                    for cat in questions.keys():
+                        display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
+                        score = df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]]
+                        if score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
+                            insights_data.append([display_cat, f"{score:.1f}%", "Focus on immediate improvements."])
+                    insights_df = pd.DataFrame(
+                        insights_data,
+                        columns=[
+                            TRANSLATIONS[st.session_state.language]["category"],
+                            TRANSLATIONS[st.session_state.language]["score"],
+                            TRANSLATIONS[st.session_state.language]["actionable_insights"]
+                        ]
+                    )
+                    insights_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_insights"], index=False, startrow=2)
+                    worksheet_insights = writer.sheets[TRANSLATIONS[st.session_state.language]["actionable_insights"]]
+                    worksheet_insights.write('A1', TRANSLATIONS[st.session_state.language]["actionable_insights"], bold)
+                    worksheet_insights.write('A2', f"Date: {REPORT_DATE}", bold)
+                    worksheet_insights.set_column('A:A', 30)
+                    worksheet_insights.set_column('B:B', 15)
+                    worksheet_insights.set_column('C:C', 50, wrap_format)
+                    for col_num, value in enumerate(insights_df.columns.values):
+                        worksheet_insights.write(2, col_num, value, header_format)
+
+                    # Actionable Charts Sheet
+                    worksheet_charts = workbook.add_worksheet(TRANSLATIONS[st.session_state.language]["actionable_charts"])
+                    worksheet_charts.write('A1', TRANSLATIONS[st.session_state.language]["actionable_charts"], bold)
+                    worksheet_charts.write('A2', f"Date: {REPORT_DATE}", bold)
+                    chart_data = df_display[[TRANSLATIONS[st.session_state.language]["percent"]]].reset_index()
+                    chart_data.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_charts"], startrow=4, index=False)
+                    worksheet_charts.set_column('A:A', 30)
+                    worksheet_charts.set_column('B:B', 15)
+                    worksheet_charts.write('A4', TRANSLATIONS[st.session_state.language]["category"], header_format)
+                    worksheet_charts.write('B4', TRANSLATIONS[st.session_state.language]["score_percent"], header_format)
+                    bar_chart = workbook.add_chart({'type': 'bar'})
+                    bar_chart.add_series({
+                        'name': TRANSLATIONS[st.session_state.language]["score_percent"],
+                        'categories': f"='{TRANSLATIONS[st.session_state.language]['actionable_charts']}'!$A$5:$A${4 + len(chart_data)}",
+                        'values': f"='{TRANSLATIONS[st.session_state.language]['actionable_charts']}'!$B$5:$B${4 + len(chart_data)}",
+                        'fill': {'color': '#1E88E5'}
+                    })
+                    bar_chart.set_title({'name': TRANSLATIONS[st.session_state.language]["chart_title"]})
+                    bar_chart.set_x_axis({'name': TRANSLATIONS[st.session_state.language]["score_percent"], 'min': 0, 'max': 100})
+                    bar_chart.set_y_axis({'name': TRANSLATIONS[st.session_state.language]["category"]})
+                    worksheet_charts.insert_chart('D5', bar_chart)
+
+                    # Contact Sheet
+                    contact_df = pd.DataFrame({
+                        "Contact Method": ["Email", "Website"],
+                        "Details": [CONFIG["contact"]["email"], CONFIG["contact"]["website"]]
+                    })
+                    contact_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["contact"], index=False, startrow=2)
+                    worksheet_contact = writer.sheets[TRANSLATIONS[st.session_state.language]["contact"]]
+                    worksheet_contact.write('A1', TRANSLATIONS[st.session_state.language]["contact"], bold)
+                    worksheet_contact.write('A2', f"Date: {REPORT_DATE}", bold)
+                    worksheet_contact.set_column('A:A', 20)
+                    worksheet_contact.set_column('B:B', 50)
+                    for col_num, value in enumerate(contact_df.columns.values):
+                        worksheet_contact.write(2, col_num, value, header_format)
+                    worksheet_contact.write('A6', "Collaborate with Us", bold)
+                    worksheet_contact.write('A7', TRANSLATIONS[st.session_state.language]["marketing_message"], wrap_format)
+
+                excel_output.seek(0)
+                return excel_output
+
+            with st.spinner(TRANSLATIONS[st.session_state.language]["generating_excel"]):
+                try:
+                    excel_file = generate_excel_report()
+                    st.download_button(
+                        label=TRANSLATIONS[st.session_state.language]["download_excel"],
+                        data=excel_file,
+                        file_name=TRANSLATIONS[st.session_state.language]["report_filename_excel"],
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="download_excel",
+                        use_container_width=True,
+                        type="primary"
+                    )
+                except Exception as e:
+                    st.error(TRANSLATIONS[st.session_state.language]["excel_error"].format(str(e)), icon="❌")
+
+            st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('</section>', unsafe_allow_html=True)
