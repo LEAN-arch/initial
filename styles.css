@@ -1,61 +1,88 @@
-/* Root variables */
-:root {
-    --text-color: #212121;
-    --primary-color: #43A047;
-    --secondary-color: #FFD54F;
-    --error-color: #D32F2F;
+.main-title {
+    font-size: 2.5rem;
+    color: #1E88E5;
+    text-align: center;
+    margin-bottom: 1.5rem;
 }
 
-/* General styles */
-body {
-    font-family: 'Roboto', sans-serif;
-    color: var(--text-color);
-}
-
-/* Steps list styling */
-.steps-list {
-    color: var(--text-color);
-    margin: 1rem 0;
-    padding-left: 2rem;
-}
-
-/* Question container styling */
-.question-container {
+.section-title {
+    font-size: 1.8rem;
+    color: #424242;
     margin-bottom: 1rem;
+}
+
+.card-modern {
+    background: #FFFFFF;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+}
+
+.progress-circle {
+    text-align: center;
+    margin: 1rem 0;
+}
+
+.progress-ring__background {
+    fill: none;
+    stroke: #E0E0E0;
+    stroke-width: 12;
+}
+
+.progress-ring__circle {
+    fill: none;
+    stroke: #1E88E5;
+    stroke-width: 12;
+    transition: stroke-dashoffset 0.35s;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+}
+
+.progress-label {
+    font-size: 1rem;
+    color: #424242;
+    margin-top: 0.5rem;
+}
+
+.question-container {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .question-text {
     font-weight: 500;
-    flex-grow: 1;
+    color: #212121;
+    margin-right: 0.5rem;
 }
 
-/* Tooltip styling */
+.required {
+    color: #D32F2F;
+    font-weight: bold;
+}
+
 .tooltip {
     position: relative;
     display: inline-block;
 }
 
 .tooltip-icon {
-    background-color: var(--primary-color);
+    background: #1E88E5;
     color: white;
     border-radius: 50%;
-    width: 1.2rem;
-    height: 1.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    line-height: 20px;
     cursor: help;
 }
 
 .tooltip-text {
     visibility: hidden;
     width: 200px;
-    background-color: #555;
-    color: #fff;
+    background: #424242;
+    color: #FFFFFF;
     text-align: center;
     border-radius: 6px;
     padding: 5px;
@@ -73,17 +100,92 @@ body {
     opacity: 1;
 }
 
-/* Radio button styling */
-.stRadio input[type="radio"] {
-    accent-color: var(--text-color) !important;
-    width: 1.2rem;
-    height: 1.2rem;
-    margin-right: 0.5rem;
+.sticky-nav {
+    position: sticky;
+    bottom: 0;
+    background: #F5F5F5;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
 }
 
-.stRadio input[type="radio"]::before {
-    background-color: var(--text-color) !important;
-    border-color: var(--text-color) !important;
+.grade-excellent {
+    background: #43A047;
+    color: #FFFFFF;
+    padding: 0.5rem;
+    border-radius: 4px;
 }
 
-.stRadio input[type="radio"]:checked::before {
+.grade-good {
+    background: #FFD54F;
+    color: #212121;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.grade-needs-improvement {
+    background: #FF9800;
+    color: #FFFFFF;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.grade-critical {
+    background: #D32F2F;
+    color: #FFFFFF;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.alert-info {
+    background: #E3F2FD;
+    color: #1E88E5;
+}
+
+.alert-success {
+    background: #E8F5E9;
+    color: #43A047;
+}
+
+.alert-warning {
+    background: #FFF3E0;
+    color: #FF9800;
+}
+
+.badge {
+    background: #1E88E5;
+    color: #FFFFFF;
+    padding: 0.5rem 1rem;
+    border-radius: 16px;
+    display: inline-block;
+    margin: 1rem 0;
+}
+
+.progress-bar-container {
+    margin: 1rem 0;
+}
+
+.progress-bar {
+    height: 20px;
+    background: #E0E0E0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: #1E88E5;
+    transition: width 0.35s;
+}
+
+@media (max-width: 768px) {
+    .main-title { font-size: 2rem; }
+    .section-title { font-size: 1.5rem; }
+    .card-modern { padding: 1rem; }
+}
