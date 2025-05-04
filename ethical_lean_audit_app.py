@@ -168,10 +168,9 @@ st.markdown("""
             text-align: center;
             padding: 0.5rem;
             border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s ease, color 0.3s ease;
             font-size: 0.9rem;
             font-weight: 600;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         .progress-step.active {
             background-color: var(--primary);
@@ -303,6 +302,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Configuration
+CONFIG = {
+    "contact": {
+        "email": "contacto@lean2institute.org",
+        "website": "https://lean2institute.mystrikingly.com/"
+    }
+}
+
 # Initialize session state
 if 'language' not in st.session_state:
     st.session_state.language = "Español"
@@ -405,7 +412,6 @@ questions = {
 
 # Sidebar navigation
 with st.sidebar:
-    st.sidebar.image("assets/FOBO2.png", width=250)
     st.markdown('<div class="card">', unsafe_allow_html=True)
     
     # Language selection with on_change callback
@@ -421,7 +427,7 @@ with st.sidebar:
         on_change=update_language
     )
     
-    # Handle language change in main script
+    # Handle language change
     if st.session_state.language_changed:
         st.session_state.language = st.session_state.language_select
         st.session_state.current_category = 0
@@ -452,11 +458,11 @@ if not st.session_state.responses or len(st.session_state.responses) != len(ques
 if st.session_state.show_intro:
     with st.container():
         st.markdown('<div class="main-container">', unsafe_allow_html=True)
-        st.markdown('<div class="header">🤝¡Bienvenido a LEAN 2.0 Institute! Evaluemos juntos tu entorno laboral. / Welcome to LEAN 2.0 Institute! Let’s assess together your work environment. </div>', unsafe_allow_html=True)
+        st.markdown('<div class="header">🤝¡Bienvenido a LEAN 2.0 Institute! Evaluemos juntos tu entorno laboral. / Welcome to LEAN 2.0 Institute! Let’s assess together your work environment.</div>', unsafe_allow_html=True)
         with st.expander("", expanded=True):
             st.markdown(
-                """
-                Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde preguntas en 5 categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, no dudes en ponerte en contacto con nosotros para consultas personalizadas a través de: ✉️Email: contacto@lean2institute.org 🌐 Website: https://lean2institute.mystrikingly.com/
+                f"""
+                Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde preguntas en 5 categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, no dudes en ponerte en contacto con nosotros para consultas personalizadas a través de: ✉️Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
                 
                 **Pasos**:
                 1. Responde las preguntas de cada categoría.
@@ -465,8 +471,8 @@ if st.session_state.show_intro:
                 ¡Empecemos!
                 """
                 if st.session_state.language == "Español" else
-                """
-                This assessment is designed to be completed by management and HR, to provide an objective evaluation of the work environment at your company. Answer questions across 5 categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations that we can help you implement. Once you’ve completed the evaluation, feel free to reach out to us for personalized consultations at: ✉️Email: contacto@lean2institute.org 🌐 Website: https://lean2institute.mystrikingly.com/
+                f"""
+                This assessment is designed to be completed by management and HR, to provide an objective evaluation of the work environment at your company. Answer questions across 5 categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations that we can help you implement. Once you’ve completed the evaluation, feel free to reach out to us for personalized consultations at: ✉️Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
                 
                 **Steps**:
                 1. Answer questions for each category.
@@ -490,7 +496,7 @@ if not st.session_state.show_intro:
             unsafe_allow_html=True
         )
 
-        # Response options with descriptions as selectable options
+        # Response options
         response_options = {
             "percentage": {
                 "Español": {
@@ -571,7 +577,7 @@ if not st.session_state.show_intro:
         for i, display_cat in enumerate(display_categories):
             status = 'active' if i == st.session_state.current_category else 'completed' if i < st.session_state.current_category else ''
             st.markdown(
-                f'<div class="progress-step {status}" onclick="Streamlit.setComponentValue({i})">{display_cat}</div>',
+                f'<div class="progress-step {status}">{display_cat}</div>',
                 unsafe_allow_html=True
             )
         st.markdown('</div>', unsafe_allow_html=True)
@@ -609,7 +615,7 @@ if not st.session_state.show_intro:
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.markdown(f'<div class="subheader">{display_category}</div>', unsafe_allow_html=True)
                 
-                # Response guide (no table, just instructions)
+                # Response guide
                 with st.expander("Guía de Respuestas" if st.session_state.language == "Español" else "Response Guide", expanded=True):
                     st.markdown(
                         "Selecciona la descripción que mejor represente la situación para cada pregunta. Las opciones describen el grado, frecuencia o cantidad aplicable." if st.session_state.language == "Español" else
@@ -633,12 +639,11 @@ if not st.session_state.show_intro:
                         selected_description = st.radio(
                             "",
                             descriptions,
-                            format_func=lambda x: x,  # Display descriptions as-is
+                            format_func=lambda x: x,
                             key=f"{category}_{idx}",
-                            horizontal=False,  # Vertical layout for readability due to longer descriptions
+                            horizontal=False,
                             help=response_options[q_type]['tooltip']
                         )
-                        # Map selected description to its corresponding score
                         score_idx = descriptions.index(selected_description)
                         st.session_state.responses[category][idx] = scores[score_idx]
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -834,7 +839,7 @@ if not st.session_state.show_intro:
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            # Question-level breakdown (collapsible)
+            # Question-level breakdown
             with st.expander("Análisis Detallado: Perspectivas a Nivel de Pregunta" if st.session_state.language == "Español" else "Drill Down: Question-Level Insights"):
                 selected_display_category = st.selectbox(
                     "Seleccionar Categoría para Explorar" if st.session_state.language == "Español" else "Select Category to Explore",
@@ -988,8 +993,8 @@ if not st.session_state.show_intro:
                     "Congratulations on an outstanding workplace! Partner with LEAN 2.0 Institute to sustain these strengths and lead with innovation."
                 )
             ad_text.append(
-                "Contáctanos en https://lean2institute.mystrikingly.com/ o envíanos un correo a contacto@lean2institute.com para una consulta estratégica." if st.session_state.language == "Español" else
-                "Contact us at https://lean2institute.mystrikingly.com/ or email us at contacto@lean2institute.com for a strategic consultation."
+                f"Contáctanos en {CONFIG['contact']['website']} o envíanos un correo a {CONFIG['contact']['email']} para una consulta estratégica." if st.session_state.language == "Español" else
+                f"Contact us at {CONFIG['contact']['website']} or email us at {CONFIG['contact']['email']} for a strategic consultation."
             )
             st.markdown("<div class='insights'>" + "<br>".join(ad_text) + "</div>", unsafe_allow_html=True)
 
@@ -1010,6 +1015,8 @@ if not st.session_state.show_intro:
                         yellow_format = workbook.add_format({'bg_color': '#FFD54F', 'font_color': '#212121'})
                         green_format = workbook.add_format({'bg_color': '#43A047', 'font_color': '#FFFFFF'})
                         border_format = workbook.add_format({'border': 1})
+                        wrap_format = workbook.add_format({'text_wrap': True})
+                        hyperlink_format = workbook.add_format({'font_color': 'blue', 'underline': 1})
 
                         # Summary Sheet
                         summary_df = pd.DataFrame({
@@ -1024,7 +1031,7 @@ if not st.session_state.show_intro:
                         worksheet_summary = writer.sheets['Resumen' if st.session_state.language == "Español" else 'Summary']
                         worksheet_summary.set_column('A:A', 20)
                         worksheet_summary.set_column('B:B', 15)
-                        worksheet_summary.set_column('C:C', 60)
+                        worksheet_summary.set_column('C:C', 80)
                         for col_num, value in enumerate(summary_df.columns.values):
                             worksheet_summary.write(0, col_num, value, bold)
                         # Add contact details and invitation
@@ -1038,10 +1045,10 @@ if not st.session_state.show_intro:
                         worksheet_summary.write(row, 0, invitation, wrap_format)
                         row += 1
                         worksheet_summary.write(row, 0, "✉️ Email:", bold)
-                        worksheet_summary.write(row, 1, "contacto@lean2institute.org")
+                        worksheet_summary.write_url(row, 1, f"mailto:{CONFIG['contact']['email']}", hyperlink_format, string=CONFIG['contact']['email'])
                         row += 1
                         worksheet_summary.write(row, 0, "🌐 Website:", bold)
-                        worksheet_summary.write_url(row, 1, "https://lean2institute.mystrikingly.com/", hyperlink_format, string="https://lean2institute.mystrikingly.com/")
+                        worksheet_summary.write_url(row, 1, CONFIG['contact']['website'], hyperlink_format, string=CONFIG['contact']['website'])
 
                         # Results Sheet
                         df_display.to_excel(writer, sheet_name='Resultados' if st.session_state.language == "Español" else 'Results', float_format="%.1f")
