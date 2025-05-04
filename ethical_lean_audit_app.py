@@ -354,7 +354,8 @@ if st.button("Generate Report" if LANG == "English" else "Generar Informe", key=
         )
         
         pdf_output = io.BytesIO()
-        pdf.output(dest='F', name=pdf_output)
+        pdf_content = pdf.output(dest='S')  # Get PDF as string
+        pdf_output.write(pdf_content.encode('latin-1'))  # Write to BytesIO
         pdf_output.seek(0)
         b64_pdf = base64.b64encode(pdf_output.getvalue()).decode()
         href_pdf = (
