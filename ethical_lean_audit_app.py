@@ -348,64 +348,64 @@ category_mapping = {
 questions = {
     "Empoderamiento de Empleados": {
         "Español": [
-            ("¿Qué porcentaje de sugerencias de empleados presentadas en los últimos 12 meses fueron implementadas con resultados documentados?", "percentage"),
-            ("¿Cuántos empleados recibieron capacitación en habilidades profesionales en el último año?", "count"),
-            ("En los últimos 12 meses, ¿cuántos empleados lideraron proyectos o iniciativas con presupuesto asignado?", "count"),
-            ("¿Con qué frecuencia se realizan foros o reuniones formales para que los empleados compartan retroalimentación con la gerencia?", "frequency")
+            ("1.¿Qué porcentaje de sugerencias de empleados presentadas en los últimos 12 meses fueron implementadas con resultados documentados?", "percentage"),
+            ("2.¿Cuántos empleados recibieron capacitación en habilidades profesionales en el último año?", "count"),
+            ("3.En los últimos 12 meses, ¿cuántos empleados lideraron proyectos o iniciativas con presupuesto asignado?", "count"),
+            ("4.¿Con qué frecuencia se realizan foros o reuniones formales para que los empleados compartan retroalimentación con la gerencia?", "frequency")
         ],
         "English": [
-            ("What percentage of employee suggestions submitted in the past 12 months were implemented with documented outcomes?", "percentage"),
-            ("How many employees received professional skills training in the past year?", "count"),
-            ("In the past 12 months, how many employees led projects or initiatives with allocated budgets?", "count"),
-            ("How frequently are formal forums or meetings held for employees to share feedback with management?", "frequency")
+            ("1.What percentage of employee suggestions submitted in the past 12 months were implemented with documented outcomes?", "percentage"),
+            ("2.How many employees received professional skills training in the past year?", "count"),
+            ("3.In the past 12 months, how many employees led projects or initiatives with allocated budgets?", "count"),
+            ("4.How frequently are formal forums or meetings held for employees to share feedback with management?", "frequency")
         ]
     },
     "Liderazgo Ético": {
         "Español": [
-            ("¿Con qué frecuencia los líderes compartieron actualizaciones escritas sobre decisiones que afectan a los empleados en los últimos 12 meses?", "frequency"),
-            ("¿Qué porcentaje de políticas laborales nuevas o revisadas en el último año incluyó consulta formal con empleados?", "percentage"),
-            ("¿Cuántos casos de comportamiento ético destacado fueron reconocidos formalmente en los últimos 12 meses?", "count")
+            ("5.¿Con qué frecuencia los líderes compartieron actualizaciones escritas sobre decisiones que afectan a los empleados en los últimos 12 meses?", "frequency"),
+            ("6.¿Qué porcentaje de políticas laborales nuevas o revisadas en el último año incluyó consulta formal con empleados?", "percentage"),
+            ("7.¿Cuántos casos de comportamiento ético destacado fueron reconocidos formalmente en los últimos 12 meses?", "count")
         ],
         "English": [
-            ("How frequently did leaders share written updates on decisions affecting employees in the past 12 months?", "frequency"),
-            ("What percentage of new or revised workplace policies in the past year included formal employee consultation?", "percentage"),
-            ("How many instances of exemplary ethical behavior were formally recognized in the past 12 months?", "count")
+            ("5.How frequently did leaders share written updates on decisions affecting employees in the past 12 months?", "frequency"),
+            ("6.What percentage of new or revised workplace policies in the past year included formal employee consultation?", "percentage"),
+            ("7.How many instances of exemplary ethical behavior were formally recognized in the past 12 months?", "count")
         ]
     },
     "Operaciones Centradas en las Personas": {
         "Español": [
-            ("¿Qué porcentaje de procesos lean revisados en los últimos 12 meses incorporó retroalimentación de empleados para reducir tareas redundantes?", "percentage"),
-            ("¿Con qué frecuencia se auditan las prácticas operativas para evaluar su impacto en el bienestar de los empleados?", "frequency"),
-            ("¿Cuántos empleados recibieron capacitación en herramientas lean con énfasis en colaboración en el último año?", "count")
+            ("8.¿Qué porcentaje de procesos lean revisados en los últimos 12 meses incorporó retroalimentación de empleados para reducir tareas redundantes?", "percentage"),
+            ("9.¿Con qué frecuencia se auditan las prácticas operativas para evaluar su impacto en el bienestar de los empleados?", "frequency"),
+            ("10.¿Cuántos empleados recibieron capacitación en herramientas lean con énfasis en colaboración en el último año?", "count")
         ],
         "English": [
-            ("What percentage of lean processes revised in the past 12 months incorporated employee feedback to reduce redundant tasks?", "percentage"),
-            ("How frequently are operational practices audited to assess their impact on employee well-being?", "frequency"),
-            ("How many employees received training on lean tools emphasizing collaboration in the past year?", "count")
+            ("8.What percentage of lean processes revised in the past 12 months incorporated employee feedback to reduce redundant tasks?", "percentage"),
+            ("9.How frequently are operational practices audited to assess their impact on employee well-being?", "frequency"),
+            ("10.How many employees received training on lean tools emphasizing collaboration in the past year?", "count")
         ]
     },
     "Prácticas Sostenibles y Éticas": {
         "Español": [
-            ("¿Qué porcentaje de iniciativas lean implementadas en los últimos 12 meses redujo el consumo de recursos?", "percentage"),
-            ("¿Qué porcentaje de proveedores principales fueron auditados en el último año para verificar estándares laborales y ambientales?", "percentage"),
-            ("¿Cuántos empleados participaron en proyectos de sostenibilidad con impacto comunitario o laboral en los últimos 12 meses?", "count")
+            ("11.¿Qué porcentaje de iniciativas lean implementadas en los últimos 12 meses redujo el consumo de recursos?", "percentage"),
+            ("12.¿Qué porcentaje de proveedores principales fueron auditados en el último año para verificar estándares laborales y ambientales?", "percentage"),
+            ("13.¿Cuántos empleados participaron en proyectos de sostenibilidad con impacto comunitario o laboral en los últimos 12 meses?", "count")
         ],
         "English": [
-            ("What percentage of lean initiatives implemented in the past 12 months reduced resource consumption?", "percentage"),
-            ("What percentage of primary suppliers were audited in the past year to verify labor and environmental standards?", "percentage"),
-            ("How many employees participated in sustainability projects with community or workplace impact in the past 12 months?", "count")
+            ("11.What percentage of lean initiatives implemented in the past 12 months reduced resource consumption?", "percentage"),
+            ("12.What percentage of primary suppliers were audited in the past year to verify labor and environmental standards?", "percentage"),
+            ("13.How many employees participated in sustainability projects with community or workplace impact in the past 12 months?", "count")
         ]
     },
     "Bienestar y Equilibrio": {
         "Español": [
-            ("¿Qué porcentaje de empleados accedió a recursos de bienestar en los últimos 12 meses?", "percentage"),
-            ("¿Con qué frecuencia se realizan encuestas o revisiones para evaluar el agotamiento o la fatiga de los empleados?", "frequency"),
-            ("¿Cuántos casos de desafíos personales o profesionales reportados por empleados fueron abordados con planes de acción documentados en el último año?", "count")
+            ("14.¿Qué porcentaje de empleados accedió a recursos de bienestar en los últimos 12 meses?", "percentage"),
+            ("15.¿Con qué frecuencia se realizan encuestas o revisiones para evaluar el agotamiento o la fatiga de los empleados?", "frequency"),
+            ("16.¿Cuántos casos de desafíos personales o profesionales reportados por empleados fueron abordados con planes de acción documentados en el último año?", "count")
         ],
         "English": [
-            ("What percentage of employees accessed well-being resources in the past 12 months?", "percentage"),
-            ("How frequently are surveys or check-ins conducted to assess employee burnout or fatigue?", "frequency"),
-            ("How many reported employee personal or professional challenges were addressed with documented action plans in the past year?", "count")
+            ("14.What percentage of employees accessed well-being resources in the past 12 months?", "percentage"),
+            ("15.How frequently are surveys or check-ins conducted to assess employee burnout or fatigue?", "frequency"),
+            ("16.How many reported employee personal or professional challenges were addressed with documented action plans in the past year?", "count")
         ]
     }
 }
