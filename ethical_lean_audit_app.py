@@ -956,8 +956,10 @@ with st.container():
             excel_output.seek(0)
             return excel_output
 
-        Nieuwenhuizeexcel_file = generate_excel_report()
-            st.download_button(
+        with st.spinner(TRANSLATIONS[st.session_state.language]["generating_excel"]):
+            try:
+                excel_file = generate_excel_report()
+                st.download_button(
                     label=TRANSLATIONS[st.session_state.language]["download_excel"],
                     data=excel_file,
                     file_name=TRANSLATIONS[st.session_state.language]["report_filename_excel"],
