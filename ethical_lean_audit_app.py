@@ -614,15 +614,21 @@ if not st.session_state.show_intro:
                     unanswered_questions.append(f"{display_cat}: {q}")
         if unanswered_questions:
             st.error(
+                f"Preguntas sin responder ({len(unanswered_questions)}). Por favor, completa todas las preguntas antes de enviar la auditoría." if st.session_state.language == "Español" else
+                f"Unanswered questions ({len(unanswered_questions)}). Please complete all questions before submitting the audit."
+            )
+            st.markdown(
                 f"""
-                **Preguntas sin responder ({len(unanswered_questions)})**  
-                Debes responder todas las preguntas antes de enviar la auditoría. Por favor, completa las siguientes preguntas:  
-                {"".join([f"- {q}<br>" for q in unanswered_questions])}
+                <div class='insights'>
+                    <strong>Preguntas faltantes:</strong><br>
+                    {"<br>".join([f"- {q}" for q in unanswered_questions])}
+                </div>
                 """ if st.session_state.language == "Español" else
                 f"""
-                **Unanswered Questions ({len(unanswered_questions)})**  
-                You must answer all questions before submitting the audit. Please complete the following questions:  
-                {"".join([f"- {q}<br>" for q in unanswered_questions])}
+                <div class='insights'>
+                    <strong>Missing Questions:</strong><br>
+                    {"<br>".join([f"- {q}" for q in unanswered_questions])}
+                </div>
                 """,
                 unsafe_allow_html=True
             )
