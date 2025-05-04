@@ -238,35 +238,12 @@ questions, response_options = load_static_data()
 # Set page configuration
 st.set_page_config(page_title=TRANSLATIONS["Español"]["title"], layout="wide", initial_sidebar_state="expanded")
 
-# Load external CSS with fallback
+# Load external CSS
 try:
     with open("styles.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 except FileNotFoundError:
     st.warning("Archivo styles.css no encontrado. Usando estilos predeterminados.")
-    fallback_css = """
-    .main-container { padding: 2rem; }
-    .card { background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .subheader { font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; }
-    .progress-bar { display: flex; gap: 0.5rem; margin: 1rem 0; }
-    .progress-step { padding: 0.5rem; border-radius: 4px; background: #ECEFF1; }
-    .progress-step.active { background: #1E88E5; color: white; }
-    .progress-step.completed { background: #43A047; color: white; }
-    .progress-completion { background: #1E88E5; height: 8px; border-radius: 4px; }
-    .motivation { font-size: 0.9rem; color: #424242; }
-    .sticky-nav { display: flex; gap: 1rem; margin-top: 1rem; }
-    .tooltip { position: relative; }
-    .tooltip .tooltiptext { visibility: hidden; background: #555; color: #fff; padding: 5px; border-radius: 4px; position: absolute; z-index: 1; }
-    .tooltip:hover .tooltiptext { visibility: visible; }
-    .grade-excellent { color: #43A047; }
-    .grade-good { color: #1E88E5; }
-    .grade-needs-improvement { color: #FFD54F; }
-    .grade-critical { color: #D32F2F; }
-    .insights { background: #E3F2FD; padding: 1rem; border-radius: 4px; }
-    .badge { background: #E8F5E9; padding: 1rem; border-radius: 4px; text-align: center; }
-    .download-link { display: inline-block; padding: 0.5rem 1rem; background: #1E88E5; color: white; border-radius: 4px; text-decoration: none; }
-    """
-    st.markdown(f"<style>{fallback_css}</style>", unsafe_allow_html=True)
 
 # Configuration from environment variables
 CONFIG = {
@@ -351,7 +328,7 @@ initialize_session_state()
 
 # Sidebar navigation
 with st.sidebar:
-    st.markdown('<div class="card" role="navigation" aria-label="Navegación de la auditoría">', unsafe_allow_html=True)
+    st.markdown('<section class="sidebar-container" role="navigation" aria-label="Navegación de la auditoría">', unsafe_allow_html=True)
     
     # Language selection
     def update_language():
@@ -384,14 +361,14 @@ with st.sidebar:
     # Language change confirmation
     if st.session_state.get("language_changed", False):
         st.warning(TRANSLATIONS[st.session_state.language]["language_change_warning"])
-        if st.button("Confirmar / Confirm", key="confirm_language_change"):
+        if st.button("Confirmar / Confirm", key="confirm_language_change", type="primary"):
             st.session_state.language_change_confirmed = True
             update_language()
         if st.button("Cancelar / Cancel", key="cancel_language_change"):
             st.session_state.language_select = st.session_state.language
             st.session_state.language_changed = False
     
-    st.markdown('<div class="subheader" role="heading" aria-level="2">Progreso</div>', unsafe_allow_html=True)
+    st.markdown('<h2 class="sidebar-title" role="heading" aria-level="2">Progreso</h2>', unsafe_allow_html=True)
     display_categories = list(category_mapping[st.session_state.language].keys())
     for i, display_cat in enumerate(display_categories):
         status = 'active' if i == st.session_state.current_category else 'completed' if i < st.session_state.current_category else ''
@@ -400,80 +377,85 @@ with st.sidebar:
             key=f"nav_{i}",
             help=f"Ir a la categoría {display_cat}",
             disabled=False,
-            use_container_width=True
+            use_container_width=True,
+            type="primary" if status == 'active' else "secondary"
         ):
             st.session_state.current_category = max(0, min(i, len(display_categories) - 1))
             st.session_state.show_intro = False
             st.session_state.show_results = False
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</section>', unsafe_allow_html=True)
 
 # Introductory modal
 if st.session_state.show_intro:
     with st.container():
-        st.markdown('<div class="main-container" role="main">', unsafe_allow_html=True)
+        st.markdown('<section class="container intro-section" role="main">', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="header" role="heading" aria-level="1">🤝 ¡Bienvenido a LEFingerprint 2.0 Institute! Evalúa tu entorno laboral. / Welcome to LEAN 2.0 Institute! Assess your work environment.</div>',
+            f'<h1 class="main-title" role="heading" aria-level="1">🤝 LEFingerprint 2.0 Institute</h1>',
             unsafe_allow_html=True
         )
         with st.expander("", expanded=True):
             st.markdown(
                 f"""
-                Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde {TOTAL_QUESTIONS} preguntas en {len(questions)} categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
-                
-                **Pasos**:
-                1. Responde las preguntas de cada categoría.
-                2. Revisa y descarga tu informe.
-                
-                ¡Empecemos!
+                <div class="intro-content">
+                    Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde {TOTAL_QUESTIONS} preguntas en {len(questions)} categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: <a href="mailto:{CONFIG['contact']['email']}">{CONFIG['contact']['email']}</a> 🌐 Website: <a href="{CONFIG['contact']['website']}">{CONFIG['contact']['website']}</a>
+                    
+                    <h3>Pasos:</h3>
+                    <ol>
+                        <li>Responde las preguntas de cada categoría.</li>
+                        <li>Revisa y descarga tu informe.</li>
+                    </ol>
+                    
+                    ¡Empecemos!
+                </div>
                 """
                 if st.session_state.language == "Español" else
                 f"""
-                This assessment is designed for management and HR to provide an objective evaluation of your workplace. Answer {TOTAL_QUESTIONS} questions across {len(questions)} categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations we can help implement. Upon completion, contact us for personalized consultations: ✉️ Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
-                
-                **Steps**:
-                1. Answer questions for each category.
-                2. Review and download your report.
-                
-                Let’s get started!
+                <div class="intro-content">
+                    This assessment is designed for management and HR to provide an objective evaluation of your workplace. Answer {TOTAL_QUESTIONS} questions across {len(questions)} categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations we can help implement. Upon completion, contact us for personalized consultations: ✉️ Email: <a href="mailto:{CONFIG['contact']['email']}">{CONFIG['contact']['email']}</a> 🌐 Website: <a href="{CONFIG['contact']['website']}">{CONFIG['contact']['website']}</a>
+                    
+                    <h3>Steps:</h3>
+                    <ol>
+                        <li>Answer questions for each category.</li>
+                        <li>Review and download your report.</li>
+                    </ol>
+                    
+                    Let’s get started!
+                </div>
                 """
             )
             if st.button(
                 "Iniciar Auditoría / Start Audit",
                 use_container_width=True,
                 key="start_audit",
-                help="Comenzar la evaluación / Begin the assessment"
+                help="Comenzar la evaluación / Begin the assessment",
+                type="primary"
             ):
                 st.session_state.show_intro = False
+        st.markdown('</section>', unsafe_allow_html=True)
 
 # Main content
 if not st.session_state.show_intro:
     with st.container():
-        st.markdown('<div class="main-container" role="main">', unsafe_allow_html=True)
+        st.markdown('<section class="container main-section" role="main">', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="header" role="heading" aria-level="1">{TRANSLATIONS[st.session_state.language]["header"]}</div>',
+            f'<h1 class="main-title" role="heading" aria-level="1">{TRANSLATIONS[st.session_state.language]["header"]}</h1>',
             unsafe_allow_html=True
         )
 
-        # Progress bar
-        st.markdown('<div class="progress-bar" role="progressbar" aria-label="Progreso de la auditoría">', unsafe_allow_html=True)
-        for i, display_cat in enumerate(display_categories):
-            status = 'active' if i == st.session_state.current_category else 'completed' if i < st.session_state.current_category else ''
-            st.markdown(
-                f'<div class="progress-step {status}" aria-label="Categoría {display_cat} - {"activa" if status == "active" else "completada" if status == "completed" else "pendiente"}">{display_cat}</div>',
-                unsafe_allow_html=True
-            )
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # Progress completion bar
+        # Progress indicator
         completed_questions = sum(len([s for s in scores if s is not None]) for scores in st.session_state.responses.values())
         completion_percentage = (completed_questions / TOTAL_QUESTIONS) * 100 if TOTAL_QUESTIONS > 0 else 0
         st.markdown(
             f"""
-            <div style='background-color: #ECEFF1; border-radius: 4px; margin: 1rem 0;'>
-                <div class='progress-completion' style='width: {completion_percentage}%;' aria-label="Progreso: {completion_percentage:.1f}% completado"></div>
+            <div class="progress-circle" role="progressbar" aria-label="Progreso: {completion_percentage:.1f}% completado">
+                <svg class="progress-ring" width="120" height="120">
+                    <circle class="progress-ring__background" cx="60" cy="60" r="54" />
+                    <circle class="progress-ring__circle" cx="60" cy="60" r="54" stroke-dasharray="339.292" stroke-dashoffset="{339.292 * (1 - completion_percentage / 100)}" />
+                    <text x="50%" y="50%" text-anchor="middle" dy=".3em">{completed_questions}/{TOTAL_QUESTIONS}</text>
+                </svg>
+                <div class="progress-label">{completion_percentage:.1f}% Completado</div>
             </div>
-            <span class='sr-only'>{completed_questions} de {TOTAL_QUESTIONS} preguntas completadas ({completion_percentage:.1f}%)</span>
-            <div class='motivation'>{completed_questions}/{TOTAL_QUESTIONS} preguntas completadas ({completion_percentage:.1f}%)</div>
+            <span class="sr-only">{completed_questions} de {TOTAL_QUESTIONS} preguntas completadas ({completion_percentage:.1f}%)</span>
             """,
             unsafe_allow_html=True
         )
@@ -499,7 +481,7 @@ if not st.session_state.show_intro:
                 )
                 st.markdown(
                     f"""
-                    <div class='insights' role="alert">
+                    <div class="alert alert-warning" role="alert">
                         <strong>{TRANSLATIONS[st.session_state.language]["missing_questions"]}</strong>
                         <ul>
                             {"".join([f"<li>{q}</li>" for q in unanswered_questions])}
@@ -521,21 +503,26 @@ if not st.session_state.show_intro:
             category = category_mapping[st.session_state.language][display_category]
             
             with st.container():
-                st.markdown(f'<div class="card" role="region" aria-label="Preguntas de la categoría {display_category}">', unsafe_allow_html=True)
-                st.markdown(f'<div class="subheader" role="heading" aria-level="2">{display_category}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="card-modern" role="region" aria-label="Preguntas de la categoría {display_category}">', unsafe_allow_html=True)
+                st.markdown(f'<h2 class="section-title" role="heading" aria-level="2">{display_category}</h2>', unsafe_allow_html=True)
                 
                 # Response guide
                 with st.expander(TRANSLATIONS[st.session_state.language]["response_guide"], expanded=True):
-                    st.markdown(TRANSLATIONS[st.session_state.language]["response_guide"])
+                    st.markdown(f'<div class="response-guide">{TRANSLATIONS[st.session_state.language]["response_guide"]}</div>', unsafe_allow_html=True)
 
                 for idx, (q, q_type, _) in enumerate(questions[category][st.session_state.language]):
                     with st.container():
                         is_unanswered = st.session_state.responses[category][idx] is None
                         st.markdown(
                             f"""
-                            <div class="tooltip">
-                                <strong>{q}</strong> {'<span class="required" aria-label="Requerido">*</span>' if is_unanswered else ''}
-                                <span class="tooltiptext">{response_options[q_type][st.session_state.language]['tooltip']}</span>
+                            <div class="question-container">
+                                <label class="question-text" for="{category}_{idx}">
+                                    {q} {'<span class="required" aria-label="Requerido">*</span>' if is_unanswered else ''}
+                                </label>
+                                <div class="tooltip">
+                                    <span class="tooltip-icon">?</span>
+                                    <span class="tooltip-text">{response_options[q_type][st.session_state.language]['tooltip']}</span>
+                                </div>
                             </div>
                             """,
                             unsafe_allow_html=True
@@ -565,7 +552,7 @@ if not st.session_state.show_intro:
 
             # Sticky navigation
             with st.container():
-                st.markdown('<div class="sticky-nav" role="navigation" aria-label="Navegación entre categorías">', unsafe_allow_html=True)
+                st.markdown('<nav class="sticky-nav" role="navigation" aria-label="Navegación entre categorías">', unsafe_allow_html=True)
                 col1, col2 = st.columns([1, 1], gap="small")
                 with col1:
                     if st.button(
@@ -573,7 +560,8 @@ if not st.session_state.show_intro:
                         disabled=category_index == 0,
                         use_container_width=True,
                         key="prev_category",
-                        help="Volver a la categoría anterior" if st.session_state.language == "Español" else "Go to previous category"
+                        help="Volver a la categoría anterior" if st.session_state.language == "Español" else "Go to previous category",
+                        type="secondary"
                     ):
                         st.session_state.current_category = max(category_index - 1, 0)
                         st.session_state.show_results = False
@@ -584,7 +572,8 @@ if not st.session_state.show_intro:
                             disabled=category_index == len(display_categories) - 1,
                             use_container_width=True,
                             key="next_category",
-                            help="Avanzar a la siguiente categoría" if st.session_state.language == "Español" else "Go to next category"
+                            help="Avanzar a la siguiente categoría" if st.session_state.language == "Español" else "Go to next category",
+                            type="primary"
                         ):
                             if all(score is not None for score in st.session_state.responses[category]):
                                 st.session_state.current_category = min(category_index + 1, len(display_categories) - 1)
@@ -601,8 +590,8 @@ if not st.session_state.show_intro:
                                     st.markdown(
                                         f"""
                                         <script>
-                                            document.getElementById('{category}_{first_unanswered_idx}').scrollIntoView({{behavior: 'smooth', block: 'center'}});
-                                            document.getElementById('{category}_{first_unanswered_idx}').focus();
+                                            document.getElementById('{category}_{idx}').scrollIntoView({{behavior: 'smooth', block: 'center'}});
+                                            document.getElementById('{category}_{idx}').focus();
                                         </script>
                                         """,
                                         unsafe_allow_html=True
@@ -613,7 +602,8 @@ if not st.session_state.show_intro:
                             use_container_width=True,
                             key="view_results",
                             help="Ver el informe de la auditoría" if st.session_state.language == "Español" else "View audit report",
-                            disabled=not audit_complete
+                            disabled=not audit_complete,
+                            type="primary"
                         ):
                             if audit_complete:
                                 st.session_state.show_results = True
@@ -623,7 +613,7 @@ if not st.session_state.show_intro:
                                     f"Please answer all questions in all categories. Review the missing questions above.",
                                     icon="⚠️"
                                 )
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown('</nav>', unsafe_allow_html=True)
 
         # Grading matrix
         def get_grade(score):
@@ -667,9 +657,9 @@ if not st.session_state.show_intro:
 
         # Generate report
         if st.session_state.show_results:
-            st.markdown(f'<div class="card" role="region" aria-label="{TRANSLATIONS[st.session_state.language]["report_title"]}">', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-modern report-section" role="region" aria-label="{TRANSLATIONS[st.session_state.language]["report_title"]}">', unsafe_allow_html=True)
             st.markdown(
-                f'<div class="subheader" role="heading" aria-level="2">{TRANSLATIONS[st.session_state.language]["report_title"]}</div>',
+                f'<h2 class="section-title" role="heading" aria-level="2">{TRANSLATIONS[st.session_state.language]["report_title"]}</h2>',
                 unsafe_allow_html=True
             )
             st.markdown(
@@ -689,7 +679,7 @@ if not st.session_state.show_intro:
             )
 
             # Summary dashboard
-            st.markdown('<div class="subheader" role="heading" aria-level="3">Resumen Ejecutivo</div>', unsafe_allow_html=True)
+            st.markdown('<h3 class="subsection-title" role="heading" aria-level="3">Resumen Ejecutivo</h3>', unsafe_allow_html=True)
             col1, col2, col3 = st.columns([2, 1, 1])
             with col1:
                 overall_score = df[TRANSLATIONS[st.session_state.language]["percent"]].mean()
@@ -699,7 +689,7 @@ if not st.session_state.show_intro:
                     f'<div class="grade {grade_class}">Overall Grade: {grade} ({overall_score:.1f}%)</div>',
                     unsafe_allow_html=True
                 )
-                st.markdown(grade_description, unsafe_allow_html=True)
+                st.markdown(f'<p class="grade-description">{grade_description}</p>', unsafe_allow_html=True)
             with col2:
                 st.metric(
                     "Categorías con Alta Prioridad" if st.session_state.language == "Español" else "High Priority Categories",
@@ -717,8 +707,8 @@ if not st.session_state.show_intro:
                 return f'background-color: {color}; color: white;'
             
             st.markdown(
-                "Puntuaciones por debajo del 50% (rojo) requieren acción urgente, 50–69% (amarillo) sugieren mejoras, y por encima del 70% (verde) indican fortalezas." if st.session_state.language == "Español" else
-                "Scores below 50% (red) need urgent action, 50–69% (yellow) suggest improvement, and above 70% (green) indicate strengths.",
+                '<p class="chart-legend">Puntuaciones por debajo del 50% (rojo) requieren acción urgente, 50–69% (amarillo) sugieren mejoras, y por encima del 70% (verde) indican fortalezas.</p>' if st.session_state.language == "Español" else
+                '<p class="chart-legend">Scores below 50% (red) need urgent action, 50–69% (yellow) suggest improvement, and above 70% (green) indicate strengths.</p>',
                 unsafe_allow_html=True
             )
             styled_df = df.style.applymap(color_percent, subset=[TRANSLATIONS[st.session_state.language]["percent"]]).format({TRANSLATIONS[st.session_state.language]["percent"]: "{:.1f}%"})
@@ -816,20 +806,20 @@ if not st.session_state.show_intro:
                         )
                 if insights:
                     st.markdown(
-                        "<div class='insights'>" + "<br>".join(insights) + "</div>",
+                        "<div class='alert alert-info'>" + "<br>".join(insights) + "</div>",
                         unsafe_allow_html=True
                     )
                 else:
                     st.markdown(
-                        "<div class='insights'>¡Todas las categorías obtuvieron más del 70%! Continúa manteniendo estas fortalezas.</div>" if st.session_state.language == "Español" else 
-                        "<div class='insights'>All categories scored above 70%! Continue maintaining these strengths.</div>",
+                        "<div class='alert alert-success'>¡Todas las categorías obtuvieron más del 70%! Continúa manteniendo estas fortalezas.</div>" if st.session_state.language == "Español" else 
+                        "<div class='alert alert-success'>All categories scored above 70%! Continue maintaining these strengths.</div>",
                         unsafe_allow_html=True
                     )
 
             # LEAN 2.0 Institute Advertisement
             st.markdown(
-                "<div class='subheader'>Optimiza tu Lugar de Trabajo con LEAN 2.0 Institute</div>" if st.session_state.language == "Español" else 
-                "<div class='subheader'>Optimize Your Workplace with LEAN 2.0 Institute</div>",
+                "<h3 class='subsection-title'>Optimiza tu Lugar de Trabajo con LEAN 2.0 Institute</h3>" if st.session_state.language == "Español" else 
+                "<h3 class='subsection-title'>Optimize Your Workplace with LEAN 2.0 Institute</h3>",
                 unsafe_allow_html=True
             )
             ad_text = []
@@ -866,10 +856,10 @@ if not st.session_state.show_intro:
                     "Congratulations on an outstanding workplace! Partner with LEAN 2.0 Institute to sustain these strengths and lead with innovation."
                 )
             ad_text.append(
-                f"Contáctanos en {CONFIG['contact']['website']} o envíanos un correo a {CONFIG['contact']['email']} para una consulta estratégica." if st.session_state.language == "Español" else
-                f"Contact us at {CONFIG['contact']['website']} or email us at {CONFIG['contact']['email']} for a strategic consultation."
+                f"Contáctanos en <a href='{CONFIG['contact']['website']}'>{CONFIG['contact']['website']}</a> o envíanos un correo a <a href='mailto:{CONFIG['contact']['email']}'>{CONFIG['contact']['email']}</a> para una consulta estratégica." if st.session_state.language == "Español" else
+                f"Contact us at <a href='{CONFIG['contact']['website']}'>{CONFIG['contact']['website']}</a> or email us at <a href='mailto:{CONFIG['contact']['email']}'>{CONFIG['contact']['email']}</a> for a strategic consultation."
             )
-            st.markdown("<div class='insights'>" + "<br>".join(ad_text) + "</div>", unsafe_allow_html=True)
+            st.markdown("<div class='alert alert-info'>" + "<br>".join(ad_text) + "</div>", unsafe_allow_html=True)
 
             # Download button (Excel only)
             def generate_excel_report():
@@ -997,7 +987,7 @@ if not st.session_state.show_intro:
                 return excel_output
 
             st.markdown(
-                f'<div class="subheader">Descarga tu Informe</div>',
+                f'<h3 class="subsection-title">Descarga tu Informe</h3>',
                 unsafe_allow_html=True
             )
             with st.spinner("Generando Excel..." if st.session_state.language == "Español" else "Generating Excel..."):
@@ -1005,7 +995,7 @@ if not st.session_state.show_intro:
                     excel_output = generate_excel_report()
                     b64_excel = base64.b64encode(excel_output.getvalue()).decode()
                     href_excel = (
-                        f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{TRANSLATIONS[st.session_state.language]["report_filename"]}" class="download-link" role="button" aria-label="{TRANSLATIONS[st.session_state.language]["download_report"]}">{TRANSLATIONS[st.session_state.language]["download_report"]}</a>'
+                        f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{TRANSLATIONS[st.session_state.language]["report_filename"]}" class="btn btn-primary" role="button" aria-label="{TRANSLATIONS[st.session_state.language]["download_report"]}">{TRANSLATIONS[st.session_state.language]["download_report"]}</a>'
                     )
                     st.markdown(href_excel, unsafe_allow_html=True)
                     excel_output.close()
@@ -1023,4 +1013,4 @@ if not st.session_state.show_intro:
                     )
 
             st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</section>', unsafe_allow_html=True)
