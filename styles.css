@@ -1,326 +1,208 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-
+/* ==========================================================================
+   Base Styles
+   ========================================================================== */
 :root {
-    --primary: #1E88E5;
-    --secondary: #43A047;
-    --error: #D32F2F;
-    --background: #F5F7FA;
-    --surface: #FFFFFF;
-    --text: #212121;
+    --primary-color: #1E88E5; /* Blue */
+    --success-color: #43A047; /* Green */
+    --warning-color: #FFD54F; /* Yellow */
+    --error-color: #D32F2F; /* Red */
+    --background-color: #F5F7FA;
+    --card-background: #FFFFFF;
+    --text-color: #212121;
     --text-secondary: #757575;
+    --border-color: #E0E0E0;
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+    --font-size-base: 1rem;
+    --spacing-unit: 1rem;
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--background);
-    color: var(--text);
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    color: var(--text-color);
+    background-color: var(--background-color);
     line-height: 1.6;
 }
 
-.main-container {
-    background-color: var(--surface);
-    padding: 2rem;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    max-width: 1200px;
-    margin: 2rem auto;
-    transition: transform 0.3s ease;
+/* ==========================================================================
+   Typography
+   ========================================================================== */
+.main-title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-unit);
+    color: var(--primary-color);
 }
 
-.stButton>button {
-    background-color: var(--primary);
-    color: white;
-    border-radius: 8px;
-    padding: 0.75rem 1.5rem;
+.section-title {
+    font-size: 1.75rem;
     font-weight: 600;
+    margin-bottom: calc(var(--spacing-unit) * 1.5);
+}
+
+.subsection-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-unit);
+}
+
+.sidebar-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-unit);
+    color: var(--text-color);
+}
+
+/* ==========================================================================
+   Layout
+   ========================================================================== */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: calc(var(--spacing-unit) * 2);
+}
+
+.sidebar-container {
+    padding: var(--spacing-unit);
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.intro-section,
+.main-section,
+.report-section {
+    animation: fadeIn 0.5s ease-in;
+}
+
+/* ==========================================================================
+   Components
+   ========================================================================== */
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: #FFFFFF;
     border: none;
-    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.stButton>button:hover {
+.btn-primary:hover,
+.btn-primary:focus {
     background-color: #1565C0;
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.3);
 }
 
-.stButton>button:focus {
-    outline: 3px solid #90CAF9;
-    outline-offset: 2px;
+.btn-secondary {
+    background-color: var(--border-color);
+    color: var(--text-color);
+    border: none;
 }
 
-.stButton>button:disabled {
+.btn-secondary:hover,
+.btn-secondary:focus {
+    background-color: #D5D5D5;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(224, 224, 224, 0.3);
+}
+
+.btn:disabled {
     background-color: #B0BEC5;
     cursor: not-allowed;
+    opacity: 0.7;
 }
 
-.stRadio>label {
-    background-color: #E3F2FD;
-    padding: 0.75rem;
-    border-radius: 8px;
-    margin: 0.5rem 0;
+/* Cards */
+.card-modern {
+    background: var(--card-background);
+    padding: calc(var(--spacing-unit) * 1.5);
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: calc(var(--spacing-unit) * 2);
+    animation: slideUp 0.5s ease;
+}
+
+/* Progress Circle */
+.progress-circle {
+    text-align: center;
+    margin: calc(var(--spacing-unit) * 2) 0;
+}
+
+.progress-ring {
+    transform: rotate(-90deg);
+}
+
+.progress-ring__background {
+    fill: none;
+    stroke: var(--border-color);
+    stroke-width: 12;
+}
+
+.progress-ring__circle {
+    fill: none;
+    stroke: var(--primary-color);
+    stroke-width: 12;
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+.progress-ring text {
+    font-size: 1.25rem;
+    font-weight: 600;
+    fill: var(--text-color);
+}
+
+.progress-label {
+    margin-top: var(--spacing-unit);
     font-size: 1rem;
-    transition: background-color 0.3s ease;
+    color: var(--text-secondary);
 }
 
-.stRadio>label:hover {
-    background-color: #BBDEFB;
+/* Questions */
+.question-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-unit);
+    margin-bottom: var(--spacing-unit);
+}
+
+.question-text {
+    font-weight: 500;
+    font-size: 1.1rem;
 }
 
 .required {
-    color: var(--error);
-    font-weight: 600;
-    margin-left: 0.25rem;
+    color: var(--error-color);
+    font-weight: bold;
 }
 
-.header {
-    color: var(--primary);
-    font-size: 2.25rem;
-    text-align: center;
-    margin-bottom: 1.5rem;
-    font-weight: 700;
-}
-
-.subheader {
-    color: var(--text);
-    font-size: 1.5rem;
-    margin: 1.5rem 0;
-    text-align: center;
-    font-weight: 600;
-}
-
-.sidebar .sidebar-content {
-    background-color: var(--surface);
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.download-link {
-    color: var(--primary);
-    font-weight: 600;
-    text-decoration: none;
-    font-size: 1rem;
-    display: inline-flex;
-    align-items: center;
-    transition: color 0.3s ease;
-}
-
-.download-link:hover {
-    color: #1565C0;
-    text-decoration: underline;
-}
-
-.download-link::before {
-    content: '📄';
-    margin-right: 0.5rem;
-}
-
-.motivation {
-    color: var(--secondary);
-    font-size: 1.1rem;
-    text-align: center;
-    margin: 1.5rem 0;
-    font-style: italic;
-    background-color: #E8F5E9;
-    padding: 0.75rem;
-    border-radius: 8px;
-}
-
-.badge {
-    background-color: var(--secondary);
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 24px;
-    font-size: 1.1rem;
-    text-align: center;
-    margin: 1.5rem auto;
-    display: block;
-    width: fit-content;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.insights {
-    background-color: #E3F2FD;
-    padding: 1.5rem;
-    border-radius: 12px;
-    margin: 1.5rem 0;
-    border-left: 4px solid var(--primary);
-}
-
-.grade {
-    font-size: 1.5rem;
-    font-weight: 700;
-    text-align: center;
-    margin: 1.5rem 0;
-    padding: 0.75rem;
-    border-radius: 8px;
-}
-
-.grade-excellent { background-color: var(--secondary); color: white; }
-.grade-good { background-color: #FFD54F; color: #212121; }
-.grade-needs-improvement { background-color: var(--error); color: white; }
-.grade-critical { background-color: #B71C1C; color: white; }
-
-.progress-bar {
+/* Custom Radio Buttons */
+.stRadio > div {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 1.5rem 0;
-    background-color: #ECEFF1;
-    padding: 0.5rem;
-    border-radius: 12px;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
-.progress-step {
-    flex: 1;
-    text-align: center;
-    padding: 0.5rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.progress-step.active {
-    background-color: var(--primary);
-    color: white;
-}
-
-.progress-step.completed {
-    background-color: var(--secondary);
-    color: white;
-}
-
-.progress-step:hover {
-    background-color: #BBDEFB;
-}
-
-.progress-completion {
-    background-color: var(--secondary);
-    height: 8px;
-    border-radius: 4px;
-    transition: width 0.3s ease;
-}
-
-.card {
-    background-color: #FAFAFA;
-    padding: 1.5rem;
-    border-radius: 12px;
-    margin: 1rem 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    transition: transform 0.3s ease;
-}
-
-.card:hover {
-    transform: translateY(-4px);
-}
-
-.sticky-nav {
-    position: sticky;
-    bottom: 1rem;
-    background-color: var(--surface);
-    padding: 1rem;
-    border-radius: 12px;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
+.stRadio label {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-}
-
-.tooltip {
-    position: relative;
-    display: inline-block;
-}
-
-.tooltip .tooltiptext {
-    visibility: hidden;
-    width: 200px;
-    background-color: #424242;
-    color: white;
-    text-align: center;
-    border-radius: 6px;
-    padding: 0.5rem;
-    position: absolute;
-    z-index: 1;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -100px;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.tooltip:hover .tooltiptext {
-    visibility: visible;
-    opacity: 1;
-}
-
-.stSelectbox select {
-    background-color: #E3F2FD;
-    border-radius: 8px;
-    padding: 0.5rem;
-    font-size: 1rem;
-    font-weight: 600;
-    transition: background-color 0.3s ease;
-}
-
-.stSelectbox select:hover {
-    background-color: #BBDEFB;
-}
-
-@media (max-width: 768px) {
-    .main-container {
-        padding: 1rem;
-        margin: 1rem;
-    }
-    .header {
-        font-size: 1.75rem;
-    }
-    .subheader {
-        font-size: 1.25rem;
-    }
-    .stButton>button {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-    }
-    .stRadio>label {
-        font-size: 0.9rem;
-        padding: 0.5rem;
-    }
-    .progress-bar {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    .progress-step {
-        font-size: 0.8rem;
-        padding: 0.5rem;
-    }
-    .sticky-nav {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-}
-
-[role="radiogroup"] {
-    margin: 0.5rem 0;
-}
-
-[role="radio"] {
-    cursor: pointer;
-}
-
-[role="radio"]:focus {
-    outline: 3px solid #90CAF9;
-    outline-offset: 2px;
-}
-
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    border: 0;
-}
+    padding: 0.
