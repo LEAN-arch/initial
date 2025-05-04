@@ -74,7 +74,8 @@ TRANSLATIONS = {
         "grade_needs_improvement_desc": "Se identificaron debilidades moderadas. Prioriza acciones correctivas en áreas críticas.",
         "grade_critical_desc": "Existen problemas significativos que requieren intervención urgente. Considera apoyo externo.",
         "suggestion": "Sugerencia",
-        "actionable_charts": "Gráficos Accionables"
+        "actionable_charts": "Gráficos Accionables",
+        "marketing_message": "¡Transforme su lugar de trabajo con LEAN 2.0 Institute! Colaboramos con usted para implementar soluciones sostenibles que aborden los hallazgos de esta auditoría, promoviendo un entorno laboral ético, inclusivo y productivo. Contáctenos para comenzar hoy mismo."
     },
     "English": {
         "title": "Ethical Lean Workplace Audit",
@@ -125,7 +126,8 @@ TRANSLATIONS = {
         "grade_needs_improvement_desc": "Moderate weaknesses identified. Prioritize corrective actions in critical areas.",
         "grade_critical_desc": "Significant issues exist requiring urgent intervention. Consider external support.",
         "suggestion": "Suggestion",
-        "actionable_charts": "Actionable Charts"
+        "actionable_charts": "Actionable Charts",
+        "marketing_message": "Transform your workplace with LEAN 2.0 Institute! We partner with you to implement sustainable solutions that address the findings of this audit, fostering an ethical, inclusive, and productive work environment. Contact us to start today."
     }
 }
 
@@ -188,7 +190,7 @@ def load_static_data() -> Tuple[Dict, Dict]:
             "Español": [
                 ("14. ¿Qué porcentaje de empleados accedió a recursos de bienestar en los últimos 12 meses?", "percentage", "Amplía el acceso a recursos de bienestar, como asesoramiento y horarios flexibles."),
                 ("15. ¿Con qué frecuencia se realizan encuestas o revisiones para evaluar el agotamiento o la fatiga de los empleados?", "frequency", "Implementa encuestas mensuales para monitorear el agotamiento y actuar rápidamente."),
-                ("16. ¿Cuántos casos de desafíos personales o profesionales reportados por empleados fueron abordados con planes de acción documentados en el último año?", "count", "Establece procesos formales para abordar desafíos reportados con planes de acción.")
+                ("16. ¿Cuántos casos de desafíos personales o profesionales reportados por empleados fueron abordados con planes de acción documentados en el último año?", "count", "Establece procesos formales paraliteralmente para abordar desafíos reportados por empleados con planes de acción documentados.")
             ],
             "English": [
                 ("14. What percentage of employees accessed well-being resources in the past 12 months?", "percentage", "Expand access to well-being resources, such as counseling and flexible schedules."),
@@ -944,225 +946,102 @@ else:
                         findings_data,
                         columns=[
                             TRANSLATIONS[st.session_state.language]["category"],
-                            TRANSLATIONS[st.session_state.language]["score
+                            TRANSLATIONS[st.session_state.language]["score"],
+                            TRANSLATIONS[st.session_state.language]["priority"],
+                            TRANSLATIONS[st.session_state.language]["findings_and_suggestions"]
+                        ]
+                    )
+                    findings_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["findings"], index=False, startrow=2)
+                    worksheet_findings = writer.sheets[TRANSLATIONS[st.session_state.language]["findings"]]
+                    worksheet_findings.write('A1', TRANSLATIONS[st.session_state.language]["findings"], bold)
+                    worksheet_findings.write('A2', f"Date: {REPORT_DATE}", bold)
+                    worksheet_findings.set_column('A:A', 30)
+                    worksheet_findings.set_column('B:C', 15)
+                    worksheet_findings.set_column('D:D', 80, wrap_format)
+                    for col_num, value in enumerate(findings_df.columns.values):
+                        worksheet_findings.write(2, col_num, value, header_format)
 
-System: I notice you're asking me to update the `ethical_workplace_audit.py` script again, specifically to remove the "Priority Distribution" pie chart from the Excel report and add a professional marketing message in the "Contact" sheet. Since this is a continuation of our previous conversation where I provided an updated version of the script (artifact ID `0597cc66-7e2d-4290-ad9b-a5eb1f4d871a`), I'll make the requested changes while preserving the fix for the duplicate headers and all other existing functionality.
+                    # Actionable Insights Sheet
+                    insights_data = []
+                    for cat in questions.keys():
+                        display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
+                        score = df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]]
+                        if score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
+                            insights_data.append([display_cat, f"{score:.1f}%", "Focus on immediate improvements."])
+                    insights_df = pd.DataFrame(
+                        insights_data,
+                        columns=[
+                            TRANSLATIONS[st.session_state.language]["category"],
+                            TRANSLATIONS[st.session_state.language]["score"],
+                            TRANSLATIONS[st.session_state.language]["actionable_insights"]
+                        ]
+                    )
+                    insights_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_insights"], index=False, startrow=2)
+                    worksheet_insights = writer.sheets[TRANSLATIONS[st.session_state.language]["actionable_insights"]]
+                    worksheet_insights.write('A1', TRANSLATIONS[st.session_state.language]["actionable_insights"], bold)
+                    worksheet_insights.write('A2', f"Date: {REPORT_DATE}", bold)
+                    worksheet_insights.set_column('A:A', 30)
+                    worksheet_insights.set_column('B:B', 15)
+                    worksheet_insights.set_column('C:C', 50, wrap_format)
+                    for col_num, value in enumerate(insights_df.columns.values):
+                        worksheet_insights.write(2, col_num, value, header_format)
 
-### Changes to Implement
+                    # Actionable Charts Sheet
+                    worksheet_charts = workbook.add_worksheet(TRANSLATIONS[st.session_state.language]["actionable_charts"])
+                    worksheet_charts.write('A1', TRANSLATIONS[st.session_state.language]["actionable_charts"], bold)
+                    worksheet_charts.write('A2', f"Date: {REPORT_DATE}", bold)
+                    chart_data = df_display[[TRANSLATIONS[st.session_state.language]["percent"]]].reset_index()
+                    chart_data.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_charts"], startrow=4, index=False)
+                    worksheet_charts.set_column('A:A', 30)
+                    worksheet_charts.set_column('B:B', 15)
+                    worksheet_charts.write('A4', TRANSLATIONS[st.session_state.language]["category"], header_format)
+                    worksheet_charts.write('B4', TRANSLATIONS[st.session_state.language]["score_percent"], header_format)
+                    bar_chart = workbook.add_chart({'type': 'bar'})
+                    bar_chart.add_series({
+                        'name': TRANSLATIONS[st.session_state.language]["score_percent"],
+                        'categories': f"='{TRANSLATIONS[st.session_state.language]['actionable_charts']}'!$A$5:$A${4 + len(chart_data)}",
+                        'values': f"='{TRANSLATIONS[st.session_state.language]['actionable_charts']}'!$B$5:$B${4 + len(chart_data)}",
+                        'fill': {'color': '#1E88E5'}
+                    })
+                    bar_chart.set_title({'name': TRANSLATIONS[st.session_state.language]["chart_title"]})
+                    bar_chart.set_x_axis({'name': TRANSLATIONS[st.session_state.language]["score_percent"], 'min': 0, 'max': 100})
+                    bar_chart.set_y_axis({'name': TRANSLATIONS[st.session_state.language]["category"]})
+                    worksheet_charts.insert_chart('D5', bar_chart)
 
-1. **Remove the "Priority Distribution" Pie Chart**:
-   - In the `generate_excel_report` function, remove the code that generates the pie chart for priority distribution in the "Actionable Charts" sheet.
-   - Eliminate the associated data preparation for `priority_df` (priority counts) to keep the sheet clean, leaving only the bar chart for category scores.
+                    # Contact Sheet
+                    contact_df = pd.DataFrame({
+                        "Contact Method": ["Email", "Website"],
+                        "Details": [CONFIG["contact"]["email"], CONFIG["contact"]["website"]]
+                    })
+                    contact_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["contact"], index=False, startrow=2)
+                    worksheet_contact = writer.sheets[TRANSLATIONS[st.session_state.language]["contact"]]
+                    worksheet_contact.write('A1', TRANSLATIONS[st.session_state.language]["contact"], bold)
+                    worksheet_contact.write('A2', f"Date: {REPORT_DATE}", bold)
+                    worksheet_contact.set_column('A:A', 20)
+                    worksheet_contact.set_column('B:B', 50)
+                    for col_num, value in enumerate(contact_df.columns.values):
+                        worksheet_contact.write(2, col_num, value, header_format)
+                    worksheet_contact.write('A6', "Collaborate with Us", bold)
+                    worksheet_contact.write('A7', TRANSLATIONS[st.session_state.language]["marketing_message"], wrap_format)
 
-2. **Add a Professional Marketing Message**:
-   - In the "Contact" sheet of the Excel report, add a professional marketing message inviting users to collaborate with LEAN 2.0 Institute to implement sustainable solutions.
-   - Place the message below the contact information (email: `contacto@lean2institute.org`, website: `https://lean2institute.mystrikingly.com/`) in the same sheet.
-   - Ensure the message is bilingual (Español and English) to match the app's language support, professional in tone, and aligned with the institute's mission.
+                excel_output.seek(0)
+                return excel_output
 
-3. **Preserve Existing Functionality**:
-   - Retain the fix for the duplicate `response_guide` headers, ensuring the instruction text appears only once per category within the expander.
-   - Keep all other Excel report sheets (Summary, Results, Findings, Actionable Insights, Actionable Charts) and their content, except for the pie chart removal.
-   - Maintain the bar chart in the "Actionable Charts" sheet, UI elements (progress indicators, navigation, results dashboard), and contact information in the intro section.
-   - Use the same artifact ID for `ethical_workplace_audit.py` (`0597cc66-7e2d-4290-ad9b-a5eb1f4d871a`) since this is an update to the existing script.
-   - Include unchanged `styles.css` and `requirements.txt` artifacts with their respective IDs (`e88512ec-f1ea-4fb9-979c-733e856b205e` and `15e57b7f-b9cc-4b89-9df5-0ff5b1f6edd4`).
+            with st.spinner(TRANSLATIONS[st.session_state.language]["generating_excel"]):
+                try:
+                    excel_file = generate_excel_report()
+                    st.download_button(
+                        label=TRANSLATIONS[st.session_state.language]["download_excel"],
+                        data=excel_file,
+                        file_name=TRANSLATIONS[st.session_state.language]["report_filename_excel"],
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="download_excel",
+                        use_container_width=True,
+                        type="primary"
+                    )
+                except Exception as e:
+                    st.error(TRANSLATIONS[st.session_state.language]["excel_error"].format(str(e)), icon="❌")
 
-### Marketing Message
-The marketing message will be added to the "Contact" sheet and will be professional, concise, and encourage collaboration. Here’s the proposed text:
+            st.markdown('</div>', unsafe_allow_html=True)
 
-- **Español**:  
-  "¡Transforme su lugar de trabajo con LEAN 2.0 Institute! Colaboramos con usted para implementar soluciones sostenibles que aborden los hallazgos de esta auditoría, promoviendo un entorno laboral ético, inclusivo y productivo. Contáctenos para comenzar hoy mismo."
-
-- **English**:  
-  "Transform your workplace with LEAN 2.0 Institute! We partner with you to implement sustainable solutions that address the findings of this audit, fostering an ethical, inclusive, and productive work environment. Contact us to start today."
-
-This message will be written to the "Contact" sheet below the contact details table, with a bold header for clarity.
-
-### Updated Code
-Below is the updated `ethical_workplace_audit.py` script with the pie chart removed and the marketing message added. The `styles.css` and `requirements.txt` files remain unchanged, so I’ll include their artifact tags to confirm they’re part of the response.
-
-<xaiArtifact artifact_id="0597cc66-7e2d-4290-ad9b-a5eb1f4d871a" artifact_version_id="d446f708-c2ef-4f85-85d1-591523575a9d" title="ethical_workplace_audit.py" contentType="text/python">
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import base64
-import io
-import xlsxwriter
-import os
-import uuid
-import re
-from datetime import datetime
-from typing import Dict, List, Tuple
-
-# Constants
-SCORE_THRESHOLDS = {
-    "CRITICAL": 50,
-    "NEEDS_IMPROVEMENT": 70,
-    "GOOD": 85,
-}
-TOTAL_QUESTIONS = 20
-PROGRESS_DISPLAY_THRESHOLD = 20
-CHART_COLORS = ["#D32F2F", "#FFD54F", "#43A047"]
-CHART_HEIGHT = 400
-QUESTION_TRUNCATE_LENGTH = 100
-REPORT_DATE = datetime.now().strftime("%Y-%m-%d")
-
-# Translation dictionary
-TRANSLATIONS = {
-    "Español": {
-        "title": "Auditoría Ética de Lugar de Trabajo Lean",
-        "header": "¡Evalúa y Mejora tu Lugar de Trabajo!",
-        "score": "Puntuación",
-        "percent": "Porcentaje",
-        "priority": "Prioridad",
-        "category": "Categoría",
-        "question": "Pregunta",
-        "high_priority": "Alta",
-        "medium_priority": "Media",
-        "low_priority": "Baja",
-        "report_title": "Tu Informe de Bienestar Laboral",
-        "download_excel": "Descargar Informe Excel",
-        "report_filename_excel": "resultados_auditoria_lugar_trabajo_etico.xlsx",
-        "unanswered_error": "Preguntas sin responder ({}). Por favor, completa todas las preguntas antes de enviar la auditoría.",
-        "missing_questions": "Preguntas faltantes:",
-        "category_completed": "¡Categoría '{}' completada! {}/{} preguntas respondidas.",
-        "all_answered": "¡Todas las preguntas han sido respondidas! Puedes proceder a ver los resultados.",
-        "response_guide": "Selecciona la descripción que mejor represente la situación para cada pregunta. Las opciones describen el grado, frecuencia o cantidad aplicable.",
-        "language_change_warning": "Cambiar el idioma reiniciará tus respuestas. ¿Deseas continuar?",
-        "reset_audit": "Reiniciar Auditoría",
-        "reset_warning": "Reiniciar la auditoría eliminará todas las respuestas. ¿Deseas continuar?",
-        "contact_info": "Contáctanos en {} o {} para soporte adicional.",
-        "high_priority_categories": "Categorías con Alta Prioridad",
-        "average_score": "Puntuación Promedio",
-        "chart_title": "Fortalezas y Oportunidades del Lugar de Trabajo",
-        "score_percent": "Puntuación (%)",
-        "question_breakdown": "Análisis Detallado: Perspectivas a Nivel de Pregunta",
-        "select_category": "Seleccionar Categoría para Explorar",
-        "question_scores_for": "Puntuaciones de Preguntas para",
-        "actionable_insights": "Perspectivas Accionables",
-        "all_categories_above_70": "¡Todas las categorías obtuvieron más del 70%! Continúa manteniendo estas fortalezas.",
-        "summary": "Resumen",
-        "results": "Resultados",
-        "findings": "Hallazgos",
-        "overall_score": "Puntuación General",
-        "grade": "Calificación",
-        "findings_summary": "Resumen de Hallazgos",
-        "findings_summary_text": "{} categorías requieren acción urgente (<{}%), {} necesitan mejoras específicas ({}-{}%). La puntuación general es {}%.",
-        "action_required": "Acción {} requerida.",
-        "findings_and_suggestions": "Hallazgos y Sugerencias",
-        "contact": "Contacto",
-        "generating_excel": "Generando Excel...",
-        "excel_error": "No se pudo generar el archivo Excel: {}",
-        "grade_excellent_desc": "Tu lugar de trabajo demuestra prácticas sobresalientes. ¡Continúa fortaleciendo estas áreas!",
-        "grade_good_desc": "Tu lugar de trabajo tiene fortalezas, pero requiere mejoras específicas para alcanzar la excelencia.",
-        "grade_needs_improvement_desc": "Se identificaron debilidades moderadas. Prioriza acciones correctivas en áreas críticas.",
-        "grade_critical_desc": "Existen problemas significativos que requieren intervención urgente. Considera apoyo externo.",
-        "suggestion": "Sugerencia",
-        "actionable_charts": "Gráficos Accionables",
-        "marketing_message": "¡Transforme su lugar de trabajo con LEAN 2.0 Institute! Colaboramos con usted para implementar soluciones sostenibles que aborden los hallazgos de esta auditoría, promoviendo un entorno laboral ético, inclusivo y productivo. Contáctenos para comenzar hoy mismo."
-    },
-    "English": {
-        "title": "Ethical Lean Workplace Audit",
-        "header": "Assess and Enhance Your Workplace!",
-        "score": "Score",
-        "percent": "Percent",
-        "priority": "Priority",
-        "category": "Category",
-        "question": "Question",
-        "high_priority": "High",
-        "medium_priority": "Medium",
-        "low_priority": "Low",
-        "report_title": "Your Workplace Wellness Report",
-        "download_excel": "Download Excel Report",
-        "report_filename_excel": "ethical_workplace_audit_results.xlsx",
-        "unanswered_error": "Unanswered questions ({}). Please complete all questions before submitting the audit.",
-        "missing_questions": "Missing Questions:",
-        "category_completed": "Category '{}' completed! {}/{} questions answered.",
-        "all_answered": "All questions have been answered! You can proceed to view the results.",
-        "response_guide": "Select the description that best represents the situation for each question. The options describe the degree, frequency, or quantity applicable.",
-        "language_change_warning": "Changing the language will reset your responses. Do you wish to continue?",
-        "reset_audit": "Reset Audit",
-        "reset_warning": "Resetting the audit will clear all responses. Do you wish to continue?",
-        "contact_info": "Contact us at {} or {} for additional support.",
-        "high_priority_categories": "High Priority Categories",
-        "average_score": "Average Score",
-        "chart_title": "Workplace Strengths and Opportunities",
-        "score_percent": "Score (%)",
-        "question_breakdown": "Drill Down: Question-Level Insights",
-        "select_category": "Select Category to Explore",
-        "question_scores_for": "Question Scores for",
-        "actionable_insights": "Actionable Insights",
-        "all_categories_above_70": "All categories scored above 70%! Continue maintaining these strengths.",
-        "summary": "Summary",
-        "results": "Results",
-        "findings": "Findings",
-        "overall_score": "Overall Score",
-        "grade": "Grade",
-        "findings_summary": "Findings Summary",
-        "findings_summary_text": "{} categories require urgent action (<{}%), {} need specific improvements ({}-{}%). Overall score is {}%.",
-        "action_required": "{} action required.",
-        "findings_and_suggestions": "Findings and Suggestions",
-        "contact": "Contact",
-        "generating_excel": "Generating Excel...",
-        "excel_error": "Failed to generate Excel file: {}",
-        "grade_excellent_desc": "Your workplace demonstrates outstanding practices. Continue strengthening these areas!",
-        "grade_good_desc": "Your workplace has strengths but requires specific improvements to achieve excellence.",
-        "grade_needs_improvement_desc": "Moderate weaknesses identified. Prioritize corrective actions in critical areas.",
-        "grade_critical_desc": "Significant issues exist requiring urgent intervention. Consider external support.",
-        "suggestion": "Suggestion",
-        "actionable_charts": "Actionable Charts",
-        "marketing_message": "Transform your workplace with LEAN 2.0 Institute! We partner with you to implement sustainable solutions that address the findings of this audit, fostering an ethical, inclusive, and productive work environment. Contact us to start today."
-    }
-}
-
-# Cache static data
-@st.cache_data
-def load_static_data() -> Tuple[Dict, Dict]:
-    """Load and cache static data like questions and response options."""
-    questions = {
-        "Empoderamiento de Empleados": {
-            "Español": [
-                ("1. ¿Qué porcentaje de sugerencias de empleados presentadas en los últimos 12 meses fueron implementadas con resultados documentados?", "percentage", "Establece un sistema formal para rastrear e implementar sugerencias de empleados con métricas claras."),
-                ("2. ¿Cuántos empleados recibieron capacitación en habilidades profesionales en el último año?", "count", "Aumenta las oportunidades de capacitación profesional para todos los empleados."),
-                ("3. En los últimos 12 meses, ¿cuántos empleados lideraron proyectos o iniciativas con presupuesto asignado?", "count", "Asigna presupuestos a más iniciativas lideradas por empleados para fomentar la innovación."),
-                ("4. ¿Con qué frecuencia se realizan foros formales para que los empleados compartan retroalimentación con la gerencia?", "frequency", "Programa foros mensuales para retroalimentación directa entre empleados y gerencia.")
-            ],
-            "English": [
-                ("1. What percentage of employee suggestions submitted in the past 12 months were implemented with documented outcomes?", "percentage", "Establish a formal system to track and implement employee suggestions with clear metrics."),
-                ("2. How many employees received professional skills training in the past year?", "count", "Increase professional training opportunities for all employees."),
-                ("3. In the past 12 months, how many employees led projects or initiatives with allocated budgets?", "count", "Allocate budgets to more employee-led initiatives to foster innovation."),
-                ("4. How frequently are formal forums or meetings held for employees to share feedback with management?", "frequency", "Schedule monthly forums for direct employee-management feedback.")
-            ]
-        },
-        "Liderazgo Ético": {
-            "Español": [
-                ("5. ¿Con qué frecuencia los líderes compartieron actualizaciones escritas sobre decisiones que afectan a los empleados en los últimos 12 meses?", "frequency", "Implementa boletines mensuales para comunicar decisiones de liderazgo de manera transparente."),
-                ("6. ¿Qué porcentaje de políticas laborales nuevas o revisadas en el último año incluyó consulta formal con empleados?", "percentage", "Incluye a representantes de empleados en la revisión de todas las políticas laborales nuevas."),
-                ("7. ¿Cuántos casos de comportamiento ético destacado fueron reconocidos formalmente en los últimos 12 meses?", "count", "Crea un programa formal de reconocimiento para comportamientos éticos, con incentivos claros.")
-            ],
-            "English": [
-                ("5. How frequently did leaders share written updates on decisions affecting employees in the past 12 months?", "frequency", "Implement monthly newsletters to transparently communicate leadership decisions."),
-                ("6. What percentage of new or revised workplace policies in the past year included formal employee consultation?", "percentage", "Include employee representatives in reviewing all new workplace policies."),
-                ("7. How many instances of exemplary ethical behavior were formally recognized in the past 12 months?", "count", "Create a formal recognition program for ethical behavior with clear incentives.")
-            ]
-        },
-        "Operaciones Centradas en las Personas": {
-            "Español": [
-                ("8. ¿Qué porcentaje de procesos lean revisados en los últimos 12 meses incorporó retroalimentación de empleados para reducir tareas redundantes?", "percentage", "Integra retroalimentación de empleados en cada revisión de procesos lean para eliminar redundancias."),
-                ("9. ¿Con qué frecuencia se auditan las prácticas operativas para evaluar su impacto en el bienestar de los empleados?", "frequency", "Realiza auditorías trimestrales de prácticas operativas con enfoque en el bienestar."),
-                ("10. ¿Cuántos empleados recibieron capacitación en herramientas lean con énfasis en colaboración en el último año?", "count", "Capacita a todos los empleados en herramientas lean, priorizando la colaboración.")
-            ],
-            "English": [
-                ("8. What percentage of lean processes revised in the past 12 months incorporated employee feedback to reduce redundant tasks?", "percentage", "Integrate employee feedback into every lean process review to eliminate redundancies."),
-                ("9. How frequently are operational practices audited to assess their impact on employee well-being?", "frequency", "Conduct quarterly audits of operational practices focusing on well-being."),
-                ("10. How many employees received training on lean tools emphasizing collaboration in the past year?", "count", "Train all employees on lean tools, prioritizing collaboration.")
-            ]
-        },
-        "Prácticas Sostenibles y Éticas": {
-            "Español": [
-                ("11. ¿Qué porcentaje de iniciativas lean implementadas en los últimos 12 meses redujo el consumo de recursos?", "percentage", "Lanza iniciativas lean específicas para reducir el consumo de recursos, con metas medibles."),
-                ("12. ¿Qué porcentaje de proveedores principales fueron auditados en el último año para verificar estándares laborales y ambientales?", "percentage", "Audita anualmente a todos los proveedores principales para garantizar estándares éticos."),
-                ("13. ¿Cuántos empleados participaron en proyectos de sostenibilidad con impacto comunitario o laboral en los últimos 12 meses?", "count", "Involucra a más empleados en proyectos de sostenibilidad con impacto comunitario.")
-            ],
-            "English": [
-                ("11. What percentage of lean initiatives implemented in the past 12 months reduced resource consumption?", "percentage", "Launch specific lean initiatives to reduce resource consumption with measurable goals."),
-                ("12. What percentage of primary suppliers were audited in the past
+        st.markdown('</section>', unsafe_allow_html=True)
