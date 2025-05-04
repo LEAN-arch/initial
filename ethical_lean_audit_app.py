@@ -31,7 +31,7 @@ TRANSLATIONS = {
         "high_priority": "Alta",
         "medium_priority": "Media",
         "low_priority": "Baja",
-        "report_title": "Tu Informe de Impacto en el Lugar de Trabajo",
+        "report_title": "Tu Informe de Bienestar Laboral",
         "download_report": "Descargar Informe Excel",
         "report_filename": "resultados_auditoria_lugar_trabajo_etico.xlsx",
         "unanswered_error": "Preguntas sin responder ({}). Por favor, completa todas las preguntas antes de enviar la auditoría.",
@@ -52,7 +52,7 @@ TRANSLATIONS = {
         "high_priority": "High",
         "medium_priority": "Medium",
         "low_priority": "Low",
-        "report_title": "Your Workplace Impact Report",
+        "report_title": "Your Workplace Wellness Report",
         "download_report": "Download Excel Report",
         "report_filename": "ethical_workplace_audit_results.xlsx",
         "unanswered_error": "Unanswered questions ({}). Please complete all questions before submitting the audit.",
@@ -390,14 +390,14 @@ if st.session_state.show_intro:
     with st.container():
         st.markdown('<section class="container intro-section" role="main">', unsafe_allow_html=True)
         st.markdown(
-            f'<h1 class="main-title" role="heading" aria-level="1">🤝 LEFingerprint 2.0 Institute</h1>',
+            f'<h1 class="main-title" role="heading" aria-level="1">🤝 LEAN 2.0 Institute</h1>',
             unsafe_allow_html=True
         )
         with st.expander("", expanded=True):
             if st.session_state.language == "Español":
                 intro_text = f"""
                     <div class="intro-content">
-                        Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde {TOTAL_QUESTIONS} preguntas en {len(questions)} categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: <a href="mailto:{CONFIG['contact']['email']}">{CONFIG['contact']['email']}</a> 🌐 Website: <a href="{CONFIG['contact']['website']}">{CONFIG['contact']['website']}</a>
+                        Esta evaluación está diseñada para ser completada por la gerencia en conjunto con personal del departamento de Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde {TOTAL_QUESTIONS} preguntas en {len(questions)} categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: <a href="mailto:{CONFIG['contact']['email']}">{CONFIG['contact']['email']}</a> 🌐 Website: <a href="{CONFIG['contact']['website']}">{CONFIG['contact']['website']}</a>
                     </div>
                 """
                 steps_content = f"""
