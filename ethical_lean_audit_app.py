@@ -452,7 +452,7 @@ if not st.session_state.responses or len(st.session_state.responses) != len(ques
 if st.session_state.show_intro:
     with st.container():
         st.markdown('<div class="main-container">', unsafe_allow_html=True)
-        st.markdown('<div class="header">🤝¡Bienvenido a LEAN 2.0 Institute! Evaluemos juntos tu entorno laboral. / Welcome to LEAN 2.0 Institute! Let’s assess together your work environment. 🤝</div>', unsafe_allow_html=True)
+        st.markdown('<div class="header">🤝¡Bienvenido a LEAN 2.0 Institute! Evaluemos juntos tu entorno laboral. / Welcome to LEAN 2.0 Institute! Let’s assess together your work environment. </div>', unsafe_allow_html=True)
         with st.expander("", expanded=True):
             st.markdown(
                 """
