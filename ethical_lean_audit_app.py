@@ -543,8 +543,8 @@ if not st.session_state.show_intro:
                     ],
                     "scores": [0, 25, 50, 75, 100]
                 },
-                "tooltip": "Selecciona la descripción que mejor refleje la frecuencia de la práctica." if st.session_state.language == "Español" else
-                          "Select the description that best reflects the frequency of the practice."
+                "tooltip": "Selecciona la descripción que mejor refleje la frecuencia de la práctica. Haz doble clic en cada respuesta para registrarla." if st.session_state.language == "Español" else
+                          "Select the description that best reflects the frequency of the practice. Please double-click on each response to register it."
             },
             "count": {
                 "Español": {
@@ -567,8 +567,8 @@ if not st.session_state.show_intro:
                     ],
                     "scores": [0, 25, 50, 75, 100]
                 },
-                "tooltip": "Selecciona la descripción que mejor refleje la cantidad de empleados o casos afectados." if st.session_state.language == "Español" else
-                          "Select the description that best reflects the number of employees or cases affected."
+                "tooltip": "Selecciona la descripción que mejor refleje la cantidad de empleados o casos afectados. Haz doble clic en cada respuesta para registrarla." if st.session_state.language == "Español" else
+                          "Select the description that best reflects the number of employees or cases affected. Please double-click on each response to register it."
             }
         }
 
@@ -618,8 +618,8 @@ if not st.session_state.show_intro:
                 # Response guide
                 with st.expander("Guía de Respuestas" if st.session_state.language == "Español" else "Response Guide", expanded=True):
                     st.markdown(
-                        "Selecciona la descripción que mejor represente la situación para cada pregunta. Las opciones describen el grado, frecuencia o cantidad aplicable." if st.session_state.language == "Español" else
-                        "Select the description that best represents the situation for each question. The options describe the degree, frequency, or quantity applicable."
+                        "Selecciona la descripción que mejor represente la situación para cada pregunta. Haz doble clic en cada respuesta para registrarla. Las opciones describen el grado, frecuencia o cantidad aplicable." if st.session_state.language == "Español" else
+                        "Select the description that best represents the situation for each question. Please double-click on each response to register it. The options describe the degree, frequency, or quantity applicable."
                     )
 
                 for idx, (q, q_type) in enumerate(questions[category][st.session_state.language]):
