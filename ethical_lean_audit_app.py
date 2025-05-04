@@ -3,12 +3,12 @@ import pandas as pd
 import plotly.express as px
 import base64
 import io
-import xlsxwriter
 import os
 import uuid
 import re
 from datetime import datetime
 from typing import Dict, List, Tuple
+from excel_report_generator import generate_excel_report  # Import the new module
 
 # Constants
 SCORE_THRESHOLDS = {
@@ -16,8 +16,8 @@ SCORE_THRESHOLDS = {
     "NEEDS_IMPROVEMENT": 70,
     "GOOD": 85,
 }
-TOTAL_QUESTIONS = 25  # Updated to include 5 new questions
-PROGRESS_DISPLAY_THRESHOLD = 20  # Show unanswered questions when 80% complete
+TOTAL_QUESTIONS = 25
+PROGRESS_DISPLAY_THRESHOLD = 20
 CHART_COLORS = ["#D32F2F", "#FFD54F", "#43A047"]
 CHART_HEIGHT = 400
 QUESTION_TRUNCATE_LENGTH = 100
@@ -361,8 +361,8 @@ def initialize_session_state():
         "show_results": False,
         "reset_confirmed": False,
         "report_id": str(uuid.uuid4()),
-        "expander_state": {},  # Track expander state per category
-        "last_scroll_position": 0  # Track scroll position
+        "expander_state": {},
+        "last_scroll_position": 0
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -738,7 +738,6 @@ with st.container():
                         )
                         descriptions = response_options[q_type][st.session_state.language]["descriptions"]
                         scores = response_options[q_type][st.session_state.language]["scores"]
-                        # Use unique key for each radio button
                         radio_key = f"{category}_{idx}_{st.session_state.report_id}"
                         selected_description = st.radio(
                             "",
@@ -942,163 +941,22 @@ with st.container():
                     )
 
             # Download Excel report
-            def generate_excel_report() -> io.BytesIO:
-                """Generate comprehensive Excel report with summary, results, findings, actionable charts, and contact info."""
-                excel_output = io.BytesIO()
-                with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
-                    workbook = writer.book
-                    bold = workbook.add_format({'bold': True})
-                    percent_format = workbook.add_format({'num_format': '0.0%'})
-                    wrap_format = workbook.add_format({'text_wrap': True})
-                    border_format = workbook.add_format({'border': 1})
-                    header_format = workbook.add_format({'bold': True, 'bg_color': '#1E88E5', 'color': 'white', 'border': 1})
-
-                    # Summary Sheet
-                    critical_count = len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
-                    improvement_count = len(df[(df[TRANSLATIONS[st.session_state.language]["percent"]] >= SCORE_THRESHOLDS["CRITICAL"]) & (df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"])])
-                    summary_df = pd.DataFrame({
-                        TRANSLATIONS[st.session_state.language]["overall_score"]: [f"{overall_score:.1f}%"],
-                        TRANSLATIONS[st.session_state.language]["grade"]: [grade],
-                        TRANSLATIONS[st.session_state.language]["findings_summary"]: [
-                            TRANSLATIONS[st.session_state.language]["findings_summary_text"].format(
-                                critical_count,
-                                SCORE_THRESHOLDS["CRITICAL"],
-                                improvement_count,
-                                SCORE_THRESHOLDS["CRITICAL"],
-                                SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]-1,
-                                overall_score
-                            )
-                        ]
-                    })
-                    summary_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["summary"], index=False, startrow=2)
-                    worksheet_summary = writer.sheets[TRANSLATIONS[st.session_state.language]["summary"]]
-                    worksheet_summary.write('A1', TRANSLATIONS[st.session_state.language]["report_title"], bold)
-                    worksheet_summary.write('A2', f"Date: {REPORT_DATE}", bold)
-                    worksheet_summary.set_column('A:A', 20)
-                    worksheet_summary.set_column('B:B', 15)
-                    worksheet_summary.set_column('C:C', 80, wrap_format)
-                    for col_num, value in enumerate(summary_df.columns.values):
-                        worksheet_summary.write(2, col_num, value, header_format)
-
-                    # Results Sheet
-                    df_display.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["results"], float_format="%.1f", startrow=2)
-                    worksheet_results = writer.sheets[TRANSLATIONS[st.session_state.language]["results"]]
-                    worksheet_results.write('A1', TRANSLATIONS[st.session_state.language]["results"], bold)
-                    worksheet_results.write('A2', f"Date: {REPORT_DATE}", bold)
-                    worksheet_results.set_column('A:A', 30)
-                    worksheet_results.set_column('B:C', 15)
-                    worksheet_results.set_column('D:D', 20)
-                    for col_num, value in enumerate(df_display.columns.values):
-                        worksheet_results.write(2, col_num + 1, value, header_format)
-                    worksheet_results.write(2, 0, TRANSLATIONS[st.session_state.language]["category"], header_format)
-
-                    # Findings Sheet
-                    findings_data = []
-                    for cat in questions.keys():
-                        display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
-                        if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
-                            findings_data.append([
-                                display_cat,
-                                f"{df.loc[cat, TRANSLATIONS[st.session_state.language]['percent']]:.1f}%",
-                                TRANSLATIONS[st.session_state.language]["high_priority"] if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"] else TRANSLATIONS[st.session_state.language]["medium_priority"],
-                                TRANSLATIONS[st.session_state.language]["action_required"].format(
-                                    "Urgent" if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"] else "Specific"
-                                )
-                            ])
-                            for idx, score in enumerate(st.session_state.responses[cat]):
-                                if score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
-                                    question, _, rec = questions[cat][st.session_state.language][idx]
-                                    findings_data.append([
-                                        "", "", "", f"{TRANSLATIONS[st.session_state.language]['question']}: {question[:50]}... - {TRANSLATIONS[st.session_state.language]['suggestion']}: {rec}"
-                                    ])
-                    findings_df = pd.DataFrame(
-                        findings_data,
-                        columns=[
-                            TRANSLATIONS[st.session_state.language]["category"],
-                            TRANSLATIONS[st.session_state.language]["score"],
-                            TRANSLATIONS[st.session_state.language]["priority"],
-                            TRANSLATIONS[st.session_state.language]["findings_and_suggestions"]
-                        ]
-                    )
-                    findings_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["findings"], index=False, startrow=2)
-                    worksheet_findings = writer.sheets[TRANSLATIONS[st.session_state.language]["findings"]]
-                    worksheet_findings.write('A1', TRANSLATIONS[st.session_state.language]["findings"], bold)
-                    worksheet_findings.write('A2', f"Date: {REPORT_DATE}", bold)
-                    worksheet_findings.set_column('A:A', 30)
-                    worksheet_findings.set_column('B:C', 15)
-                    worksheet_findings.set_column('D:D', 80, wrap_format)
-                    for col_num, value in enumerate(findings_df.columns.values):
-                        worksheet_findings.write(2, col_num, value, header_format)
-
-                    # Actionable Insights Sheet
-                    insights_data = []
-                    for cat in questions.keys():
-                        display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
-                        score = df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]]
-                        if score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
-                            insights_data.append([display_cat, f"{score:.1f}%", "Focus on immediate improvements."])
-                    insights_df = pd.DataFrame(
-                        insights_data,
-                        columns=[
-                            TRANSLATIONS[st.session_state.language]["category"],
-                            TRANSLATIONS[st.session_state.language]["score"],
-                            TRANSLATIONS[st.session_state.language]["actionable_insights"]
-                        ]
-                    )
-                    insights_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_insights"], index=False, startrow=2)
-                    worksheet_insights = writer.sheets[TRANSLATIONS[st.session_state.language]["actionable_insights"]]
-                    worksheet_insights.write('A1', TRANSLATIONS[st.session_state.language]["actionable_insights"], bold)
-                    worksheet_insights.write('A2', f"Date: {REPORT_DATE}", bold)
-                    worksheet_insights.set_column('A:A', 30)
-                    worksheet_insights.set_column('B:B', 15)
-                    worksheet_insights.set_column('C:C', 50, wrap_format)
-                    for col_num, value in enumerate(insights_df.columns.values):
-                        worksheet_insights.write(2, col_num, value, header_format)
-
-                    # Actionable Charts Sheet
-                    worksheet_charts = workbook.add_worksheet(TRANSLATIONS[st.session_state.language]["actionable_charts"])
-                    worksheet_charts.write('A1', TRANSLATIONS[st.session_state.language]["actionable_charts"], bold)
-                    worksheet_charts.write('A2', f"Date: {REPORT_DATE}", bold)
-                    chart_data = df_display[[TRANSLATIONS[st.session_state.language]["percent"]]].reset_index()
-                    chart_data.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_charts"], startrow=4, index=False)
-                    worksheet_charts.set_column('A:A', 30)
-                    worksheet_charts.set_column('B:B', 15)
-                    worksheet_charts.write('A4', TRANSLATIONS[st.session_state.language]["category"], header_format)
-                    worksheet_charts.write('B4', TRANSLATIONS[st.session_state.language]["score_percent"], header_format)
-                    bar_chart = workbook.add_chart({'type': 'bar'})
-                    bar_chart.add_series({
-                        'name': TRANSLATIONS[st.session_state.language]["score_percent"],
-                        'categories': f"='{TRANSLATIONS[st.session_state.language]['actionable_charts']}'!$A$5:$A${4 + len(chart_data)}",
-                        'values': f"='{TRANSLATIONS[st.session_state.language]['actionable_charts']}'!$B$5:$B${4 + len(chart_data)}",
-                        'fill': {'color': '#1E88E5'}
-                    })
-                    bar_chart.set_title({'name': TRANSLATIONS[st.session_state.language]["chart_title"]})
-                    bar_chart.set_x_axis({'name': TRANSLATIONS[st.session_state.language]["score_percent"], 'min': 0, 'max': 100})
-                    bar_chart.set_y_axis({'name': TRANSLATIONS[st.session_state.language]["category"]})
-                    worksheet_charts.insert_chart('D5', bar_chart)
-
-                    # Contact Sheet
-                    contact_df = pd.DataFrame({
-                        "Contact Method": ["Email", "Website"],
-                        "Details": [CONFIG["contact"]["email"], CONFIG["contact"]["website"]]
-                    })
-                    contact_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["contact"], index=False, startrow=2)
-                    worksheet_contact = writer.sheets[TRANSLATIONS[st.session_state.language]["contact"]]
-                    worksheet_contact.write('A1', TRANSLATIONS[st.session_state.language]["contact"], bold)
-                    worksheet_contact.write('A2', f"Date: {REPORT_DATE}", bold)
-                    worksheet_contact.set_column('A:A', 20)
-                    worksheet_contact.set_column('B:B', 50)
-                    for col_num, value in enumerate(contact_df.columns.values):
-                        worksheet_contact.write(2, col_num, value, header_format)
-                    worksheet_contact.write('A6', "Collaborate with Us", bold)
-                    worksheet_contact.write('A7', TRANSLATIONS[st.session_state.language]["marketing_message"], wrap_format)
-
-                excel_output.seek(0)
-                return excel_output
-
             with st.spinner(TRANSLATIONS[st.session_state.language]["generating_excel"]):
                 try:
-                    excel_file = generate_excel_report()
+                    excel_file = generate_excel_report(
+                        df=df,
+                        df_display=df_display,
+                        questions=questions,
+                        responses=st.session_state.responses,
+                        language=st.session_state.language,
+                        category_mapping=category_mapping,
+                        TRANSLATIONS=TRANSLATIONS,
+                        SCORE_THRESHOLDS=SCORE_THRESHOLDS,
+                        CONFIG=CONFIG,
+                        overall_score=overall_score,
+                        grade=grade,
+                        REPORT_DATE=REPORT_DATE
+                    )
                     st.download_button(
                         label=TRANSLATIONS[st.session_state.language]["download_excel"],
                         data=excel_file,
