@@ -343,6 +343,8 @@ if 'prev_language' not in st.session_state:
     st.session_state.prev_language = st.session_state.language
 if 'show_intro' not in st.session_state:
     st.session_state.show_intro = True
+if 'language_changed' not in st.session_state:
+    st.session_state.language_changed = False
 
 # Audit questions
 questions = {
@@ -417,12 +419,7 @@ with st.sidebar:
     # Language selection with on_change callback
     def update_language():
         if st.session_state.language_select != st.session_state.language:
-            st.session_state.language = st.session_state.language_select
-            st.session_state.current_category = 0
-            st.session_state.responses = {cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions}
-            st.session_state.prev_language = st.session_state.language
-            st.session_state.show_intro = True
-            st.rerun()
+            st.session_state.language_changed = True
     
     st.selectbox(
         "Idioma / Language",
@@ -432,9 +429,16 @@ with st.sidebar:
         on_change=update_language
     )
     
-    # Loading message during language switch
-    if st.session_state.language != st.session_state.prev_language:
+    # Handle language change in main script
+    if st.session_state.language_changed:
+        st.session_state.language = st.session_state.language_select
+        st.session_state.current_category = 0
+        st.session_state.responses = {cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions}
+        st.session_state.prev_language = st.session_state.language
+        st.session_state.show_intro = True
+        st.session_state.language_changed = False
         st.info("Cargando contenido en el nuevo idioma..." if st.session_state.language == "Español" else "Loading content in the new language...")
+        st.rerun()
     
     st.markdown('<div class="subheader">Progreso</div>', unsafe_allow_html=True)
     categories = [
@@ -1085,7 +1089,7 @@ if not st.session_state.show_intro:
                                         question = questions[cat][st.session_state.language][idx][0]
                                         rec = recommendations[cat][idx]
                                         action_text = f"- {question}: {rec}"
-                                        wrapped_action = textwrap.wrap(action_text, width=75)
+                                        wrapped  wrapped_action = textwrap.wrap(action_text, width=75)
                                         for line in wrapped_action:
                                             pdf.multi_cell(0, 8, line)
                                 pdf.ln(5)
