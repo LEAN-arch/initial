@@ -360,7 +360,9 @@ def initialize_session_state():
         "language_changed": False,
         "show_results": False,
         "reset_confirmed": False,
-        "report_id": str(uuid.uuid4())
+        "report_id": str(uuid.uuid4()),
+        "expander_state": {},  # Track expander state per category
+        "last_scroll_position": 0  # Track scroll position
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -387,6 +389,10 @@ def initialize_session_state():
                     current[:expected_len] + [None] * (expected_len - len(current))
                 ) if len(current) < expected_len else current[:expected_len]
 
+    # Initialize expander state
+    if not st.session_state.expander_state:
+        st.session_state.expander_state = {cat: True for cat in questions}
+
 # Set page configuration
 st.set_page_config(
     page_title=TRANSLATIONS["Español"]["title"],
@@ -402,10 +408,11 @@ def load_css():
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except FileNotFoundError:
         default_css = """
+            .main-container { overflow-anchor: auto; min-height: 100vh; }
             .main-title { font-size: 2.5rem; color: #1E88E5; text-align: center; }
             .section-title { font-size: 1.8rem; color: #424242; margin-bottom: 1rem; }
-            .card-modern { background: #FFFFFF; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1rem; }
-            .progress-circle { text-align: center; margin: 1rem 0; }
+            .card-modern { background: #FFFFFF; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1rem; min-height: 200px; }
+            .progress-circle { text-align: center; margin: 1rem 0; height: 150px; }
             .progress-ring__background { fill: none; stroke: #E0E0E0; stroke-width: 12; }
             .progress-ring__circle { fill: none; stroke: #1E88E5; stroke-width: 12; transition: stroke-dashoffset 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; }
             .progress-label { font-size: 1rem; color: #424242; margin-top: 0.5rem; }
@@ -416,26 +423,46 @@ def load_css():
             .tooltip-icon { background: #1E88E5; color: white; border-radius: 50%; width: 20px; height: 20px; text-align: center; line-height: 20px; cursor: help; }
             .tooltip-text { visibility: hidden; width: 200px; background: #424242; color: #FFFFFF; text-align: center; border-radius: 6px; padding: 5px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -100px; opacity: 0; transition: opacity 0.3s; }
             .tooltip:hover .tooltip-text { visibility: visible; opacity: 1; }
-            .sticky-nav { position: sticky; bottom: 0; background: #F5F5F5; padding: 1rem; border-radius: 8px; box-shadow: 0 -2px 4px rgba(0,0,0,0.1); }
+            .sticky-nav { position: sticky; bottom: 0; background: #F5F5F5; padding: 1rem; border-radius: 8px; box-shadow: 0 -2px 4px rgba(0,0,0,0.1); z-index: 10; }
             .grade-excellent { background: #43A047; color: #FFFFFF; padding: 0.5rem; border-radius: 4px; }
             .grade-good { background: #FFD54F; color: #212121; padding: 0.5rem; border-radius: 4px; }
             .grade-needs-improvement { background: #FF9800; color: #FFFFFF; padding: 0.5rem; border-radius: 4px; }
             .grade-critical { background: #D32F2F; color: #FFFFFF; padding: 0.5rem; border-radius: 4px; }
-            .alert { padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+            .alert { padding: 1rem; border-radius: 4px; margin-bottom: 1rem; min-height: 60px; }
             .alert-info { background: #E3F2FD; color: #1E88E5; }
             .alert-success { background: #E8F5E9; color: #43A047; }
             .alert-warning { background: #FFF3E0; color: #FF9800; }
             .badge { background: #1E88E5; color: #FFFFFF; padding: 0.5rem 1rem; border-radius: 16px; display: inline-block; margin: 1rem 0; }
-            .progress-bar-container { margin: 1rem 0; }
+            .progress-bar-container { margin: 1rem 0; height: 30px; }
             .progress-bar { height: 20px; background: #E0E0E0; border-radius: 10px; overflow: hidden; }
             .progress-bar-fill { height: 100%; background: #1E88E5; transition: width 0.35s; }
-            @media (max-width: 768px) { .main-title { font-size: 2rem; } .section-title { font-size: 1.5rem; } .card-modern { padding: 1rem; } }
+            @media (max-width: 768px) { 
+                .main-title { font-size: 2rem; } 
+                .section-title { font-size: 1.5rem; } 
+                .card-modern { padding: 1rem; } 
+                .progress-circle { height: 120px; }
+            }
         """
         st.markdown(f"<style>{default_css}</style>", unsafe_allow_html=True)
 
 # Initialize and load
 initialize_session_state()
 load_css()
+
+# JavaScript to maintain scroll position
+st.markdown("""
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const scrollPos = sessionStorage.getItem("scrollPosition");
+            if (scrollPos) {
+                window.scrollTo(0, parseInt(scrollPos));
+            }
+            document.addEventListener("change", function() {
+                sessionStorage.setItem("scrollPosition", window.scrollY);
+            });
+        });
+    </script>
+""", unsafe_allow_html=True)
 
 # Helper functions
 def sanitize_input(text: str) -> str:
@@ -487,6 +514,7 @@ def update_language():
         st.session_state.show_results = False
         st.session_state.language_changed = False
         st.session_state.language_change_confirmed = False
+        st.session_state.expander_state = {cat: True for cat in questions}
 
 def reset_audit():
     """Reset the audit responses and state."""
@@ -499,6 +527,7 @@ def reset_audit():
         st.session_state.show_results = False
         st.session_state.reset_confirmed = False
         st.session_state.report_id = str(uuid.uuid4())
+        st.session_state.expander_state = {cat: True for cat in questions}
 
 # Sidebar
 with st.sidebar:
@@ -549,9 +578,9 @@ with st.sidebar:
     st.markdown('</section>', unsafe_allow_html=True)
 
 # Main content
-if st.session_state.show_intro:
-    with st.container():
-        st.markdown('<section class="container intro-section" role="main">', unsafe_allow_html=True)
+with st.container():
+    st.markdown('<section class="main-container" role="main">', unsafe_allow_html=True)
+    if st.session_state.show_intro:
         st.markdown('<h1 class="main-title">🤝 LEAN 2.0 Institute</h1>', unsafe_allow_html=True)
         with st.expander("", expanded=True):
             intro_text = (
@@ -595,10 +624,7 @@ if st.session_state.show_intro:
                 type="primary"
             ):
                 st.session_state.show_intro = False
-        st.markdown('</section>', unsafe_allow_html=True)
-else:
-    with st.container():
-        st.markdown('<section class="container main-section" role="main">', unsafe_allow_html=True)
+    else:
         st.markdown(f'<h1 class="main-title">{TRANSLATIONS[st.session_state.language]["header"]}</h1>', unsafe_allow_html=True)
 
         # Progress indicators
@@ -684,9 +710,14 @@ else:
                 st.markdown(f'<div class="card-modern" role="region" aria-label="Category {display_category} Questions">', unsafe_allow_html=True)
                 st.markdown(f'<h2 class="section-title">{display_category}</h2>', unsafe_allow_html=True)
                 
-                # Display response guide only once in the expander
-                with st.expander("Instrucciones / Instructions", expanded=True):
+                # Persist expander state
+                expander_key = f"expander_{category}"
+                if expander_key not in st.session_state.expander_state:
+                    st.session_state.expander_state[expander_key] = True
+                with st.expander("Instrucciones / Instructions", expanded=st.session_state.expander_state[expander_key]):
                     st.markdown(f'<div class="response-guide">{TRANSLATIONS[st.session_state.language]["response_guide"]}</div>', unsafe_allow_html=True)
+                    # Update expander state on toggle
+                    st.session_state.expander_state[expander_key] = st.session_state.get(f"st_expander_{expander_key}", True)
 
                 for idx, (q, q_type, _) in enumerate(questions[category][st.session_state.language]):
                     with st.container():
@@ -707,10 +738,12 @@ else:
                         )
                         descriptions = response_options[q_type][st.session_state.language]["descriptions"]
                         scores = response_options[q_type][st.session_state.language]["scores"]
+                        # Use unique key for each radio button
+                        radio_key = f"{category}_{idx}_{st.session_state.report_id}"
                         selected_description = st.radio(
                             "",
                             descriptions,
-                            key=f"{category}_{idx}",
+                            key=radio_key,
                             horizontal=False,
                             help=response_options[q_type][st.session_state.language]['tooltip'],
                             label_visibility="hidden"
@@ -1057,7 +1090,7 @@ else:
                     worksheet_contact.set_column('B:B', 50)
                     for col_num, value in enumerate(contact_df.columns.values):
                         worksheet_contact.write(2, col_num, value, header_format)
-                    worksheet_contact.write('A6', "¡Trabajemos juntos! | Let's work together!", bold)
+                    worksheet_contact.write('A6', "Collaborate with Us", bold)
                     worksheet_contact.write('A7', TRANSLATIONS[st.session_state.language]["marketing_message"], wrap_format)
 
                 excel_output.seek(0)
@@ -1080,4 +1113,4 @@ else:
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown('</section>', unsafe_allow_html=True)
+    st.markdown('</section>', unsafe_allow_html=True)
