@@ -405,7 +405,7 @@ questions = {
 
 # Sidebar navigation
 with st.sidebar:
-    st.sidebar.image("assets/FOBO2.png", width=200)
+    st.sidebar.image("assets/FOBO2.png", width=250)
     st.markdown('<div class="card">', unsafe_allow_html=True)
     
     # Language selection with on_change callback
