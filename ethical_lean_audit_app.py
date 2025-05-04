@@ -1040,8 +1040,8 @@ if not st.session_state.show_intro:
                         worksheet_summary.write(row, 0, "Colabora con LEAN 2.0 Institute" if st.session_state.language == "Español" else "Partner with LEAN 2.0 Institute", bold)
                         row += 1
                         invitation = (
-                            "¡Colaboremos para implementar mejoras en tu lugar de trabajo! Contáctanos para una consulta estratégica." if st.session_state.language == "Español" else
-                            "Let's partner withto implement workplace improvements! Contact us for a strategic consultation."
+                            "Colaboremos en la implementación de mejoras significativas en tu entorno laboral. Contáctanos para agendar una consulta estratégica y personalizada." if st.session_state.language == "Español" else
+                            "Let’s collaborate to implement meaningful improvements in your workplace. Contact us to schedule a strategic and personalized consultation."
                         )
                         worksheet_summary.write(row, 0, invitation, wrap_format)
                         row += 1
