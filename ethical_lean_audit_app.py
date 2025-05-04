@@ -1,306 +1,183 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import base64
 import io
-import numpy as np
 import xlsxwriter
+from uuid import uuid4
+
+# Cache static data for performance
+@st.cache_data
+def load_static_data():
+    """Load and cache static data like questions and response options."""
+    questions = {
+        "Empoderamiento de Empleados": {
+            "Español": [
+                ("1. ¿Qué porcentaje de sugerencias de empleados presentadas en los últimos 12 meses fueron implementadas con resultados documentados?", "percentage", "Establece un sistema formal para rastrear e implementar sugerencias de empleados con métricas claras."),
+                ("2. ¿Cuántos empleados recibieron capacitación en habilidades profesionales en el último año?", "count", "Aumenta las oportunidades de capacitación profesional para todos los empleados."),
+                ("3. En los últimos 12 meses, ¿cuántos empleados lideraron proyectos o iniciativas con presupuesto asignado?", "count", "Asigna presupuestos a más iniciativas lideradas por empleados para fomentar la innovación."),
+                ("4. ¿Con qué frecuencia se realizan foros o reuniones formales para que los empleados compartan retroalimentación con la gerencia?", "frequency", "Programa foros mensuales para retroalimentación directa entre empleados y gerencia.")
+            ],
+            "English": [
+                ("1. What percentage of employee suggestions submitted in the past 12 months were implemented with documented outcomes?", "percentage", "Establish a formal system to track and implement employee suggestions with clear metrics."),
+                ("2. How many employees received professional skills training in the past year?", "count", "Increase professional training opportunities for all employees."),
+                ("3. In the past 12 months, how many employees led projects or initiatives with allocated budgets?", "count", "Allocate budgets to more employee-led initiatives to foster innovation."),
+                ("4. How frequently are formal forums or meetings held for employees to share feedback with management?", "frequency", "Schedule monthly forums for direct employee-management feedback.")
+            ]
+        },
+        "Liderazgo Ético": {
+            "Español": [
+                ("5. ¿Con qué frecuencia los líderes compartieron actualizaciones escritas sobre decisiones que afectan a los empleados en los últimos 12 meses?", "frequency", "Implementa boletines mensuales para comunicar decisiones de liderazgo de manera transparente."),
+                ("6. ¿Qué porcentaje de políticas laborales nuevas o revisadas en el último año incluyó consulta formal con empleados?", "percentage", "Incluye a representantes de empleados en la revisión de todas las políticas laborales nuevas."),
+                ("7. ¿Cuántos casos de comportamiento ético destacado fueron reconocidos formalmente en los últimos 12 meses?", "count", "Crea un programa formal de reconocimiento para comportamientos éticos, con incentivos claros.")
+            ],
+            "English": [
+                ("5. How frequently did leaders share written updates on decisions affecting employees in the past 12 months?", "frequency", "Implement monthly newsletters to transparently communicate leadership decisions."),
+                ("6. What percentage of new or revised workplace policies in the past year included formal employee consultation?", "percentage", "Include employee representatives in reviewing all new workplace policies."),
+                ("7. How many instances of exemplary ethical behavior were formally recognized in the past 12 months?", "count", "Create a formal recognition program for ethical behavior with clear incentives.")
+            ]
+        },
+        "Operaciones Centradas en las Personas": {
+            "Español": [
+                ("8. ¿Qué porcentaje de procesos lean revisados en los últimos 12 meses incorporó retroalimentación de empleados para reducir tareas redundantes?", "percentage", "Integra retroalimentación de empleados en cada revisión de procesos lean para eliminar redundancias."),
+                ("9. ¿Con qué frecuencia se auditan las prácticas operativas para evaluar su impacto en el bienestar de los empleados?", "frequency", "Realiza auditorías trimestrales de prácticas operativas con enfoque en el bienestar."),
+                ("10. ¿Cuántos empleados recibieron capacitación en herramientas lean con énfasis en colaboración en el último año?", "count", "Capacita a todos los empleados en herramientas lean, priorizando la colaboración.")
+            ],
+            "English": [
+                ("8. What percentage of lean processes revised in the past 12 months incorporated employee feedback to reduce redundant tasks?", "percentage", "Integrate employee feedback into every lean process review to eliminate redundancies."),
+                ("9. How frequently are operational practices audited to assess their impact on employee well-being?", "frequency", "Conduct quarterly audits of operational practices focusing on well-being."),
+                ("10. How many employees received training on lean tools emphasizing collaboration in the past year?", "count", "Train all employees on lean tools, prioritizing collaboration.")
+            ]
+        },
+        "Prácticas Sostenibles y Éticas": {
+            "Español": [
+                ("11. ¿Qué porcentaje de iniciativas lean implementadas en los últimos 12 meses redujo el consumo de recursos?", "percentage", "Lanza iniciativas lean específicas para reducir el consumo de recursos, con metas medibles."),
+                ("12. ¿Qué porcentaje de proveedores principales fueron auditados en el último año para verificar estándares laborales y ambientales?", "percentage", "Audita anualmente a todos los proveedores principales para garantizar estándares éticos."),
+                ("13. ¿Cuántos empleados participaron en proyectos de sostenibilidad con impacto comunitario o laboral en los últimos 12 meses?", "count", "Involucra a más empleados en proyectos de sostenibilidad con impacto comunitario.")
+            ],
+            "English": [
+                ("11. What percentage of lean initiatives implemented in the past 12 months reduced resource consumption?", "percentage", "Launch specific lean initiatives to reduce resource consumption with measurable goals."),
+                ("12. What percentage of primary suppliers were audited in the past year to verify labor and environmental standards?", "percentage", "Audit all primary suppliers annually to ensure ethical standards."),
+                ("13. How many employees participated in sustainability projects with community or workplace impact in the past 12 months?", "count", "Engage more employees in sustainability projects with community impact.")
+            ]
+        },
+        "Bienestar y Equilibrio": {
+            "Español": [
+                ("14. ¿Qué porcentaje de empleados accedió a recursos de bienestar en los últimos 12 meses?", "percentage", "Amplía el acceso a recursos de bienestar, como asesoramiento y horarios flexibles."),
+                ("15. ¿Con qué frecuencia se realizan encuestas o revisiones para evaluar el agotamiento o la fatiga de los empleados?", "frequency", "Implementa encuestas mensuales para monitorear el agotamiento y actuar rápidamente."),
+                ("16. ¿Cuántos casos de desafíos personales o profesionales reportados por empleados fueron abordados con planes de acción documentados en el último año?", "count", "Establece procesos formales para abordar desafíos reportados con planes de acción.")
+            ],
+            "English": [
+                ("14. What percentage of employees accessed well-being resources in the past 12 months?", "percentage", "Expand access to well-being resources, such as counseling and flexible schedules."),
+                ("15. How frequently are surveys or check-ins conducted to assess employee burnout or fatigue?", "frequency", "Implement monthly surveys to monitor burnout and act swiftly."),
+                ("16. How many reported employee personal or professional challenges were addressed with documented action plans in the past year?", "count", "Establish formal processes to address reported challenges with action plans.")
+            ]
+        },
+        "Iniciativas Organizacionales Centradas en las Personas": {
+            "Español": [
+                ("17. En nuestra organización se han implementado o se están explorando tecnologías como Industria 4.0, Inteligencia Artificial, robótica o automatización digital con el propósito de mejorar tanto la eficiencia operativa como las condiciones laborales del personal.", "frequency", "Desarrolla un plan estratégico para integrar tecnologías como IA y robótica, priorizando el impacto positivo en las condiciones laborales."),
+                ("18. Contamos con metodologías de excelencia operacional (Lean, Six Sigma, TPM, etc.) que no solo buscan eficiencia y calidad, sino que también integran activamente el bienestar del personal en su diseño e implementación.", "frequency", "Rediseña las metodologías de excelencia operacional para incluir métricas de bienestar del personal en cada fase."),
+                ("19. Antes de implementar nuevas tecnologías o iniciativas (sociales, ambientales u operativas), se consulta al personal para asegurar que los cambios beneficien su experiencia y condiciones laborales.", "frequency", "Establece un proceso formal de consulta con los empleados antes de implementar cualquier nueva tecnología o iniciativa."),
+                ("20. Las iniciativas actuales (tecnológicas, sociales y operativas) han contribuido de forma tangible a un ambiente laboral más saludable, inclusivo y respetuoso para todos los colaboradores.", "frequency", "Evalúa regularmente el impacto de las iniciativas en el ambiente laboral y ajusta según retroalimentación de los empleados.")
+            ],
+            "English": [
+                ("17. Our organization has implemented or is exploring technologies such as Industry 4.0, AI, robotics, or digital automation to enhance both operational efficiency and employee working conditions.", "frequency", "Develop a strategic plan to integrate technologies like AI and robotics, prioritizing positive impacts on working conditions."),
+                ("18. We have operational excellence methodologies (Lean, Six Sigma, TPM, etc.) that not only pursue efficiency and quality but also actively integrate employee well-being into their design and implementation.", "frequency", "Redesign operational excellence methodologies to include employee well-being metrics in every phase."),
+                ("19. Before implementing new technologies or initiatives (social, environmental, or operational), employees are consulted to ensure changes benefit their experience and working conditions.", "frequency", "Establish a formal employee consultation process before implementing any new technology or initiative."),
+                ("20. Current initiatives (technological, social, and operational) have tangibly contributed to a healthier, more inclusive, and respectful workplace for all employees.", "frequency", "Regularly evaluate the impact of initiatives on the workplace environment and adjust based on employee feedback.")
+            ]
+        }
+    }
+
+    response_options = {
+        "percentage": {
+            "Español": {
+                "descriptions": [
+                    "Ninguna sugerencia/proceso fue implementado.",
+                    "Aproximadamente una cuarta parte fue implementada.",
+                    "La mitad fue implementada.",
+                    "Tres cuartas partes fueron implementadas.",
+                    "Todas las sugerencias/procesos fueron implementados."
+                ],
+                "scores": [0, 25, 50, 75, 100],
+                "tooltip": "Selecciona la descripción que mejor refleje la proporción de casos aplicados."
+            },
+            "English": {
+                "descriptions": [
+                    "No suggestions/processes were implemented.",
+                    "About one-quarter were implemented.",
+                    "Half were implemented.",
+                    "Three-quarters were implemented.",
+                    "All suggestions/processes were implemented."
+                ],
+                "scores": [0, 25, 50, 75, 100],
+                "tooltip": "Select the description that best reflects the proportion of cases applied."
+            }
+        },
+        "frequency": {
+            "Español": {
+                "descriptions": [
+                    "Esto nunca ocurre.",
+                    "Ocurre muy pocas veces al año.",
+                    "Ocurre varias veces al año.",
+                    "Ocurre regularmente, casi siempre.",
+                    "Ocurre en cada oportunidad."
+                ],
+                "scores": [0, 25, 50, 75, 100],
+                "tooltip": "Selecciona la descripción que mejor refleje la frecuencia de la práctica."
+            },
+            "English": {
+                "descriptions": [
+                    "This never occurs.",
+                    "Occurs very few times a year.",
+                    "Occurs several times a year.",
+                    "Occurs regularly, almost always.",
+                    "Occurs every time."
+                ],
+                "scores": [0, 25, 50, 75, 100],
+                "tooltip": "Select the description that best reflects the frequency of the practice."
+            }
+        },
+        "count": {
+            "Español": {
+                "descriptions": [
+                    "Ningún empleado o caso (0%).",
+                    "Menos de un cuarto de los empleados (1-25%).",
+                    "Entre un cuarto y la mitad (25-50%).",
+                    "Más de la mitad pero no la mayoría (50-75%).",
+                    "Más del 75% de los empleados o casos."
+                ],
+                "scores": [0, 25, 50, 75, 100],
+                "tooltip": "Selecciona la descripción que mejor refleje la cantidad de empleados o casos afectados."
+            },
+            "English": {
+                "descriptions": [
+                    "No employees or cases (0%).",
+                    "Less than a quarter of employees (1-25%).",
+                    "Between a quarter and half (25-50%).",
+                    "More than half but not most (50-75%).",
+                    "Over 75% of employees or cases."
+                ],
+                "scores": [0, 25, 50, 75, 100],
+                "tooltip": "Select the description that best reflects the number of employees or cases affected."
+            }
+        }
+    }
+
+    return questions, response_options
+
+# Load static data
+questions, response_options = load_static_data()
 
 # Set page configuration
 st.set_page_config(page_title="Auditoría Ética de Lugar de Trabajo Lean", layout="wide", initial_sidebar_state="expanded")
 
-# Custom CSS for professional, accessible, and responsive UI
-st.markdown("""
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        :root {
-            --primary: #1E88E5;
-            --secondary: #43A047;
-            --error: #D32F2F;
-            --background: #F5F7FA;
-            --surface: #FFFFFF;
-            --text: #212121;
-            --text-secondary: #757575;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--background);
-            color: var(--text);
-            line-height: 1.6;
-        }
-        .main-container {
-            background-color: var(--surface);
-            padding: 2rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            max-width: 1200px;
-            margin: 2rem auto;
-            transition: transform 0.3s ease;
-        }
-        .stButton>button {
-            background-color: var(--primary);
-            color: white;
-            border-radius: 8px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            border: none;
-            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .stButton>button:hover {
-            background-color: #1565C0;
-            transform: translateY(-2px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        }
-        .stButton>button:focus {
-            outline: 3px solid #90CAF9;
-            outline-offset: 2px;
-        }
-        .stButton>button:disabled {
-            background-color: #B0BEC5;
-            cursor: not-allowed;
-        }
-        .stRadio>label {
-            background-color: #E3F2FD;
-            padding: 0.75rem;
-            border-radius: 8px;
-            margin: 0.5rem 0;
-            font-size: 1rem;
-            transition: background-color 0.3s ease;
-        }
-        .stRadio>label:hover {
-            background-color: #BBDEFB;
-        }
-        .required {
-            color: var(--error);
-            font-weight: 600;
-            margin-left: 0.25rem;
-        }
-        .header {
-            color: var(--primary);
-            font-size: 2.25rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
-            font-weight: 700;
-        }
-        .subheader {
-            color: var(--text);
-            font-size: 1.5rem;
-            margin: 1.5rem 0;
-            text-align: center;
-            font-weight: 600;
-        }
-        .sidebar .sidebar-content {
-            background-color: var(--surface);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
-        .download-link {
-            color: var(--primary);
-            font-weight: 600;
-            text-decoration: none;
-            font-size: 1rem;
-            display: inline-flex;
-            align-items: center;
-            transition: color 0.3s ease;
-        }
-        .download-link:hover {
-            color: #1565C0;
-            text-decoration: underline;
-        }
-        .download-link::before {
-            content: '📄';
-            margin-right: 0.5rem;
-        }
-        .motivation {
-            color: var(--secondary);
-            font-size: 1.1rem;
-            text-align: center;
-            margin: 1.5rem 0;
-            font-style: italic;
-            background-color: #E8F5E9;
-            padding: 0.75rem;
-            border-radius: 8px;
-        }
-        .badge {
-            background-color: var(--secondary);
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 24px;
-            font-size: 1.1rem;
-            text-align: center;
-            margin: 1.5rem auto;
-            display: block;
-            width: fit-content;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        .insights {
-            background-color: #E3F2FD;
-            padding: 1.5rem;
-            border-radius: 12px;
-            margin: 1.5rem 0;
-            border-left: 4px solid var(--primary);
-        }
-        .grade {
-            font-size: 1.5rem;
-            font-weight: 700;
-            text-align: center;
-            margin: 1.5rem 0;
-            padding: 0.75rem;
-            border-radius: 8px;
-        }
-        .grade-excellent { background-color: var(--secondary); color: white; }
-        .grade-good { background-color: #FFD54F; color: #212121; }
-        .grade-needs-improvement { background-color: var(--error); color: white; }
-        .grade-critical { background-color: #B71C1C; color: white; }
-        .progress-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 1.5rem 0;
-            background-color: #ECEFF1;
-            padding: 0.5rem;
-            border-radius: 12px;
-        }
-        .progress-step {
-            flex: 1;
-            text-align: center;
-            padding: 0.5rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        .progress-step.active {
-            background-color: var(--primary);
-            color: white;
-        }
-        .progress-step.completed {
-            background-color: var(--secondary);
-            color: white;
-        }
-        .progress-step:hover {
-            background-color: #BBDEFB;
-        }
-        .progress-completion {
-            background-color: var(--secondary);
-            height: 8px;
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
-        .card {
-            background-color: #FAFAFA;
-            padding: 1.5rem;
-            border-radius: 12px;
-            margin: 1rem 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-4px);
-        }
-        .sticky-nav {
-            position: sticky;
-            bottom: 1rem;
-            background-color: var(--surface);
-            padding: 1rem;
-            border-radius: 12px;
-            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .tooltip {
-            position: relative;
-            display: inline-block;
-        }
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 200px;
-            background-color: #424242;
-            color: white;
-            text-align: center;
-            border-radius: 6px;
-            padding: 0.5rem;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -100px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-            opacity: 1;
-        }
-        .stSelectbox select {
-            background-color: #E3F2FD;
-            border-radius: 8px;
-            padding: 0.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: background-color 0.3s ease;
-        }
-        .stSelectbox select:hover {
-            background-color: #BBDEFB;
-        }
-        @media (max-width: 768px) {
-            .main-container {
-                padding: 1rem;
-                margin: 1rem;
-            }
-            .header {
-                font-size: 1.75rem;
-            }
-            .subheader {
-                font-size: 1.25rem;
-            }
-            .stButton>button {
-                padding: 0.5rem 1rem;
-                font-size: 0.9rem;
-            }
-            .stRadio>label {
-                font-size: 0.9rem;
-                padding: 0.5rem;
-            }
-            .progress-bar {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            .progress-step {
-                font-size: 0.8rem;
-                padding: 0.5rem;
-            }
-            .sticky-nav {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-        }
-        [role="radiogroup"] {
-            margin: 0.5rem 0;
-        }
-        [role="radio"] {
-            cursor: pointer;
-        }
-        [role="radio"]:focus {
-            outline: 3px solid #90CAF9;
-            outline-offset: 2px;
-        }
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            border: 0;
-        }
-    </style>
-""", unsafe_allow_html=True)
+# Load external CSS
+try:
+    with open("styles.css") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    st.error("Archivo styles.css no encontrado. Por favor, asegúrate de que existe en el directorio del proyecto.")
 
 # Configuration
 CONFIG = {
@@ -310,22 +187,6 @@ CONFIG = {
     }
 }
 
-# Initialize session state
-if 'language' not in st.session_state:
-    st.session_state.language = "Español"
-if 'responses' not in st.session_state:
-    st.session_state.responses = {}
-if 'current_category' not in st.session_state:
-    st.session_state.current_category = 0
-if 'prev_language' not in st.session_state:
-    st.session_state.prev_language = st.session_state.language
-if 'show_intro' not in st.session_state:
-    st.session_state.show_intro = True
-if 'language_changed' not in st.session_state:
-    st.session_state.language_changed = False
-if 'show_results' not in st.session_state:
-    st.session_state.show_results = False
-
 # Category mapping for bilingual support
 category_mapping = {
     "Español": {
@@ -333,92 +194,71 @@ category_mapping = {
         "Liderazgo Ético": "Liderazgo Ético",
         "Operaciones Centradas en las Personas": "Operaciones Centradas en las Personas",
         "Prácticas Sostenibles y Éticas": "Prácticas Sostenibles y Éticas",
-        "Bienestar y Equilibrio": "Bienestar y Equilibrio"
+        "Bienestar y Equilibrio": "Bienestar y Equilibrio",
+        "Iniciativas Organizacionales Centradas en las Personas": "Iniciativas Organizacionales Centradas en las Personas"
     },
     "English": {
         "Empowering Employees": "Empoderamiento de Empleados",
         "Ethical Leadership": "Liderazgo Ético",
         "Human-Centered Operations": "Operaciones Centradas en las Personas",
         "Sustainable and Ethical Practices": "Prácticas Sostenibles y Éticas",
-        "Well-Being and Balance": "Bienestar y Equilibrio"
+        "Well-Being and Balance": "Bienestar y Equilibrio",
+        "Human-Centered Organizational Initiatives": "Iniciativas Organizacionales Centradas en las Personas"
     }
 }
 
-# Audit questions
-questions = {
-    "Empoderamiento de Empleados": {
-        "Español": [
-            ("1.¿Qué porcentaje de sugerencias de empleados presentadas en los últimos 12 meses fueron implementadas con resultados documentados?", "percentage"),
-            ("2.¿Cuántos empleados recibieron capacitación en habilidades profesionales en el último año?", "count"),
-            ("3.En los últimos 12 meses, ¿cuántos empleados lideraron proyectos o iniciativas con presupuesto asignado?", "count"),
-            ("4.¿Con qué frecuencia se realizan foros o reuniones formales para que los empleados compartan retroalimentación con la gerencia?", "frequency")
-        ],
-        "English": [
-            ("1.What percentage of employee suggestions submitted in the past 12 months were implemented with documented outcomes?", "percentage"),
-            ("2.How many employees received professional skills training in the past year?", "count"),
-            ("3.In the past 12 months, how many employees led projects or initiatives with allocated budgets?", "count"),
-            ("4.How frequently are formal forums or meetings held for employees to share feedback with management?", "frequency")
-        ]
-    },
-    "Liderazgo Ético": {
-        "Español": [
-            ("5.¿Con qué frecuencia los líderes compartieron actualizaciones escritas sobre decisiones que afectan a los empleados en los últimos 12 meses?", "frequency"),
-            ("6.¿Qué porcentaje de políticas laborales nuevas o revisadas en el último año incluyó consulta formal con empleados?", "percentage"),
-            ("7.¿Cuántos casos de comportamiento ético destacado fueron reconocidos formalmente en los últimos 12 meses?", "count")
-        ],
-        "English": [
-            ("5.How frequently did leaders share written updates on decisions affecting employees in the past 12 months?", "frequency"),
-            ("6.What percentage of new or revised workplace policies in the past year included formal employee consultation?", "percentage"),
-            ("7.How many instances of exemplary ethical behavior were formally recognized in the past 12 months?", "count")
-        ]
-    },
-    "Operaciones Centradas en las Personas": {
-        "Español": [
-            ("8.¿Qué porcentaje de procesos lean revisados en los últimos 12 meses incorporó retroalimentación de empleados para reducir tareas redundantes?", "percentage"),
-            ("9.¿Con qué frecuencia se auditan las prácticas operativas para evaluar su impacto en el bienestar de los empleados?", "frequency"),
-            ("10.¿Cuántos empleados recibieron capacitación en herramientas lean con énfasis en colaboración en el último año?", "count")
-        ],
-        "English": [
-            ("8.What percentage of lean processes revised in the past 12 months incorporated employee feedback to reduce redundant tasks?", "percentage"),
-            ("9.How frequently are operational practices audited to assess their impact on employee well-being?", "frequency"),
-            ("10.How many employees received training on lean tools emphasizing collaboration in the past year?", "count")
-        ]
-    },
-    "Prácticas Sostenibles y Éticas": {
-        "Español": [
-            ("11.¿Qué porcentaje de iniciativas lean implementadas en los últimos 12 meses redujo el consumo de recursos?", "percentage"),
-            ("12.¿Qué porcentaje de proveedores principales fueron auditados en el último año para verificar estándares laborales y ambientales?", "percentage"),
-            ("13.¿Cuántos empleados participaron en proyectos de sostenibilidad con impacto comunitario o laboral en los últimos 12 meses?", "count")
-        ],
-        "English": [
-            ("11.What percentage of lean initiatives implemented in the past 12 months reduced resource consumption?", "percentage"),
-            ("12.What percentage of primary suppliers were audited in the past year to verify labor and environmental standards?", "percentage"),
-            ("13.How many employees participated in sustainability projects with community or workplace impact in the past 12 months?", "count")
-        ]
-    },
-    "Bienestar y Equilibrio": {
-        "Español": [
-            ("14.¿Qué porcentaje de empleados accedió a recursos de bienestar en los últimos 12 meses?", "percentage"),
-            ("15.¿Con qué frecuencia se realizan encuestas o revisiones para evaluar el agotamiento o la fatiga de los empleados?", "frequency"),
-            ("16.¿Cuántos casos de desafíos personales o profesionales reportados por empleados fueron abordados con planes de acción documentados en el último año?", "count")
-        ],
-        "English": [
-            ("14.What percentage of employees accessed well-being resources in the past 12 months?", "percentage"),
-            ("15.How frequently are surveys or check-ins conducted to assess employee burnout or fatigue?", "frequency"),
-            ("16.How many reported employee personal or professional challenges were addressed with documented action plans in the past year?", "count")
-        ]
+# Initialize session state with validation
+def initialize_session_state():
+    """Initialize session state with default values and validation."""
+    defaults = {
+        "language": "Español",
+        "responses": {},
+        "current_category": 0,
+        "prev_language": "Español",
+        "show_intro": True,
+        "language_changed": False,
+        "show_results": False
     }
-}
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+    
+    # Validate language
+    if st.session_state.language not in ["Español", "English"]:
+        st.session_state.language = "Español"
+        st.session_state.prev_language = "Español"
+    
+    # Initialize responses
+    if not st.session_state.responses or len(st.session_state.responses) != len(questions):
+        st.session_state.responses = {
+            cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions
+        }
+    
+    # Validate question counts across languages
+    for cat in questions:
+        if len(questions[cat]["Español"]) != len(questions[cat]["English"]):
+            st.error(f"Error: El número de preguntas en {cat} no coincide entre Español e Inglés.")
+            st.session_state.responses[cat] = [None] * len(questions[cat][st.session_state.language])
+
+initialize_session_state()
 
 # Sidebar navigation
 with st.sidebar:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.sidebar.image("assets/FOBO2.png", width=200)
     
-    # Language selection with on_change callback
+    # Language selection
     def update_language():
+        """Handle language change and reset relevant session state."""
         if st.session_state.language_select != st.session_state.language:
             st.session_state.language_changed = True
+            st.session_state.language = st.session_state.language_select
+            st.session_state.current_category = 0
+            st.session_state.responses = {
+                cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions
+            }
+            st.session_state.prev_language = st.session_state.language
+            st.session_state.show_intro = True
+            st.session_state.show_results = False
     
     st.selectbox(
         "Idioma / Language",
@@ -428,42 +268,39 @@ with st.sidebar:
         on_change=update_language
     )
     
-    # Handle language change
+    # Handle language change feedback
     if st.session_state.language_changed:
-        st.session_state.language = st.session_state.language_select
-        st.session_state.current_category = 0
-        st.session_state.responses = {cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions}
-        st.session_state.prev_language = st.session_state.language
-        st.session_state.show_intro = True
-        st.session_state.show_results = False
-        st.session_state.language_changed = False
         st.info("Cargando contenido en el nuevo idioma..." if st.session_state.language == "Español" else "Loading content in the new language...")
-        st.rerun()
+        st.session_state.language_changed = False
     
     st.markdown('<div class="subheader">Progreso</div>', unsafe_allow_html=True)
     display_categories = list(category_mapping[st.session_state.language].keys())
     for i, display_cat in enumerate(display_categories):
         status = 'active' if i == st.session_state.current_category else 'completed' if i < st.session_state.current_category else ''
-        if st.button(f"{display_cat}", key=f"nav_{i}", help=f"Ir a {display_cat} / Go to {display_cat}"):
+        if st.button(
+            f"{display_cat}",
+            key=f"nav_{i}",
+            help=f"Ir a {display_cat} / Go to {display_cat}",
+            disabled=False,
+            use_container_width=True
+        ):
             st.session_state.current_category = i
             st.session_state.show_intro = False
             st.session_state.show_results = False
-            st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-
-# Initialize responses if empty or mismatched
-if not st.session_state.responses or len(st.session_state.responses) != len(questions):
-    st.session_state.responses = {cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions}
 
 # Introductory modal
 if st.session_state.show_intro:
     with st.container():
         st.markdown('<div class="main-container">', unsafe_allow_html=True)
-        st.markdown('<div class="header">🤝¡Bienvenido a LEAN 2.0 Institute! Evaluemos juntos tu entorno laboral. / Welcome to LEAN 2.0 Institute! Let’s assess together your work environment.</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="header">🤝 ¡Bienvenido a LEAN 2.0 Institute! Evalúa tu entorno laboral. / Welcome to LEAN 2.0 Institute! Assess your work environment.</div>',
+            unsafe_allow_html=True
+        )
         with st.expander("", expanded=True):
             st.markdown(
                 f"""
-                Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde preguntas en 5 categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, no dudes en ponerte en contacto con nosotros para consultas personalizadas a través de: ✉️Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
+                Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde preguntas en 6 categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
                 
                 **Pasos**:
                 1. Responde las preguntas de cada categoría.
@@ -473,7 +310,7 @@ if st.session_state.show_intro:
                 """
                 if st.session_state.language == "Español" else
                 f"""
-                This assessment is designed to be completed by management and HR, to provide an objective evaluation of the work environment at your company. Answer questions across 5 categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations that we can help you implement. Once you’ve completed the evaluation, feel free to reach out to us for personalized consultations at: ✉️Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
+                This assessment is designed for management and HR to provide an objective evaluation of your workplace. Answer questions across 6 categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations we can help implement. Upon completion, contact us for personalized consultations: ✉️ Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
                 
                 **Steps**:
                 1. Answer questions for each category.
@@ -482,10 +319,13 @@ if st.session_state.show_intro:
                 Let’s get started!
                 """
             )
-            if st.button("Iniciar Auditoría / Start Audit", use_container_width=True):
+            if st.button(
+                "Iniciar Auditoría / Start Audit",
+                use_container_width=True,
+                key="start_audit",
+                help="Comenzar la evaluación / Begin the assessment"
+            ):
                 st.session_state.show_intro = False
-                st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
 # Main content
 if not st.session_state.show_intro:
@@ -497,88 +337,12 @@ if not st.session_state.show_intro:
             unsafe_allow_html=True
         )
 
-        # Response options
-        response_options = {
-            "percentage": {
-                "Español": {
-                    "descriptions": [
-                        "Ninguna sugerencia/proceso fue implementado.",
-                        "Aproximadamente una cuarta parte fue implementada.",
-                        "La mitad fue implementada.",
-                        "Tres cuartas partes fueron implementadas.",
-                        "Todas las sugerencias/procesos fueron implementados."
-                    ],
-                    "scores": [0, 25, 50, 75, 100]
-                },
-                "English": {
-                    "descriptions": [
-                        "No suggestions/processes were implemented.",
-                        "About one-quarter were implemented.",
-                        "Half were implemented.",
-                        "Three-quarters were implemented.",
-                        "All suggestions/processes were implemented."
-                    ],
-                    "scores": [0, 25, 50, 75, 100]
-                },
-                "tooltip": "Selecciona la descripción que mejor refleje la proporción de casos aplicados. Haz doble clic en cada respuesta para registrarla." if st.session_state.language == "Español" else
-                          "Select the description that best reflects the proportion of cases applied. Please double-click on each response to register it."
-            },
-            "frequency": {
-                "Español": {
-                    "descriptions": [
-                        "Esto nunca ocurre.",
-                        "Ocurre muy pocas veces al año.",
-                        "Ocurre varias veces al año.",
-                        "Ocurre regularmente, casi siempre.",
-                        "Ocurre en cada oportunidad."
-                    ],
-                    "scores": [0, 25, 50, 75, 100]
-                },
-                "English": {
-                    "descriptions": [
-                        "This never occurs.",
-                        "Occurs very few times a year.",
-                        "Occurs several times a year.",
-                        "Occurs regularly, almost always.",
-                        "Occurs every time."
-                    ],
-                    "scores": [0, 25, 50, 75, 100]
-                },
-                "tooltip": "Selecciona la descripción que mejor refleje la frecuencia de la práctica. Haz doble clic en cada respuesta para registrarla." if st.session_state.language == "Español" else
-                          "Select the description that best reflects the frequency of the practice. Please double-click on each response to register it."
-            },
-            "count": {
-                "Español": {
-                    "descriptions": [
-                        "Ningún empleado o caso (0%).",
-                        "Menos de un cuarto de los empleados (1-25%).",
-                        "Entre un cuarto y la mitad (25-50%).",
-                        "Más de la mitad pero no la mayoría (50-75%).",
-                        "Más del 75% de los empleados o casos."
-                    ],
-                    "scores": [0, 25, 50, 75, 100]
-                },
-                "English": {
-                    "descriptions": [
-                        "No employees or cases (0%).",
-                        "Less than a quarter of employees (1-25%).",
-                        "Between a quarter and half (25-50%).",
-                        "More than half but not most (50-75%).",
-                        "Over 75% of employees or cases."
-                    ],
-                    "scores": [0, 25, 50, 75, 100]
-                },
-                "tooltip": "Selecciona la descripción que mejor refleje la cantidad de empleados o casos afectados. Haz doble clic en cada respuesta para registrarla." if st.session_state.language == "Español" else
-                          "Select the description that best reflects the number of employees or cases affected. Please double-click on each response to register it."
-            }
-        }
-
         # Progress bar
         st.markdown('<div class="progress-bar">', unsafe_allow_html=True)
         for i, display_cat in enumerate(display_categories):
             status = 'active' if i == st.session_state.current_category else 'completed' if i < st.session_state.current_category else ''
             st.markdown(
-                f'<div class="progress-step {status}">{display_cat}</div>',
+                f'<div class="progress-step {status}" role="button" aria-label="{display_cat}">{display_cat}</div>',
                 unsafe_allow_html=True
             )
         st.markdown('</div>', unsafe_allow_html=True)
@@ -592,12 +356,14 @@ if not st.session_state.show_intro:
             <div style='background-color: #ECEFF1; border-radius: 4px; margin: 1rem 0;'>
                 <div class='progress-completion' style='width: {completion_percentage}%;'></div>
             </div>
+            <span class='sr-only'>{completed_questions} de {total_questions} preguntas completadas ({completion_percentage:.1f}%)</span>
             <div class='motivation'>{completed_questions}/{total_questions} preguntas completadas ({completion_percentage:.1f}%)</div>
             """ if st.session_state.language == "Español" else
             f"""
             <div style='background-color: #ECEFF1; border-radius: 4px; margin: 1rem 0;'>
                 <div class='progress-completion' style='width: {completion_percentage}%;'></div>
             </div>
+            <span class='sr-only'>{completed_questions} of {total_questions} questions completed ({completion_percentage:.1f}%)</span>
             <div class='motivation'>{completed_questions}/{total_questions} questions completed ({completion_percentage:.1f}%)</div>
             """,
             unsafe_allow_html=True
@@ -605,6 +371,40 @@ if not st.session_state.show_intro:
 
         # Check if audit is complete
         audit_complete = all(all(score is not None for score in scores) for scores in st.session_state.responses.values())
+
+        # Display unanswered questions after 20% completion
+        if completion_percentage >= 20:
+            unanswered_questions = []
+            for cat in questions.keys():
+                for i, (q, _, _) in enumerate(questions[cat][st.session_state.language]):
+                    if st.session_state.responses[cat][i] is None:
+                        display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
+                        unanswered_questions.append(f"{display_cat}: {q}")
+            if unanswered_questions:
+                st.error(
+                    f"Preguntas sin responder ({len(unanswered_questions)}). Por favor, completa todas las preguntas antes de enviar la auditoría." if st.session_state.language == "Español" else
+                    f"Unanswered questions ({len(unanswered_questions)}). Please complete all questions before submitting the audit."
+                )
+                st.markdown(
+                    f"""
+                    <div class='insights'>
+                        <strong>Preguntas faltantes:</strong><br>
+                        {"<br>".join([f"- {q}" for q in unanswered_questions])}
+                    </div>
+                    """ if st.session_state.language == "Español" else
+                    f"""
+                    <div class='insights'>
+                        <strong>Missing Questions:</strong><br>
+                        {"<br>".join([f"- {q}" for q in unanswered_questions])}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                st.success(
+                    "¡Todas las preguntas han sido respondidas! Puedes proceder a ver los resultados." if st.session_state.language == "Español" else
+                    "All questions have been answered! You can proceed to view the results."
+                )
 
         # Category questions
         if not st.session_state.show_results:
@@ -619,11 +419,11 @@ if not st.session_state.show_intro:
                 # Response guide
                 with st.expander("Guía de Respuestas" if st.session_state.language == "Español" else "Response Guide", expanded=True):
                     st.markdown(
-                        "Selecciona la descripción que mejor represente la situación para cada pregunta. Haz doble clic en cada respuesta para registrarla. Las opciones describen el grado, frecuencia o cantidad aplicable." if st.session_state.language == "Español" else
-                        "Select the description that best represents the situation for each question. Please double-click on each response to register it. The options describe the degree, frequency, or quantity applicable."
+                        "Selecciona la descripción que mejor represente la situación para cada pregunta. Las opciones describen el grado, frecuencia o cantidad aplicable." if st.session_state.language == "Español" else
+                        "Select the description that best represents the situation for each question. The options describe the degree, frequency, or quantity applicable."
                     )
 
-                for idx, (q, q_type) in enumerate(questions[category][st.session_state.language]):
+                for idx, (q, q_type, _) in enumerate(questions[category][st.session_state.language]):
                     with st.container():
                         is_unanswered = st.session_state.responses[category][idx] is None
                         st.markdown(
@@ -643,7 +443,9 @@ if not st.session_state.show_intro:
                             format_func=lambda x: x,
                             key=f"{category}_{idx}",
                             horizontal=False,
-                            help=response_options[q_type]['tooltip']
+                            help=response_options[q_type]['tooltip'],
+                            label_visibility="hidden",
+                            args=({"aria-label": q},)
                         )
                         score_idx = descriptions.index(selected_description)
                         st.session_state.responses[category][idx] = scores[score_idx]
@@ -658,28 +460,28 @@ if not st.session_state.show_intro:
                         "⬅ Anterior" if st.session_state.language == "Español" else "⬅ Previous",
                         disabled=category_index == 0,
                         use_container_width=True,
+                        key="prev_category",
                         help="Volver a la categoría anterior" if st.session_state.language == "Español" else "Go to previous category"
                     ):
                         st.session_state.current_category = max(category_index - 1, 0)
                         st.session_state.show_results = False
-                        st.rerun()
                 with col2:
                     if category_index < len(display_categories) - 1:
                         if st.button(
                             "Siguiente ➡" if st.session_state.language == "Español" else "Next ➡",
                             disabled=category_index == len(display_categories) - 1,
                             use_container_width=True,
+                            key="next_category",
                             help="Avanzar a la siguiente categoría" if st.session_state.language == "Español" else "Go to next category"
                         ):
                             if all(score is not None for score in st.session_state.responses[category]):
                                 st.session_state.current_category = min(category_index + 1, len(display_categories) - 1)
                                 st.session_state.show_results = False
-                                st.rerun()
                             else:
-                                unanswered = [q for i, (q, _) in enumerate(questions[category][st.session_state.language]) if st.session_state.responses[category][i] is None]
+                                unanswered = [q for i, (q, _, _) in enumerate(questions[category][st.session_state.language]) if st.session_state.responses[category][i] is None]
                                 st.error(
-                                    f"Por favor, responde las siguientes preguntas: {', '.join([q[:50] + '...' if len(q) > 50 else q for q in unanswered])}" if st.session_state.language == "Español" else
-                                    f"Please answer the following questions: {', '.join([q[:50] + '...' if len(q) > 50 else q for q in unanswered])}"
+                                    f"Por favor, responde las siguientes preguntas: {', '.join(unanswered)}" if st.session_state.language == "Español" else
+                                    f"Please answer the following questions: {', '.join(unanswered)}"
                                 )
                                 first_unanswered_idx = next((i for i, score in enumerate(st.session_state.responses[category]) if score is None), None)
                                 if first_unanswered_idx is not None:
@@ -696,27 +498,30 @@ if not st.session_state.show_intro:
                         if st.button(
                             "Ver Resultados" if st.session_state.language == "Español" else "View Results",
                             use_container_width=True,
+                            key="view_results",
                             help="Ver el informe de la auditoría" if st.session_state.language == "Español" else "View audit report",
                             disabled=not audit_complete
                         ):
                             if audit_complete:
                                 st.session_state.show_results = True
-                                st.rerun()
                             else:
-                                unanswered_questions = []
-                                for cat in questions.keys():
-                                    for i, (q, _) in enumerate(questions[cat][st.session_state.language]):
-                                        if st.session_state.responses[cat][i] is None:
-                                            display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
-                                            unanswered_questions.append(f"{display_cat}: {q[:50] + '...' if len(q) > 50 else q}")
                                 st.error(
-                                    f"Por favor, responde todas las preguntas en todas las categorías. Preguntas faltantes: {', '.join(unanswered_questions)}" if st.session_state.language == "Español" else
-                                    f"Please answer all questions in all categories. Missing questions: {', '.join(unanswered_questions)}"
+                                    f"Por favor, responde todas las preguntas en todas las categorías. Revisa las preguntas faltantes arriba." if st.session_state.language == "Español" else
+                                    f"Please answer all questions in all categories. Review the missing questions above."
                                 )
                 st.markdown('</div>', unsafe_allow_html=True)
 
         # Grading matrix
         def get_grade(score):
+            """
+            Determine the grade and description based on the score.
+            
+            Args:
+                score (float): The average score for a category or overall.
+            
+            Returns:
+                tuple: (grade, description, CSS class)
+            """
             if score >= 85:
                 return (
                     "Excelente" if st.session_state.language == "Español" else "Excellent",
@@ -845,11 +650,12 @@ if not st.session_state.show_intro:
                 selected_display_category = st.selectbox(
                     "Seleccionar Categoría para Explorar" if st.session_state.language == "Español" else "Select Category to Explore",
                     display_categories,
-                    key="category_explore"
+                    key="category_explore",
+                    help="Elige una categoría para ver las puntuaciones de sus preguntas" if st.session_state.language == "Español" else "Choose a category to view its question scores"
                 )
                 selected_category = category_mapping[st.session_state.language][selected_display_category]
                 question_scores = pd.DataFrame({
-                    "Pregunta" if st.session_state.language == "Español" else "Question": [q for q, _ in questions[selected_category][st.session_state.language]],
+                    "Pregunta" if st.session_state.language == "Español" else "Question": [q for q, _, _ in questions[selected_category][st.session_state.language]],
                     "Puntuación" if st.session_state.language == "Español" else "Score": st.session_state.responses[selected_category]
                 })
                 fig_questions = px.bar(
@@ -877,61 +683,6 @@ if not st.session_state.show_intro:
             # Actionable insights
             with st.expander("Perspectivas Accionables" if st.session_state.language == "Español" else "Actionable Insights"):
                 insights = []
-                recommendations = {
-                    "Empoderamiento de Empleados": {
-                        0: "Establece un sistema formal para rastrear e implementar sugerencias de empleados con métricas claras.",
-                        1: "Aumenta las oportunidades de capacitación profesional para todos los empleados.",
-                        2: "Asigna presupuestos a más iniciativas lideradas por empleados para fomentar la innovación.",
-                        3: "Programa foros mensuales para retroalimentación directa entre empleados y gerencia."
-                    },
-                    "Liderazgo Ético": {
-                        0: "Implementa boletines mensuales para comunicar decisiones de liderazgo de manera transparente.",
-                        1: "Incluye a representantes de empleados en la revisión de todas las políticas laborales nuevas.",
-                        2: "Crea un programa formal de reconocimiento para comportamientos éticos, con incentivos claros."
-                    },
-                    "Operaciones Centradas en las Personas": {
-                        0: "Integra retroalimentación de empleados en cada revisión de procesos lean para eliminar redundancias.",
-                        1: "Realiza auditorías trimestrales de prácticas operativas con enfoque en el bienestar.",
-                        2: "Capacita a todos los empleados en herramientas lean, priorizando la colaboración."
-                    },
-                    "Prácticas Sostenibles y Éticas": {
-                        0: "Lanza iniciativas lean específicas para reducir el consumo de recursos, con metas medibles.",
-                        1: "Audita anualmente a todos los proveedores principales para garantizar estándares éticos.",
-                        2: "Involucra a más empleados en proyectos de sostenibilidad con impacto comunitario."
-                    },
-                    "Bienestar y Equilibrio": {
-                        0: "Amplía el acceso a recursos de bienestar, como asesoramiento y horarios flexibles.",
-                        1: "Implementa encuestas mensuales para monitorear el agotamiento y actuar rápidamente.",
-                        2: "Establece procesos formales para abordar desafíos reportados con planes de acción."
-                    }
-                } if st.session_state.language == "Español" else {
-                    "Empoderamiento de Empleados": {
-                        0: "Establish a formal system to track and implement employee suggestions with clear metrics.",
-                        1: "Increase professional training opportunities for all employees.",
-                        2: "Allocate budgets to more employee-led initiatives to foster innovation.",
-                        3: "Schedule monthly forums for direct employee-management feedback."
-                    },
-                    "Liderazgo Ético": {
-                        0: "Implement monthly newsletters to transparently communicate leadership decisions.",
-                        1: "Include employee representatives in reviewing all new workplace policies.",
-                        2: "Create a formal recognition program for ethical behavior with clear incentives."
-                    },
-                    "Operaciones Centradas en las Personas": {
-                        0: "Integrate employee feedback into every lean process review to eliminate redundancies.",
-                        1: "Conduct quarterly audits of operational practices focusing on well-being.",
-                        2: "Train all employees on lean tools, prioritizing collaboration."
-                    },
-                    "Prácticas Sostenibles y Éticas": {
-                        0: "Launch specific lean initiatives to reduce resource consumption with measurable goals.",
-                        1: "Audit all primary suppliers annually to ensure ethical standards.",
-                        2: "Engage more employees in sustainability projects with community impact."
-                    },
-                    "Bienestar y Equilibrio": {
-                        0: "Expand access to well-being resources, such as counseling and flexible schedules.",
-                        1: "Implement monthly surveys to monitor burnout and act swiftly.",
-                        2: "Establish formal processes to address reported challenges with action plans."
-                    }
-                }
                 for cat in questions.keys():
                     display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
                     if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50:
@@ -976,13 +727,15 @@ if not st.session_state.show_intro:
                         "Liderazgo Ético": "Capacitación en Liderazgo Ético y Gobernanza",
                         "Operaciones Centradas en las Personas": "Optimización de Procesos con Enfoque Humano",
                         "Prácticas Sostenibles y Éticas": "Consultoría en Sostenibilidad y Ética Empresarial",
-                        "Bienestar y Equilibrio": "Estrategias de Bienestar Organizacional"
+                        "Bienestar y Equilibrio": "Estrategias de Bienestar Organizacional",
+                        "Iniciativas Organizacionales Centradas en las Personas": "Consultoría en Iniciativas Tecnológicas y Sociales Centradas en las Personas"
                     } if st.session_state.language == "Español" else {
                         "Empoderamiento de Empleados": "Employee Engagement and Leadership Programs",
                         "Liderazgo Ético": "Ethical Leadership and Governance Training",
                         "Operaciones Centradas en las Personas": "Process Optimization with Human Focus",
                         "Prácticas Sostenibles y Éticas": "Sustainability and Business Ethics Consulting",
-                        "Bienestar y Equilibrio": "Organizational Well-Being Strategies"
+                        "Bienestar y Equilibrio": "Organizational Well-Being Strategies",
+                        "Iniciativas Organizacionales Centradas en las Personas": "Consulting on Human-Centered Technological and Social Initiatives"
                     }
                     ad_text.append(
                         f"Las áreas clave para mejorar incluyen {', '.join(low_display_categories)}. LEAN 2.0 Institute se especializa en: {', '.join([services[cat] for cat in low_categories])}." if st.session_state.language == "Español" else
@@ -1000,6 +753,130 @@ if not st.session_state.show_intro:
             st.markdown("<div class='insights'>" + "<br>".join(ad_text) + "</div>", unsafe_allow_html=True)
 
             # Download button (Excel only)
+            def generate_excel_report():
+                """
+                Generate an Excel report with summary, results, findings, and chart data.
+                
+                Returns:
+                    BytesIO: Excel file buffer
+                """
+                excel_output = io.BytesIO()
+                with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
+                    workbook = writer.book
+                    bold = workbook.add_format({'bold': True})
+                    percent_format = workbook.add_format({'num_format': '0.0%'})
+                    red_format = workbook.add_format({'bg_color': '#D32F2F', 'font_color': '#FFFFFF'})
+                    yellow_format = workbook.add_format({'bg_color': '#FFD54F', 'font_color': '#212121'})
+                    green_format = workbook.add_format({'bg_color': '#43A047', 'font_color': '#FFFFFF'})
+                    border_format = workbook.add_format({'border': 1})
+                    wrap_format = workbook.add_format({'text_wrap': True})
+                    hyperlink_format = workbook.add_format({'font_color': 'blue', 'underline': 1})
+
+                    # Summary Sheet
+                    summary_df = pd.DataFrame({
+                        "Puntuación General" if st.session_state.language == "Español" else "Overall Score": [f"{overall_score:.1f}%"],
+                        "Calificación" if st.session_state.language == "Español" else "Grade": [grade],
+                        "Resumen de Hallazgos" if st.session_state.language == "Español" else "Findings Summary": [
+                            f"{len(df[df['Porcentaje' if st.session_state.language == 'Español' else 'Percent'] < 50])} categorías requieren acción urgente (<50%), {len(df[(df['Porcentaje' if st.session_state.language == 'Español' else 'Percent'] >= 50) & (df['Porcentaje' if st.session_state.language == 'Español' else 'Percent'] < 70)])} necesitan mejoras específicas (50-69%). La puntuación general es {overall_score:.1f}% ({grade})." if st.session_state.language == "Español" else
+                            f"{len(df[df['Percent'] < 50])} categories require urgent action (<50%), {len(df[(df['Percent'] >= 50) & (df['Percent'] < 70)])} need specific improvements (50-69%). Overall score is {overall_score:.1f}% ({grade})."
+                        ]
+                    })
+                    summary_df.to_excel(writer, sheet_name='Resumen' if st.session_state.language == "Español" else 'Summary', index=False)
+                    worksheet_summary = writer.sheets['Resumen' if st.session_state.language == "Español" else 'Summary']
+                    worksheet_summary.set_column('A:A', 20)
+                    worksheet_summary.set_column('B:B', 15)
+                    worksheet_summary.set_column('C:C', 80)
+                    for col_num, value in enumerate(summary_df.columns.values):
+                        worksheet_summary.write(0, col_num, value, bold)
+                    # Add contact details
+                    row = len(summary_df) + 2
+                    worksheet_summary.write(row, 0, "Colabora con LEAN 2.0 Institute" if st.session_state.language == "Español" else "Partner with LEAN 2.0 Institute", bold)
+                    row += 1
+                    invitation = (
+                        "¡Colabora con LEAN 2.0 Institute para implementar mejoras en tu lugar de trabajo! Contáctanos para una consulta estratégica." if st.session_state.language == "Español" else
+                        "Partner with LEAN 2.0 Institute to implement workplace improvements! Contact us for a strategic consultation."
+                    )
+                    worksheet_summary.write(row, 0, invitation, wrap_format)
+                    row += 1
+                    worksheet_summary.write(row, 0, "✉️ Email:", bold)
+                    worksheet_summary.write_url(row, 1, f"mailto:{CONFIG['contact']['email']}", hyperlink_format, string=CONFIG['contact']['email'])
+                    row += 1
+                    worksheet_summary.write(row, 0, "🌐 Website:", bold)
+                    worksheet_summary.write_url(row, 1, CONFIG['contact']['website'], hyperlink_format, string=CONFIG['contact']['website'])
+
+                    # Results Sheet
+                    df_display.to_excel(writer, sheet_name='Resultados' if st.session_state.language == "Español" else 'Results', float_format="%.1f")
+                    worksheet_results = writer.sheets['Resultados' if st.session_state.language == "Español" else 'Results']
+                    worksheet_results.set_column('A:A', 30)
+                    worksheet_results.set_column('B:C', 15)
+                    worksheet_results.set_column('D:D', 20)
+                    for col_num, value in enumerate(df.columns.values):
+                        worksheet_results.write(0, col_num + 1, value, bold)
+                    worksheet_results.write(0, 0, 'Categoría' if st.session_state.language == "Español" else 'Category', bold)
+                    for row_num, value in enumerate(df['Porcentaje' if st.session_state.language == "Español" else 'Percent']):
+                        cell_format = red_format if value < 50 else yellow_format if value < 70 else green_format
+                        worksheet_results.write(row_num + 1, 2, value / 100, percent_format)
+                        worksheet_results.write(row_num + 1, 2, value / 100, cell_format)
+
+                    # Findings and Suggestions Sheet
+                    findings_data = []
+                    for cat in questions.keys():
+                        display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
+                        if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70:
+                            findings_data.append([
+                                display_cat,
+                                f"{df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}%",
+                                "Alta" if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50 else "Media" if st.session_state.language == "Español" else
+                                "High" if df.loc[cat, "Percent"] < 50 else "Medium",
+                                "Acción urgente requerida." if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50 else "Se necesitan mejoras específicas." if st.session_state.language == "Español" else
+                                "Urgent action required." if df.loc[cat, "Percent"] < 50 else "Specific improvements needed."
+                            ])
+                            for idx, score in enumerate(st.session_state.responses[cat]):
+                                if score < 70:
+                                    question, _, rec = questions[cat][st.session_state.language][idx]
+                                    findings_data.append([
+                                        "", "", "", f"Pregunta: {question[:50]}... - Sugerencia: {rec}"
+                                    ])
+                    findings_df = pd.DataFrame(
+                        findings_data,
+                        columns=[
+                            "Categoría" if st.session_state.language == "Español" else "Category",
+                            "Puntuación" if st.session_state.language == "Español" else "Score",
+                            "Prioridad" if st.session_state.language == "Español" else "Priority",
+                            "Hallazgos y Sugerencias" if st.session_state.language == "Español" else "Findings and Suggestions"
+                        ]
+                    )
+                    findings_df.to_excel(writer, sheet_name='Hallazgos' if st.session_state.language == "Español" else 'Findings', index=False)
+                    worksheet_findings = writer.sheets['Hallazgos' if st.session_state.language == "Español" else 'Findings']
+                    worksheet_findings.set_column('A:A', 30)
+                    worksheet_findings.set_column('B:B', 15)
+                    worksheet_findings.set_column('C:C', 15)
+                    worksheet_findings.set_column('D:D', 60)
+                    for col_num, value in enumerate(findings_df.columns.values):
+                        worksheet_findings.write(0, col_num, value, bold)
+                    for row_num in range(len(findings_df)):
+                        for col_num in range(len(findings_df.columns)):
+                            worksheet_findings.write(row_num + 1, col_num, findings_df.iloc[row_num, col_num], border_format)
+
+                    # Bar Chart
+                    chart_data_df = df_display[["Porcentaje" if st.session_state.language == "Español" else "Percent"]].reset_index()
+                    chart_data_df.to_excel(writer, sheet_name='Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', index=False)
+                    worksheet_chart = writer.sheets['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data']
+                    chart = workbook.add_chart({'type': 'bar'})
+                    chart.add_series({
+                        'name': 'Puntuación (%)' if st.session_state.language == "Español" else 'Score (%)',
+                        'categories': ['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', 1, 0, len(chart_data_df), 0],
+                        'values': ['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', 1, 1, len(chart_data_df), 1],
+                        'fill': {'color': '#1E88E5'},
+                    })
+                    chart.set_title({'name': 'Puntuaciones por Categoría' if st.session_state.language == "Español" else 'Category Scores'})
+                    chart.set_x_axis({'name': 'Puntuación (%)' if st.session_state.language == "Español" else 'Score (%)'})
+                    chart.set_y_axis({'name': 'Categoría' if st.session_state.language == "Español" else 'Category'})
+                    worksheet_results.insert_chart('F2', chart)
+
+                excel_output.seek(0)
+                return excel_output
+
             st.markdown(
                 '<div class="subheader">Descarga tu Informe</div>' if st.session_state.language == "Español" else
                 '<div class="subheader">Download Your Report</div>',
@@ -1007,122 +884,7 @@ if not st.session_state.show_intro:
             )
             with st.spinner("Generando Excel..." if st.session_state.language == "Español" else "Generating Excel..."):
                 try:
-                    excel_output = io.BytesIO()
-                    with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
-                        workbook = writer.book
-                        bold = workbook.add_format({'bold': True})
-                        percent_format = workbook.add_format({'num_format': '0.0%'})
-                        red_format = workbook.add_format({'bg_color': '#D32F2F', 'font_color': '#FFFFFF'})
-                        yellow_format = workbook.add_format({'bg_color': '#FFD54F', 'font_color': '#212121'})
-                        green_format = workbook.add_format({'bg_color': '#43A047', 'font_color': '#FFFFFF'})
-                        border_format = workbook.add_format({'border': 1})
-                        wrap_format = workbook.add_format({'text_wrap': True})
-                        hyperlink_format = workbook.add_format({'font_color': 'blue', 'underline': 1})
-
-                        # Summary Sheet
-                        summary_df = pd.DataFrame({
-                            "Puntuación General" if st.session_state.language == "Español" else "Overall Score": [f"{overall_score:.1f}%"],
-                            "Calificación" if st.session_state.language == "Español" else "Grade": [grade],
-                            "Resumen de Hallazgos" if st.session_state.language == "Español" else "Findings Summary": [
-                                f"{len(df[df['Porcentaje' if st.session_state.language == 'Español' else 'Percent'] < 50])} categorías requieren acción urgente (<50%), {len(df[(df['Porcentaje' if st.session_state.language == 'Español' else 'Percent'] >= 50) & (df['Porcentaje' if st.session_state.language == 'Español' else 'Percent'] < 70)])} necesitan mejoras específicas (50-69%). La puntuación general es {overall_score:.1f}% ({grade})." if st.session_state.language == "Español" else
-                                f"{len(df[df['Percent'] < 50])} categories require urgent action (<50%), {len(df[(df['Percent'] >= 50) & (df['Percent'] < 70)])} need specific improvements (50-69%). Overall score is {overall_score:.1f}% ({grade})."
-                            ]
-                        })
-                        summary_df.to_excel(writer, sheet_name='Resumen' if st.session_state.language == "Español" else 'Summary', index=False)
-                        worksheet_summary = writer.sheets['Resumen' if st.session_state.language == "Español" else 'Summary']
-                        worksheet_summary.set_column('A:A', 20)
-                        worksheet_summary.set_column('B:B', 15)
-                        worksheet_summary.set_column('C:C', 80)
-                        for col_num, value in enumerate(summary_df.columns.values):
-                            worksheet_summary.write(0, col_num, value, bold)
-                        # Add contact details and invitation
-                        row = len(summary_df) + 2
-                        worksheet_summary.write(row, 0, "Colabora con LEAN 2.0 Institute" if st.session_state.language == "Español" else "Partner with LEAN 2.0 Institute", bold)
-                        row += 1
-                        invitation = (
-                            "Colaboremos en la implementación de mejoras significativas en tu entorno laboral. Contáctanos para agendar una consulta estratégica y personalizada." if st.session_state.language == "Español" else
-                            "Let’s collaborate to implement meaningful improvements in your workplace. Contact us to schedule a strategic and personalized consultation."
-                        )
-                        worksheet_summary.write(row, 0, invitation, wrap_format)
-                        row += 1
-                        worksheet_summary.write(row, 0, "✉️ Email:", bold)
-                        worksheet_summary.write_url(row, 1, f"mailto:{CONFIG['contact']['email']}", hyperlink_format, string=CONFIG['contact']['email'])
-                        row += 1
-                        worksheet_summary.write(row, 0, "🌐 Website:", bold)
-                        worksheet_summary.write_url(row, 1, CONFIG['contact']['website'], hyperlink_format, string=CONFIG['contact']['website'])
-
-                        # Results Sheet
-                        df_display.to_excel(writer, sheet_name='Resultados' if st.session_state.language == "Español" else 'Results', float_format="%.1f")
-                        worksheet_results = writer.sheets['Resultados' if st.session_state.language == "Español" else 'Results']
-                        worksheet_results.set_column('A:A', 30)
-                        worksheet_results.set_column('B:C', 15)
-                        worksheet_results.set_column('D:D', 20)
-                        for col_num, value in enumerate(df.columns.values):
-                            worksheet_results.write(0, col_num + 1, value, bold)
-                        worksheet_results.write(0, 0, 'Categoría' if st.session_state.language == "Español" else 'Category', bold)
-                        for row_num, value in enumerate(df['Porcentaje' if st.session_state.language == "Español" else 'Percent']):
-                            cell_format = red_format if value < 50 else yellow_format if value < 70 else green_format
-                            worksheet_results.write(row_num + 1, 2, value / 100, percent_format)
-                            worksheet_results.write(row_num + 1, 2, value / 100, cell_format)
-
-                        # Findings and Suggestions Sheet
-                        findings_data = []
-                        for cat in questions.keys():
-                            display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
-                            if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70:
-                                findings_data.append([
-                                    display_cat,
-                                    f"{df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}%",
-                                    "Alta" if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50 else "Media" if st.session_state.language == "Español" else
-                                    "High" if df.loc[cat, "Percent"] < 50 else "Medium",
-                                    "Acción urgente requerida." if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50 else "Se necesitan mejoras específicas." if st.session_state.language == "Español" else
-                                    "Urgent action required." if df.loc[cat, "Percent"] < 50 else "Specific improvements needed."
-                                ])
-                                for idx, score in enumerate(st.session_state.responses[cat]):
-                                    if score < 70:
-                                        question = questions[cat][st.session_state.language][idx][0]
-                                        rec = recommendations[cat][idx]
-                                        findings_data.append([
-                                            "", "", "", f"Pregunta: {question[:50]}... - Sugerencia: {rec}"
-                                        ])
-                        findings_df = pd.DataFrame(
-                            findings_data,
-                            columns=[
-                                "Categoría" if st.session_state.language == "Español" else "Category",
-                                "Puntuación" if st.session_state.language == "Español" else "Score",
-                                "Prioridad" if st.session_state.language == "Español" else "Priority",
-                                "Hallazgos y Sugerencias" if st.session_state.language == "Español" else "Findings and Suggestions"
-                            ]
-                        )
-                        findings_df.to_excel(writer, sheet_name='Hallazgos' if st.session_state.language == "Español" else 'Findings', index=False)
-                        worksheet_findings = writer.sheets['Hallazgos' if st.session_state.language == "Español" else 'Findings']
-                        worksheet_findings.set_column('A:A', 30)
-                        worksheet_findings.set_column('B:B', 15)
-                        worksheet_findings.set_column('C:C', 15)
-                        worksheet_findings.set_column('D:D', 60)
-                        for col_num, value in enumerate(findings_df.columns.values):
-                            worksheet_findings.write(0, col_num, value, bold)
-                        for row_num in range(len(findings_df)):
-                            for col_num in range(len(findings_df.columns)):
-                                worksheet_findings.write(row_num + 1, col_num, findings_df.iloc[row_num, col_num], border_format)
-
-                        # Bar Chart
-                        chart_data_df = df_display[["Porcentaje" if st.session_state.language == "Español" else "Percent"]].reset_index()
-                        chart_data_df.to_excel(writer, sheet_name='Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', index=False)
-                        worksheet_chart = writer.sheets['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data']
-                        chart = workbook.add_chart({'type': 'bar'})
-                        chart.add_series({
-                            'name': 'Puntuación (%)' if st.session_state.language == "Español" else 'Score (%)',
-                            'categories': ['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', 1, 0, len(chart_data_df), 0],
-                            'values': ['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', 1, 1, len(chart_data_df), 1],
-                            'fill': {'color': '#1E88E5'},
-                        })
-                        chart.set_title({'name': 'Puntuaciones por Categoría' if st.session_state.language == "Español" else 'Category Scores'})
-                        chart.set_x_axis({'name': 'Puntuación (%)' if st.session_state.language == "Español" else 'Score (%)'})
-                        chart.set_y_axis({'name': 'Categoría' if st.session_state.language == "Español" else 'Category'})
-                        worksheet_results.insert_chart('F2', chart)
-
-                    excel_output.seek(0)
+                    excel_output = generate_excel_report()
                     b64_excel = base64.b64encode(excel_output.getvalue()).decode()
                     href_excel = (
                         f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lugar_trabajo_etico.xlsx" class="download-link" role="button" aria-label="Descargar Informe Excel">Descargar Informe Excel</a>' if st.session_state.language == "Español" else 
