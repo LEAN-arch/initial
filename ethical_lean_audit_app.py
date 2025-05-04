@@ -4,7 +4,65 @@ import plotly.express as px
 import base64
 import io
 import xlsxwriter
-from uuid import uuid4
+import os
+
+# Constants
+SCORE_THRESHOLDS = {
+    "CRITICAL": 50,
+    "NEEDS_IMPROVEMENT": 70,
+    "GOOD": 85,
+}
+TOTAL_QUESTIONS = 20
+PROGRESS_DISPLAY_THRESHOLD = 20  # Percentage to show unanswered questions
+CHART_COLORS = ["#D32F2F", "#FFD54F", "#43A047"]  # Red, Yellow, Green
+CHART_HEIGHT = 400
+QUESTION_TRUNCATE_LENGTH = 100
+
+# Translation dictionary
+TRANSLATIONS = {
+    "Español": {
+        "title": "Auditoría Ética de Lugar de Trabajo Lean",
+        "header": "¡Evalúa y Mejora tu Lugar de Trabajo!",
+        "score": "Puntuación",
+        "percent": "Porcentaje",
+        "priority": "Prioridad",
+        "category": "Categoría",
+        "question": "Pregunta",
+        "high_priority": "Alta",
+        "medium_priority": "Media",
+        "low_priority": "Baja",
+        "report_title": "Tu Informe de Impacto en el Lugar de Trabajo",
+        "download_report": "Descargar Informe Excel",
+        "report_filename": "resultados_auditoria_lugar_trabajo_etico.xlsx",
+        "unanswered_error": "Preguntas sin responder ({}). Por favor, completa todas las preguntas antes de enviar la auditoría.",
+        "missing_questions": "Preguntas faltantes:",
+        "category_completed": "¡Categoría '{}' completada! {}/{} preguntas respondidas.",
+        "all_answered": "¡Todas las preguntas han sido respondidas! Puedes proceder a ver los resultados.",
+        "response_guide": "Selecciona la descripción que mejor represente la situación para cada pregunta. Las opciones describen el grado, frecuencia o cantidad aplicable.",
+        "language_change_warning": "Cambiar el idioma reiniciará tus respuestas. ¿Deseas continuar?",
+    },
+    "English": {
+        "title": "Ethical Lean Workplace Audit",
+        "header": "Assess and Enhance Your Workplace!",
+        "score": "Score",
+        "percent": "Percent",
+        "priority": "Priority",
+        "category": "Category",
+        "question": "Question",
+        "high_priority": "High",
+        "medium_priority": "Medium",
+        "low_priority": "Low",
+        "report_title": "Your Workplace Impact Report",
+        "download_report": "Download Excel Report",
+        "report_filename": "ethical_workplace_audit_results.xlsx",
+        "unanswered_error": "Unanswered questions ({}). Please complete all questions before submitting the audit.",
+        "missing_questions": "Missing Questions:",
+        "category_completed": "Category '{}' completed! {}/{} questions answered.",
+        "all_answered": "All questions have been answered! You can proceed to view the results.",
+        "response_guide": "Select the description that best represents the situation for each question. The options describe the degree, frequency, or quantity applicable.",
+        "language_change_warning": "Changing the language will reset your responses. Do you wish to continue?",
+    }
+}
 
 # Cache static data for performance
 @st.cache_data
@@ -164,26 +222,57 @@ def load_static_data():
         }
     }
 
+    # Validate question types
+    valid_q_types = set(response_options.keys())
+    for cat in questions:
+        for lang in questions[cat]:
+            for _, q_type, _ in questions[cat][lang]:
+                if q_type not in valid_q_types:
+                    raise ValueError(f"Tipo de pregunta inválido '{q_type}' en categoría {cat}, idioma {lang}")
+
     return questions, response_options
 
 # Load static data
 questions, response_options = load_static_data()
 
 # Set page configuration
-st.set_page_config(page_title="Auditoría Ética de Lugar de Trabajo Lean", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title=TRANSLATIONS["Español"]["title"], layout="wide", initial_sidebar_state="expanded")
 
-# Load external CSS
+# Load external CSS with fallback
 try:
     with open("styles.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 except FileNotFoundError:
-    st.error("Archivo styles.css no encontrado. Por favor, asegúrate de que existe en el directorio del proyecto.")
+    st.warning("Archivo styles.css no encontrado. Usando estilos predeterminados.")
+    fallback_css = """
+    .main-container { padding: 2rem; }
+    .card { background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .subheader { font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; }
+    .progress-bar { display: flex; gap: 0.5rem; margin: 1rem 0; }
+    .progress-step { padding: 0.5rem; border-radius: 4px; background: #ECEFF1; }
+    .progress-step.active { background: #1E88E5; color: white; }
+    .progress-step.completed { background: #43A047; color: white; }
+    .progress-completion { background: #1E88E5; height: 8px; border-radius: 4px; }
+    .motivation { font-size: 0.9rem; color: #424242; }
+    .sticky-nav { display: flex; gap: 1rem; margin-top: 1rem; }
+    .tooltip { position: relative; }
+    .tooltip .tooltiptext { visibility: hidden; background: #555; color: #fff; padding: 5px; border-radius: 4px; position: absolute; z-index: 1; }
+    .tooltip:hover .tooltiptext { visibility: visible; }
+    .grade-excellent { color: #43A047; }
+    .grade-good { color: #1E88E5; }
+    .grade-needs-improvement { color: #FFD54F; }
+    .grade-critical { color: #D32F2F; }
+    .insights { background: #E3F2FD; padding: 1rem; border-radius: 4px; }
+    .badge { background: #E8F5E9; padding: 1rem; border-radius: 4px; text-align: center; }
+    .download-link { display: inline-block; padding: 0.5rem 1rem; background: #1E88E5; color: white; border-radius: 4px; text-decoration: none; }
+    """
+    st.markdown(f"<style>{fallback_css}</style>", unsafe_allow_html=True)
 
-# Configuration
+# Configuration from environment variables
 CONFIG = {
     "contact": {
-        "email": "contacto@lean2institute.org",
-        "website": "https://lean2institute.mystrikingly.com/"
+        "email": os.getenv("CONTACT_EMAIL", "contacto@lean2institute.org"),
+        "website": os.getenv("CONTACT_WEBSITE", "https://lean2institute.mystrikingly.com/")
     }
 }
 
@@ -211,7 +300,7 @@ category_mapping = {
 def initialize_session_state():
     """Initialize session state with default values and validation."""
     defaults = {
-        "language": "Español",
+        "language": "Esp BETA: "Español",
         "responses": {},
         "current_category": 0,
         "prev_language": "Español",
@@ -230,14 +319,15 @@ def initialize_session_state():
     
     # Initialize responses with validation
     expected_counts = {cat: len(questions[cat]["Español"]) for cat in questions}
-    total_expected_questions = sum(expected_counts.values())  # Should be 20
+    total_expected_questions = sum(expected_counts.values())
     if (not st.session_state.responses or 
         len(st.session_state.responses) != len(questions) or
         any(len(st.session_state.responses[cat]) != expected_counts[cat] for cat in questions)):
+        if st.session_state.responses:
+            st.warning("Estado de respuestas inválido detectado. Reiniciando respuestas para mantener la integridad de los datos." if st.session_state.language == "Español" else "Invalid response state detected. Resetting responses to maintain data integrity.")
         st.session_state.responses = {
             cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions
         }
-        st.warning(f"Respuestas reiniciadas para {total_expected_questions} preguntas en {len(questions)} categorías.")
     
     # Validate question counts across languages
     for cat in questions:
@@ -249,13 +339,16 @@ initialize_session_state()
 
 # Sidebar navigation
 with st.sidebar:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="card" role="navigation" aria-label="Navegación de la auditoría">', unsafe_allow_html=True)
     
     # Language selection
     def update_language():
-        """Handle language change and reset relevant session state."""
+        """Handle language change with confirmation."""
         if st.session_state.language_select != st.session_state.language:
-            st.session_state.language_changed = True
+            if any(any(score is not None for score in scores) for scores in st.session_state.responses.values()):
+                if not st.session_state.get("language_change_confirmed", False):
+                    st.session_state.language_changed = True
+                    return
             st.session_state.language = st.session_state.language_select
             st.session_state.current_category = 0
             st.session_state.responses = {
@@ -264,6 +357,8 @@ with st.sidebar:
             st.session_state.prev_language = st.session_state.language
             st.session_state.show_intro = True
             st.session_state.show_results = False
+            st.session_state.language_changed = False
+            st.session_state.language_change_confirmed = False
     
     st.selectbox(
         "Idioma / Language",
@@ -273,23 +368,28 @@ with st.sidebar:
         on_change=update_language
     )
     
-    # Handle language change feedback
-    if st.session_state.language_changed:
-        st.info("Cargando contenido en el nuevo idioma..." if st.session_state.language == "Español" else "Loading content in the new language...")
-        st.session_state.language_changed = False
+    # Language change confirmation
+    if st.session_state.get("language_changed", False):
+        st.warning(TRANSLATIONS[st.session_state.language]["language_change_warning"])
+        if st.button("Confirmar / Confirm", key="confirm_language_change"):
+            st.session_state.language_change_confirmed = True
+            update_language()
+        if st.button("Cancelar / Cancel", key="cancel_language_change"):
+            st.session_state.language_select = st.session_state.language
+            st.session_state.language_changed = False
     
-    st.markdown('<div class="subheader">Progreso</div>', unsafe_allow_html=True)
+    st.markdown('<div class="subheader" role="heading" aria-level="2">Progreso</div>', unsafe_allow_html=True)
     display_categories = list(category_mapping[st.session_state.language].keys())
     for i, display_cat in enumerate(display_categories):
         status = 'active' if i == st.session_state.current_category else 'completed' if i < st.session_state.current_category else ''
         if st.button(
             f"{display_cat}",
             key=f"nav_{i}",
-            help=f"Ir a {display_cat} / Go to {display_cat}",
+            help=f"Ir a la categoría {display_cat}",
             disabled=False,
             use_container_width=True
         ):
-            st.session_state.current_category = i
+            st.session_state.current_category = max(0, min(i, len(display_categories) - 1))
             st.session_state.show_intro = False
             st.session_state.show_results = False
     st.markdown('</div>', unsafe_allow_html=True)
@@ -297,15 +397,15 @@ with st.sidebar:
 # Introductory modal
 if st.session_state.show_intro:
     with st.container():
-        st.markdown('<div class="main-container">', unsafe_allow_html=True)
+        st.markdown('<div class="main-container" role="main">', unsafe_allow_html=True)
         st.markdown(
-            '<div class="header">🤝 ¡Bienvenido a LEAN 2.0 Institute! Evalúa tu entorno laboral. / Welcome to LEAN 2.0 Institute! Assess your work environment.</div>',
+            f'<div class="header" role="heading" aria-level="1">🤝 ¡Bienvenido a LEAN 2.0 Institute! Evalúa tu entorno laboral. / Welcome to LEAN 2.0 Institute! Assess your work environment.</div>',
             unsafe_allow_html=True
         )
         with st.expander("", expanded=True):
             st.markdown(
                 f"""
-                Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde 20 preguntas en 6 categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
+                Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde {TOTAL_QUESTIONS} preguntas en {len(questions)} categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
                 
                 **Pasos**:
                 1. Responde las preguntas de cada categoría.
@@ -315,7 +415,7 @@ if st.session_state.show_intro:
                 """
                 if st.session_state.language == "Español" else
                 f"""
-                This assessment is designed for management and HR to provide an objective evaluation of your workplace. Answer 20 questions across 6 categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations we can help implement. Upon completion, contact us for personalized consultations: ✉️ Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
+                This assessment is designed for management and HR to provide an objective evaluation of your workplace. Answer {TOTAL_QUESTIONS} questions across {len(questions)} categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations we can help implement. Upon completion, contact us for personalized consultations: ✉️ Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
                 
                 **Steps**:
                 1. Answer questions for each category.
@@ -335,41 +435,32 @@ if st.session_state.show_intro:
 # Main content
 if not st.session_state.show_intro:
     with st.container():
-        st.markdown('<div class="main-container">', unsafe_allow_html=True)
+        st.markdown('<div class="main-container" role="main">', unsafe_allow_html=True)
         st.markdown(
-            '<div class="header">¡Evalúa y Mejora tu Lugar de Trabajo!</div>' if st.session_state.language == "Español" else 
-            '<div class="header">Assess and Enhance Your Workplace!</div>', 
+            f'<div class="header" role="heading" aria-level="1">{TRANSLATIONS[st.session_state.language]["header"]}</div>',
             unsafe_allow_html=True
         )
 
         # Progress bar
-        st.markdown('<div class="progress-bar">', unsafe_allow_html=True)
+        st.markdown('<div class="progress-bar" role="progressbar" aria-label="Progreso de la auditoría">', unsafe_allow_html=True)
         for i, display_cat in enumerate(display_categories):
             status = 'active' if i == st.session_state.current_category else 'completed' if i < st.session_state.current_category else ''
             st.markdown(
-                f'<div class="progress-step {status}" role="button" aria-label="{display_cat}">{display_cat}</div>',
+                f'<div class="progress-step {status}" aria-label="Categoría {display_cat} - {"activa" if status == "active" else "completada" if status == "completed" else "pendiente"}">{display_cat}</div>',
                 unsafe_allow_html=True
             )
         st.markdown('</div>', unsafe_allow_html=True)
 
         # Progress completion bar
         completed_questions = sum(len([s for s in scores if s is not None]) for scores in st.session_state.responses.values())
-        total_questions = sum(len(questions[cat]["Español"]) for cat in questions)  # Should be 20
-        completion_percentage = (completed_questions / total_questions) * 100 if total_questions > 0 else 0
+        completion_percentage = (completed_questions / TOTAL_QUESTIONS) * 100 if TOTAL_QUESTIONS > 0 else 0
         st.markdown(
             f"""
             <div style='background-color: #ECEFF1; border-radius: 4px; margin: 1rem 0;'>
-                <div class='progress-completion' style='width: {completion_percentage}%;'></div>
+                <div class='progress-completion' style='width: {completion_percentage}%;' aria-label="Progreso: {completion_percentage:.1f}% completado"></div>
             </div>
-            <span class='sr-only'>{completed_questions} de {total_questions} preguntas completadas ({completion_percentage:.1f}%)</span>
-            <div class='motivation'>{completed_questions}/{total_questions} preguntas completadas ({completion_percentage:.1f}%)</div>
-            """ if st.session_state.language == "Español" else
-            f"""
-            <div style='background-color: #ECEFF1; border-radius: 4px; margin: 1rem 0;'>
-                <div class='progress-completion' style='width: {completion_percentage}%;'></div>
-            </div>
-            <span class='sr-only'>{completed_questions} of {total_questions} questions completed ({completion_percentage:.1f}%)</span>
-            <div class='motivation'>{completed_questions}/{total_questions} questions completed ({completion_percentage:.1f}%)</div>
+            <span class='sr-only'>{completed_questions} de {TOTAL_QUESTIONS} preguntas completadas ({completion_percentage:.1f}%)</span>
+            <div class='motivation'>{completed_questions}/{TOTAL_QUESTIONS} preguntas completadas ({completion_percentage:.1f}%)</div>
             """,
             unsafe_allow_html=True
         )
@@ -377,58 +468,52 @@ if not st.session_state.show_intro:
         # Check if audit is complete
         audit_complete = all(all(score is not None for score in scores) for scores in st.session_state.responses.values())
 
-        # Display unanswered questions after 20% completion
-        if completion_percentage >= 20:
+        # Display unanswered questions after threshold
+        if completion_percentage >= PROGRESS_DISPLAY_THRESHOLD:
             unanswered_questions = []
             question_counter = 1
             for cat in questions.keys():
                 for i, (q, _, _) in enumerate(questions[cat][st.session_state.language]):
                     if st.session_state.responses[cat][i] is None:
                         display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
-                        unanswered_questions.append(f"{display_cat}: Pregunta {question_counter} - {q[:50]}...")
+                        truncated_q = q[:QUESTION_TRUNCATE_LENGTH] + ("..." if len(q) > QUESTION_TRUNCATE_LENGTH else "")
+                        unanswered_questions.append(f"{display_cat}: Pregunta {question_counter} - {truncated_q}")
                     question_counter += 1
             if unanswered_questions:
                 st.error(
-                    f"Preguntas sin responder ({len(unanswered_questions)}). Por favor, completa todas las preguntas antes de enviar la auditoría." if st.session_state.language == "Español" else
-                    f"Unanswered questions ({len(unanswered_questions)}). Please complete all questions before submitting the audit."
+                    TRANSLATIONS[st.session_state.language]["unanswered_error"].format(len(unanswered_questions)),
+                    icon="⚠️"
                 )
                 st.markdown(
                     f"""
-                    <div class='insights'>
-                        <strong>Preguntas faltantes:</strong><br>
-                        {"<br>".join([f"- {q}" for q in unanswered_questions])}
-                    </div>
-                    """ if st.session_state.language == "Español" else
-                    f"""
-                    <div class='insights'>
-                        <strong>Missing Questions:</strong><br>
-                        {"<br>".join([f"- {q}" for q in unanswered_questions])}
+                    <div class='insights' role="alert">
+                        <strong>{TRANSLATIONS[st.session_state.language]["missing_questions"]}</strong>
+                        <ul>
+                            {"".join([f"<li>{q}</li>" for q in unanswered_questions])}
+                        </ul>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
             else:
                 st.success(
-                    "¡Todas las preguntas han sido respondidas! Puedes proceder a ver los resultados." if st.session_state.language == "Español" else
-                    "All questions have been answered! You can proceed to view the results."
+                    TRANSLATIONS[st.session_state.language]["all_answered"],
+                    icon="✅"
                 )
 
         # Category questions
         if not st.session_state.show_results:
-            category_index = min(st.session_state.current_category, len(display_categories) - 1)
+            category_index = max(0, min(st.session_state.current_category, len(display_categories) - 1))
             display_category = display_categories[category_index]
             category = category_mapping[st.session_state.language][display_category]
             
             with st.container():
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown(f'<div class="subheader">{display_category}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="card" role="region" aria-label="Preguntas de la categoría {display_category}">', unsafe_allow_html=True)
+                st.markdown(f'<div class="subheader" role="heading" aria-level="2">{display_category}</div>', unsafe_allow_html=True)
                 
                 # Response guide
-                with st.expander("Guía de Respuestas" if st.session_state.language == "Español" else "Response Guide", expanded=True):
-                    st.markdown(
-                        "Selecciona la descripción que mejor represente la situación para cada pregunta. Las opciones describen el grado, frecuencia o cantidad aplicable." if st.session_state.language == "Español" else
-                        "Select the description that best represents the situation for each question. The options describe the degree, frequency, or quantity applicable."
-                    )
+                with st.expander(TRANSLATIONS[st.session_state.language]["response_guide"], expanded=True):
+                    st.markdown(TRANSLATIONS[st.session_state.language]["response_guide"])
 
                 for idx, (q, q_type, _) in enumerate(questions[category][st.session_state.language]):
                     with st.container():
@@ -436,7 +521,7 @@ if not st.session_state.show_intro:
                         st.markdown(
                             f"""
                             <div class="tooltip">
-                                <strong>{q}</strong> {'<span class="required">*</span>' if is_unanswered else ''}
+                                <strong>{q}</strong> {'<span class="required" aria-label="Requerido">*</span>' if is_unanswered else ''}
                                 <span class="tooltiptext">{response_options[q_type][st.session_state.language]['tooltip']}</span>
                             </div>
                             """,
@@ -452,7 +537,7 @@ if not st.session_state.show_intro:
                             horizontal=False,
                             help=response_options[q_type][st.session_state.language]['tooltip'],
                             label_visibility="hidden",
-                            args=({"aria-label": q},)
+                            args=({"aria-label": f"Respuesta para la pregunta: {q}"},)
                         )
                         score_idx = descriptions.index(selected_description)
                         st.session_state.responses[category][idx] = scores[score_idx]
@@ -461,13 +546,13 @@ if not st.session_state.show_intro:
                 # Progress checkpoint after category completion
                 if all(score is not None for score in st.session_state.responses[category]):
                     st.success(
-                        f"¡Categoría '{display_category}' completada! {completed_questions}/{total_questions} preguntas respondidas." if st.session_state.language == "Español" else
-                        f"Category '{display_category}' completed! {completed_questions}/{total_questions} questions answered."
+                        TRANSLATIONS[st.session_state.language]["category_completed"].format(display_category, completed_questions, TOTAL_QUESTIONS),
+                        icon="🎉"
                     )
 
             # Sticky navigation
             with st.container():
-                st.markdown('<div class="sticky-nav">', unsafe_allow_html=True)
+                st.markdown('<div class="sticky-nav" role="navigation" aria-label="Navegación entre categorías">', unsafe_allow_html=True)
                 col1, col2 = st.columns([1, 1], gap="small")
                 with col1:
                     if st.button(
@@ -494,8 +579,9 @@ if not st.session_state.show_intro:
                             else:
                                 unanswered = [q for i, (q, _, _) in enumerate(questions[category][st.session_state.language]) if st.session_state.responses[category][i] is None]
                                 st.error(
-                                    f"Por favor, responde las siguientes preguntas: {', '.join(unanswered)}" if st.session_state.language == "Español" else
-                                    f"Please answer the following questions: {', '.join(unanswered)}"
+                                    f"Por favor, responde todas las preguntas en esta categoría antes de continuar." if st.session_state.language == "Español" else
+                                    f"Please answer all questions in this category before proceeding.",
+                                    icon="⚠️"
                                 )
                                 first_unanswered_idx = next((i for i, score in enumerate(st.session_state.responses[category]) if score is None), None)
                                 if first_unanswered_idx is not None:
@@ -521,7 +607,8 @@ if not st.session_state.show_intro:
                             else:
                                 st.error(
                                     f"Por favor, responde todas las preguntas en todas las categorías. Revisa las preguntas faltantes arriba." if st.session_state.language == "Español" else
-                                    f"Please answer all questions in all categories. Review the missing questions above."
+                                    f"Please answer all questions in all categories. Review the missing questions above.",
+                                    icon="⚠️"
                                 )
                 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -536,21 +623,21 @@ if not st.session_state.show_intro:
             Returns:
                 tuple: (grade, description, CSS class)
             """
-            if score >= 85:
+            if score >= SCORE_THRESHOLDS["GOOD"]:
                 return (
                     "Excelente" if st.session_state.language == "Español" else "Excellent",
                     "Tu lugar de trabajo demuestra prácticas sobresalientes. ¡Continúa fortaleciendo estas áreas!" if st.session_state.language == "Español" else
                     "Your workplace demonstrates outstanding practices. Continue strengthening these areas!",
                     "grade-excellent"
                 )
-            elif score >= 70:
+            elif score >= SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
                 return (
                     "Bueno" if st.session_state.language == "Español" else "Good",
                     "Tu lugar de trabajo tiene fortalezas, pero requiere mejoras específicas para alcanzar la excelencia." if st.session_state.language == "Español" else
                     "Your workplace has strengths but requires specific improvements to achieve excellence.",
                     "grade-good"
                 )
-            elif score >= 50:
+            elif score >= SCORE_THRESHOLDS["CRITICAL"]:
                 return (
                     "Necesita Mejora" if st.session_state.language == "Español" else "Needs Improvement",
                     "Se identificaron debilidades moderadas. Prioriza acciones correctivas en áreas críticas." if st.session_state.language == "Español" else
@@ -567,9 +654,9 @@ if not st.session_state.show_intro:
 
         # Generate report
         if st.session_state.show_results:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown(f'<div class="card" role="region" aria-label="{TRANSLATIONS[st.session_state.language]["report_title"]}">', unsafe_allow_html=True)
             st.markdown(
-                f'<div class="subheader">{"Tu Informe de Impacto en el Lugar de Trabajo" if st.session_state.language == "Español" else "Your Workplace Impact Report"}</div>',
+                f'<div class="subheader" role="heading" aria-level="2">{TRANSLATIONS[st.session_state.language]["report_title"]}</div>',
                 unsafe_allow_html=True
             )
             st.markdown(
@@ -580,18 +667,19 @@ if not st.session_state.show_intro:
 
             # Calculate scores
             results = {cat: sum(scores) / len(scores) for cat, scores in st.session_state.responses.items()}
-            df = pd.DataFrame.from_dict(results, orient="index", columns=["Puntuación" if st.session_state.language == "Español" else "Score"])
-            df["Porcentaje" if st.session_state.language == "Español" else "Percent"] = df["Puntuación" if st.session_state.language == "Español" else "Score"]
-            df["Prioridad" if st.session_state.language == "Español" else "Priority"] = df["Porcentaje" if st.session_state.language == "Español" else "Percent"].apply(
-                lambda x: "Alta" if x < 50 else "Media" if x < 70 else "Baja" if st.session_state.language == "Español" else
-                "High" if x < 50 else "Medium" if x < 70 else "Low"
+            df = pd.DataFrame.from_dict(results, orient="index", columns=[TRANSLATIONS[st.session_state.language]["score"]])
+            df[TRANSLATIONS[st.session_state.language]["percent"]] = df[TRANSLATIONS[st.session_state.language]["score"]]
+            df[TRANSLATIONS[st.session_state.language]["priority"]] = df[TRANSLATIONS[st.session_state.language]["percent"]].apply(
+                lambda x: TRANSLATIONS[st.session_state.language]["high_priority"] if x < SCORE_THRESHOLDS["CRITICAL"] else 
+                          TRANSLATIONS[st.session_state.language]["medium_priority"] if x < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] else 
+                          TRANSLATIONS[st.session_state.language]["low_priority"]
             )
 
             # Summary dashboard
-            st.markdown('<div class="subheader">Resumen Ejecutivo</div>', unsafe_allow_html=True)
+            st.markdown('<div class="subheader" role="heading" aria-level="3">Resumen Ejecutivo</div>', unsafe_allow_html=True)
             col1, col2, col3 = st.columns([2, 1, 1])
             with col1:
-                overall_score = df["Porcentaje" if st.session_state.language == "Español" else "Percent"].mean()
+                overall_score = df[TRANSLATIONS[st.session_state.language]["percent"]].mean()
                 grade, grade_description, grade_class = get_grade(overall_score)
                 st.markdown(
                     f'<div class="grade {grade_class}">Calificación General: {grade} ({overall_score:.1f}%)</div>' if st.session_state.language == "Español" else
@@ -602,7 +690,7 @@ if not st.session_state.show_intro:
             with col2:
                 st.metric(
                     "Categorías con Alta Prioridad" if st.session_state.language == "Español" else "High Priority Categories",
-                    len(df[df["Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50])
+                    len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
                 )
             with col3:
                 st.metric(
@@ -612,7 +700,7 @@ if not st.session_state.show_intro:
 
             # Color-coded dataframe
             def color_percent(val):
-                color = '#D32F2F' if val < 50 else '#FFD54F' if val < 70 else '#43A047'
+                color = CHART_COLORS[0] if val < SCORE_THRESHOLDS["CRITICAL"] else CHART_COLORS[1] if val < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] else CHART_COLORS[2]
                 return f'background-color: {color}; color: white;'
             
             st.markdown(
@@ -620,7 +708,7 @@ if not st.session_state.show_intro:
                 "Scores below 50% (red) need urgent action, 50–69% (yellow) suggest improvement, and above 70% (green) indicate strengths.",
                 unsafe_allow_html=True
             )
-            styled_df = df.style.applymap(color_percent, subset=["Porcentaje" if st.session_state.language == "Español" else "Percent"]).format({"Porcentaje" if st.session_state.language == "Español" else "Percent": "{:.1f}%"})
+            styled_df = df.style.applymap(color_percent, subset=[TRANSLATIONS[st.session_state.language]["percent"]]).format({TRANSLATIONS[st.session_state.language]["percent"]: "{:.1f}%"})
             st.dataframe(styled_df, use_container_width=True)
 
             # Interactive bar chart
@@ -629,31 +717,31 @@ if not st.session_state.show_intro:
             fig = px.bar(
                 df_display.reset_index(),
                 y="index",
-                x="Porcentaje" if st.session_state.language == "Español" else "Percent",
+                x=TRANSLATIONS[st.session_state.language]["percent"],
                 orientation='h',
                 title="Fortalezas y Oportunidades del Lugar de Trabajo" if st.session_state.language == "Español" else "Workplace Strengths and Opportunities",
                 labels={
-                    "index": "Categoría" if st.session_state.language == "Español" else "Category",
-                    "Porcentaje" if st.session_state.language == "Español" else "Percent": "Puntuación (%)" if st.session_state.language == "Español" else "Score (%)"
+                    "index": TRANSLATIONS[st.session_state.language]["category"],
+                    TRANSLATIONS[st.session_state.language]["percent"]: "Puntuación (%)" if st.session_state.language == "Español" else "Score (%)"
                 },
-                color="Porcentaje" if st.session_state.language == "Español" else "Percent",
-                color_continuous_scale=["#D32F2F", "#FFD54F", "#43A047"],
+                color=TRANSLATIONS[st.session_state.language]["percent"],
+                color_continuous_scale=CHART_COLORS,
                 range_x=[0, 100],
-                height=400
+                height=CHART_HEIGHT
             )
-            fig.add_vline(x=70, line_dash="dash", line_color="blue", annotation_text="Objetivo (70%)" if st.session_state.language == "Español" else "Target (70%)", annotation_position="top")
+            fig.add_vline(x=SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"], line_dash="dash", line_color="blue", annotation_text="Objetivo (70%)" if st.session_state.language == "Español" else "Target (70%)", annotation_position="top")
             for i, row in df_display.iterrows():
-                if row["Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70:
+                if row[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
                     fig.add_annotation(
-                        x=row["Porcentaje" if st.session_state.language == "Español" else "Percent"], y=i,
-                        text="Prioridad" if st.session_state.language == "Español" else "Priority", showarrow=True, arrowhead=2, ax=20, ay=-30,
+                        x=row[TRANSLATIONS[st.session_state.language]["percent"]], y=i,
+                        text=TRANSLATIONS[st.session_state.language]["priority"], showarrow=True, arrowhead=2, ax=20, ay=-30,
                         font=dict(color="red", size=12)
                     )
             fig.update_layout(
                 showlegend=False,
                 title_x=0.5,
                 xaxis_title="Puntuación (%)" if st.session_state.language == "Español" else "Score (%)",
-                yaxis_title="Categoría" if st.session_state.language == "Español" else "Category",
+                yaxis_title=TRANSLATIONS[st.session_state.language]["category"],
                 coloraxis_showscale=False,
                 margin=dict(l=150, r=50, t=100, b=50)
             )
@@ -669,18 +757,21 @@ if not st.session_state.show_intro:
                 )
                 selected_category = category_mapping[st.session_state.language][selected_display_category]
                 question_scores = pd.DataFrame({
-                    "Pregunta" if st.session_state.language == "Español" else "Question": [q for q, _, _ in questions[selected_category][st.session_state.language]],
-                    "Puntuación" if st.session_state.language == "Español" else "Score": st.session_state.responses[selected_category]
+                    TRANSLATIONS[st.session_state.language]["question"]: [q for q, _, _ in questions[selected_category][st.session_state.language]],
+                    TRANSLATIONS[st.session_state.language]["score"]: st.session_state.responses[selected_category]
                 })
                 fig_questions = px.bar(
                     question_scores,
-                    x="Puntuación" if st.session_state.language == "Español" else "Score",
-                    y="Pregunta" if st.session_state.language == "Español" else "Question",
+                    x=TRANSLATIONS[st.session_state.language]["score"],
+                    y=TRANSLATIONS[st.session_state.language]["question"],
                     orientation='h',
                     title=f"Puntuaciones de Preguntas para {selected_display_category}" if st.session_state.language == "Español" else f"Question Scores for {selected_display_category}",
-                    labels={"Puntuación" if st.session_state.language == "Español" else "Score": "Puntuación (%)" if st.session_state.language == "Español" else "Score (%)", "Pregunta" if st.session_state.language == "Español" else "Question": "Pregunta" if st.session_state.language == "Español" else "Question"},
-                    color="Puntuación" if st.session_state.language == "Español" else "Score",
-                    color_continuous_scale=["#D32F2F", "#FFD54F", "#43A047"],
+                    labels={
+                        TRANSLATIONS[st.session_state.language]["score"]: "Puntuación (%)" if st.session_state.language == "Español" else "Score (%)",
+                        TRANSLATIONS[st.session_state.language]["question"]: TRANSLATIONS[st.session_state.language]["question"]
+                    },
+                    color=TRANSLATIONS[st.session_state.language]["score"],
+                    color_continuous_scale=CHART_COLORS,
                     range_x=[0, 100],
                     height=300 + len(question_scores) * 50
                 )
@@ -688,7 +779,7 @@ if not st.session_state.show_intro:
                     showlegend=False,
                     title_x=0.5,
                     xaxis_title="Puntuación (%)" if st.session_state.language == "Español" else "Score (%)",
-                    yaxis_title="Pregunta" if st.session_state.language == "Español" else "Question",
+                    yaxis_title=TRANSLATIONS[st.session_state.language]["question"],
                     coloraxis_showscale=False,
                     margin=dict(l=150, r=50, t=100, b=50)
                 )
@@ -699,15 +790,16 @@ if not st.session_state.show_intro:
                 insights = []
                 for cat in questions.keys():
                     display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
-                    if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50:
+                    score = df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]]
+                    if score < SCORE_THRESHOLDS["CRITICAL"]:
                         insights.append(
-                            f"**{display_cat}** obtuvo {df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Alta Prioridad). Enfócate en mejoras inmediatas." if st.session_state.language == "Español" else
-                            f"**{display_cat}** scored {df.loc[cat, 'Percent']:.1f}% (High Priority). Focus on immediate improvements."
+                            f"**{display_cat}** obtuvo {score:.1f}% (Alta Prioridad). Enfócate en mejoras inmediatas." if st.session_state.language == "Español" else
+                            f"**{display_cat}** scored {score:.1f}% (High Priority). Focus on immediate improvements."
                         )
-                    elif df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70:
+                    elif score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
                         insights.append(
-                            f"**{display_cat}** obtuvo {df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Prioridad Media). Considera acciones específicas." if st.session_state.language == "Español" else
-                            f"**{display_cat}** scored {df.loc[cat, 'Percent']:.1f}% (Medium Priority). Consider targeted actions."
+                            f"**{display_cat}** obtuvo {score:.1f}% (Prioridad Media). Considera acciones específicas." if st.session_state.language == "Español" else
+                            f"**{display_cat}** scored {score:.1f}% (Medium Priority). Consider targeted actions."
                         )
                 if insights:
                     st.markdown(
@@ -728,13 +820,13 @@ if not st.session_state.show_intro:
                 unsafe_allow_html=True
             )
             ad_text = []
-            if overall_score < 85:
+            if overall_score < SCORE_THRESHOLDS["GOOD"]:
                 ad_text.append(
                     "Los resultados de tu auditoría indican oportunidades para optimizar el lugar de trabajo. LEAN 2.0 Institute ofrece consultoría especializada para directivos, gerentes y Recursos Humanos, transformando tu entorno laboral en uno ético y eficiente." if st.session_state.language == "Español" else
                     "Your audit results indicate opportunities to optimize the workplace. LEAN 2.0 Institute offers specialized consulting for directors, managers and HR, transforming your workplace into an ethical and efficient environment."
                 )
-                if df["Porcentaje" if st.session_state.language == "Español" else "Percent"].min() < 70:
-                    low_categories = df[df["Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70].index.tolist()
+                if df[TRANSLATIONS[st.session_state.language]["percent"]].min() < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
+                    low_categories = df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]].index.tolist()
                     low_display_categories = [next(k for k, v in category_mapping[st.session_state.language].items() if v == cat) for cat in low_categories]
                     services = {
                         "Empoderamiento de Empleados": "Programas de Compromiso y Liderazgo de Empleados",
@@ -779,9 +871,9 @@ if not st.session_state.show_intro:
                     workbook = writer.book
                     bold = workbook.add_format({'bold': True})
                     percent_format = workbook.add_format({'num_format': '0.0%'})
-                    red_format = workbook.add_format({'bg_color': '#D32F2F', 'font_color': '#FFFFFF'})
-                    yellow_format = workbook.add_format({'bg_color': '#FFD54F', 'font_color': '#212121'})
-                    green_format = workbook.add_format({'bg_color': '#43A047', 'font_color': '#FFFFFF'})
+                    red_format = workbook.add_format({'bg_color': CHART_COLORS[0], 'font_color': '#FFFFFF'})
+                    yellow_format = workbook.add_format({'bg_color': CHART_COLORS[1], 'font_color': '#212121'})
+                    green_format = workbook.add_format({'bg_color': CHART_COLORS[2], 'font_color': '#FFFFFF'})
                     border_format = workbook.add_format({'border': 1})
                     wrap_format = workbook.add_format({'text_wrap': True})
                     hyperlink_format = workbook.add_format({'font_color': 'blue', 'underline': 1})
@@ -791,8 +883,8 @@ if not st.session_state.show_intro:
                         "Puntuación General" if st.session_state.language == "Español" else "Overall Score": [f"{overall_score:.1f}%"],
                         "Calificación" if st.session_state.language == "Español" else "Grade": [grade],
                         "Resumen de Hallazgos" if st.session_state.language == "Español" else "Findings Summary": [
-                            f"{len(df[df['Porcentaje' if st.session_state.language == 'Español' else 'Percent'] < 50])} categorías requieren acción urgente (<50%), {len(df[(df['Porcentaje' if st.session_state.language == 'Español' else 'Percent'] >= 50) & (df['Porcentaje' if st.session_state.language == 'Español' else 'Percent'] < 70)])} necesitan mejoras específicas (50-69%). La puntuación general es {overall_score:.1f}% ({grade})." if st.session_state.language == "Español" else
-                            f"{len(df[df['Percent'] < 50])} categories require urgent action (<50%), {len(df[(df['Percent'] >= 50) & (df['Percent'] < 70)])} need specific improvements (50-69%). Overall score is {overall_score:.1f}% ({grade})."
+                            f"{len(df[df[TRANSLATIONS[st.session_state.language]['percent']] < SCORE_THRESHOLDS['CRITICAL']])} categorías requieren acción urgente (<{SCORE_THRESHOLDS['CRITICAL']}%), {len(df[(df[TRANSLATIONS[st.session_state.language]['percent']] >= SCORE_THRESHOLDS['CRITICAL']) & (df[TRANSLATIONS[st.session_state.language]['percent']] < SCORE_THRESHOLDS['NEEDS_IMPROVEMENT'])])} necesitan mejoras específicas ({SCORE_THRESHOLDS['CRITICAL']}-{SCORE_THRESHOLDS['NEEDS_IMPROVEMENT']-1}%). La puntuación general es {overall_score:.1f}% ({grade})." if st.session_state.language == "Español" else
+                            f"{len(df[df[TRANSLATIONS[st.session_state.language]['percent']] < SCORE_THRESHOLDS['CRITICAL']])} categories require urgent action (<{SCORE_THRESHOLDS['CRITICAL']}%), {len(df[(df[TRANSLATIONS[st.session_state.language]['percent']] >= SCORE_THRESHOLDS['CRITICAL']) & (df[TRANSLATIONS[st.session_state.language]['percent']] < SCORE_THRESHOLDS['NEEDS_IMPROVEMENT'])])} need specific improvements ({SCORE_THRESHOLDS['CRITICAL']}-{SCORE_THRESHOLDS['NEEDS_IMPROVEMENT']-1}%). Overall score is {overall_score:.1f}% ({grade})."
                         ]
                     })
                     summary_df.to_excel(writer, sheet_name='Resumen' if st.session_state.language == "Español" else 'Summary', index=False)
@@ -826,9 +918,9 @@ if not st.session_state.show_intro:
                     worksheet_results.set_column('D:D', 20)
                     for col_num, value in enumerate(df.columns.values):
                         worksheet_results.write(0, col_num + 1, value, bold)
-                    worksheet_results.write(0, 0, 'Categoría' if st.session_state.language == "Español" else 'Category', bold)
-                    for row_num, value in enumerate(df['Porcentaje' if st.session_state.language == "Español" else 'Percent']):
-                        cell_format = red_format if value < 50 else yellow_format if value < 70 else green_format
+                    worksheet_results.write(0, 0, TRANSLATIONS[st.session_state.language]["category"], bold)
+                    for row_num, value in enumerate(df[TRANSLATIONS[st.session_state.language]["percent"]]):
+                        cell_format = red_format if value < SCORE_THRESHOLDS["CRITICAL"] else yellow_format if value < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] else green_format
                         worksheet_results.write(row_num + 1, 2, value / 100, percent_format)
                         worksheet_results.write(row_num + 1, 2, value / 100, cell_format)
 
@@ -836,17 +928,16 @@ if not st.session_state.show_intro:
                     findings_data = []
                     for cat in questions.keys():
                         display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
-                        if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70:
+                        if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
                             findings_data.append([
                                 display_cat,
-                                f"{df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}%",
-                                "Alta" if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50 else "Media" if st.session_state.language == "Español" else
-                                "High" if df.loc[cat, "Percent"] < 50 else "Medium",
-                                "Acción urgente requerida." if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50 else "Se necesitan mejoras específicas." if st.session_state.language == "Español" else
-                                "Urgent action required." if df.loc[cat, "Percent"] < 50 else "Specific improvements needed."
+                                f"{df.loc[cat, TRANSLATIONS[st.session_state.language]['percent']]:.1f}%",
+                                TRANSLATIONS[st.session_state.language]["high_priority"] if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"] else TRANSLATIONS[st.session_state.language]["medium_priority"],
+                                "Acción urgente requerida." if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"] else "Se necesitan mejoras específicas." if st.session_state.language == "Español" else
+                                "Urgent action required." if df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"] else "Specific improvements needed."
                             ])
                             for idx, score in enumerate(st.session_state.responses[cat]):
-                                if score < 70:
+                                if score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
                                     question, _, rec = questions[cat][st.session_state.language][idx]
                                     findings_data.append([
                                         "", "", "", f"Pregunta: {question[:50]}... - Sugerencia: {rec}"
@@ -854,9 +945,9 @@ if not st.session_state.show_intro:
                     findings_df = pd.DataFrame(
                         findings_data,
                         columns=[
-                            "Categoría" if st.session_state.language == "Español" else "Category",
-                            "Puntuación" if st.session_state.language == "Español" else "Score",
-                            "Prioridad" if st.session_state.language == "Español" else "Priority",
+                            TRANSLATIONS[st.session_state.language]["category"],
+                            TRANSLATIONS[st.session_state.language]["score"],
+                            TRANSLATIONS[st.session_state.language]["priority"],
                             "Hallazgos y Sugerencias" if st.session_state.language == "Español" else "Findings and Suggestions"
                         ]
                     )
@@ -873,7 +964,7 @@ if not st.session_state.show_intro:
                             worksheet_findings.write(row_num + 1, col_num, findings_df.iloc[row_num, col_num], border_format)
 
                     # Bar Chart
-                    chart_data_df = df_display[["Porcentaje" if st.session_state.language == "Español" else "Percent"]].reset_index()
+                    chart_data_df = df_display[[TRANSLATIONS[st.session_state.language]["percent"]]].reset_index()
                     chart_data_df.to_excel(writer, sheet_name='Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', index=False)
                     worksheet_chart = writer.sheets['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data']
                     chart = workbook.add_chart({'type': 'bar'})
@@ -881,19 +972,19 @@ if not st.session_state.show_intro:
                         'name': 'Puntuación (%)' if st.session_state.language == "Español" else 'Score (%)',
                         'categories': ['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', 1, 0, len(chart_data_df), 0],
                         'values': ['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', 1, 1, len(chart_data_df), 1],
-                        'fill': {'color': '#1E88E5'},
+                        'fill': {'color': CHART_COLORS[2]},
                     })
                     chart.set_title({'name': 'Puntuaciones por Categoría' if st.session_state.language == "Español" else 'Category Scores'})
                     chart.set_x_axis({'name': 'Puntuación (%)' if st.session_state.language == "Español" else 'Score (%)'})
-                    chart.set_y_axis({'name': 'Categoría' if st.session_state.language == "Español" else 'Category'})
+                    chart.set_y_axis({'name': TRANSLATIONS[st.session_state.language]["category"]})
+                    chart.set_size({'width': 600, 'height': CHART_HEIGHT})
                     worksheet_results.insert_chart('F2', chart)
 
                 excel_output.seek(0)
                 return excel_output
 
             st.markdown(
-                '<div class="subheader">Descarga tu Informe</div>' if st.session_state.language == "Español" else
-                '<div class="subheader">Download Your Report</div>',
+                f'<div class="subheader">Descarga tu Informe</div>',
                 unsafe_allow_html=True
             )
             with st.spinner("Generando Excel..." if st.session_state.language == "Español" else "Generating Excel..."):
@@ -901,16 +992,22 @@ if not st.session_state.show_intro:
                     excel_output = generate_excel_report()
                     b64_excel = base64.b64encode(excel_output.getvalue()).decode()
                     href_excel = (
-                        f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lugar_trabajo_etico.xlsx" class="download-link" role="button" aria-label="Descargar Informe Excel">Descargar Informe Excel</a>' if st.session_state.language == "Español" else 
-                        f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="ethical_workplace_audit_results.xlsx" class="download-link" role="button" aria-label="Download Excel Report">Download Excel Report</a>'
+                        f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{TRANSLATIONS[st.session_state.language]["report_filename"]}" class="download-link" role="button" aria-label="{TRANSLATIONS[st.session_state.language]["download_report"]}">{TRANSLATIONS[st.session_state.language]["download_report"]}</a>'
                     )
                     st.markdown(href_excel, unsafe_allow_html=True)
                     excel_output.close()
                 except ImportError:
-                    st.error("La exportación a Excel requiere 'xlsxwriter'. Por favor, instálalo usando `pip install xlsxwriter`." if st.session_state.language == "Español" else
-                             "Excel export requires 'xlsxwriter'. Please install it using `pip install xlsxwriter`.")
+                    st.error(
+                        "La exportación a Excel requiere 'xlsxwriter'. Por favor, instálalo usando `pip install xlsxwriter`. Si estás en Streamlit Cloud, agrega 'xlsxwriter' a tu archivo requirements.txt." if st.session_state.language == "Español" else
+                        "Excel export requires 'xlsxwriter'. Please install it using `pip install xlsxwriter`. If on Streamlit Cloud, add 'xlsxwriter' to your requirements.txt file.",
+                        icon="❌"
+                    )
                 except Exception as e:
-                    st.error(f"No se pudo generar el archivo Excel: {str(e)}" if st.session_state.language == "Español" else f"Failed to generate Excel file: {str(e)}")
+                    st.error(
+                        f"No se pudo generar el archivo Excel: {str(e)}" if st.session_state.language == "Español" else
+                        f"Failed to generate Excel file: {str(e)}",
+                        icon="❌"
+                    )
 
             st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
