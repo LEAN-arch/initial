@@ -399,8 +399,8 @@ if st.session_state.show_intro:
                 <div class="intro-content">
                     Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde {TOTAL_QUESTIONS} preguntas en {len(questions)} categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: <a href="mailto:{CONFIG['contact']['email']}">{CONFIG['contact']['email']}</a> 🌐 Website: <a href="{CONFIG['contact']['website']}">{CONFIG['contact']['website']}</a>
                     
-                    <h3>Pasos:</h3>
-                    <ol>
+                    <h3 class="subsection-title">Pasos:</h3>
+                    <ol class="steps-list" role="list" aria-label="Pasos para completar la auditoría">
                         <li>Responde las preguntas de cada categoría.</li>
                         <li>Revisa y descarga tu informe.</li>
                     </ol>
@@ -413,8 +413,8 @@ if st.session_state.show_intro:
                 <div class="intro-content">
                     This assessment is designed for management and HR to provide an objective evaluation of your workplace. Answer {TOTAL_QUESTIONS} questions across {len(questions)} categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations we can help implement. Upon completion, contact us for personalized consultations: ✉️ Email: <a href="mailto:{CONFIG['contact']['email']}">{CONFIG['contact']['email']}</a> 🌐 Website: <a href="{CONFIG['contact']['website']}">{CONFIG['contact']['website']}</a>
                     
-                    <h3>Steps:</h3>
-                    <ol>
+                    <h3 class="subsection-title">Steps:</h3>
+                    <ol class="steps-list" role="list" aria-label="Steps to complete the audit">
                         <li>Answer questions for each category.</li>
                         <li>Review and download your report.</li>
                     </ol>
@@ -1012,5 +1012,7 @@ if not st.session_state.show_intro:
                         icon="❌"
                     )
 
+            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</section>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</section>', unsafe_allow_html=True)
