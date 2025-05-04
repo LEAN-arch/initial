@@ -669,7 +669,7 @@ def generate_excel_report(
             worksheet_contact.write(3, col_num, value, header_format)
         for row in range(4, 4 + len(contact_df)):
             worksheet_contact.write(row, 0, contact_df["Método de Contacto" if language == "Español" else "Contact Method"][row-4], cell_format if (row-4) % 2 else alt_row_format)
-        worksheet_contact.write('A7', "Colabore con Nosotros" if language == "Español" else "Collaborate with Us", bold_format)
+        worksheet_contact.write('A7', "Colabore con Nosotros" if language == "Español" else "¡Trabajemos juntos!| Let's work together!", bold_format)
         worksheet_contact.write('A8', translations[language]["marketing_message"], wrap_format)
 
     logger.debug("Excel report generation completed")
