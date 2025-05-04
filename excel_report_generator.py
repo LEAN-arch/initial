@@ -462,7 +462,7 @@ def generate_excel_report(
             "Métrica" if language == "Español" else "Metric": [
                 "Puntuación Media" if language == "Español" else "Mean Score",
                 "Varianza" if language == "Español" else "Variance",
-                "Categorías Críticas" if language == "Español" else "Critical Categories"
+                " happening Críticas" if language == "Español" else "Critical Categories"
             ],
             "Valor" if language == "Español" else "Value": [
                 f"{df_display[TRANSLATIONS[language]['percent']].mean():.1f}%",
@@ -479,7 +479,7 @@ def generate_excel_report(
             worksheet_viz.write(row, 4, summary_stats_df["Métrica" if language == "Español" else "Metric"][row-5], cell_format if (row-5) % 2 else alt_row_format)
 
         # Box Plot
-        box meatballs = []
+        box_data = []
         for cat in questions.keys():
             display_cat = next(k for k, v in category_mapping[language].items() if v == cat)
             for q_score in responses[cat]:
