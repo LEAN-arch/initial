@@ -5,7 +5,6 @@ from typing import Dict
 import numpy as np
 import logging
 from datetime import datetime
-import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -25,8 +24,8 @@ def generate_excel_report(
     REPORT_DATE: str
 ) -> io.BytesIO:
     """
-    Generate a single-sheet Excel report with translations, a bar chart, and a persuasive narrative
-    to contract LEAN 2.0 Institute services.
+    Generate a single-sheet Excel report with all content on the first worksheet,
+    featuring translations, a bar chart, and a persuasive narrative to contract LEAN 2.0 Institute services.
 
     Args:
         df: DataFrame with category scores and priorities
@@ -59,7 +58,8 @@ def generate_excel_report(
         logger.error("Input data is empty")
         raise ValueError("Input data is empty")
     
-    required_columns = ["Score", "Percentage", "Priority"] if language == "English" else ["Puntuación", "Porcentaje", "Prioridad"]
+    percent_col = "Percentage" if language == "English" else "Porcentaje"
+    required_columns = ["Score", percent_col, "Priority"] if language == "English" else ["Puntuación", percent_col, "Prioridad"]
     if not all(col in df.columns for col in required_columns):
         logger.error("Required columns missing in df: %s", required_columns)
         raise ValueError(f"Required columns missing in df: {required_columns}")
@@ -72,7 +72,6 @@ def generate_excel_report(
         logger.error("Not all question categories are present in DataFrame index")
         raise ValueError("Not all question categories are present in DataFrame index")
     
-    percent_col = "Percentage" if language == "English" else "Porcentaje"
     if not pd.api.types.is_numeric_dtype(df[percent_col]):
         logger.error("Column %s must contain numeric values", percent_col)
         raise ValueError(f"Column {percent_col} must contain numeric values")
@@ -116,8 +115,8 @@ def generate_excel_report(
             "recommendation": "Recommendation",
             "chart_title": "Category Performance",
             "marketing_message": (
-                "Transform your workplace with LEAN 2.0 Institute! Contact us today to unlock "
-                "ethical, inclusive, and sustainable practices."
+                "Partner with LEAN 2.0 Institute to transform your workplace! "
+                "Contact us today for ethical, inclusive, and sustainable solutions."
             ),
             "date_format": "%m/%d/%Y",
             "metric": "Metric",
@@ -150,8 +149,8 @@ def generate_excel_report(
             "recommendation": "Recomendación",
             "chart_title": "Desempeño por Categoría",
             "marketing_message": (
-                "¡Transforme su lugar de trabajo con el Instituto LEAN 2.0! Contáctenos hoy para implementar "
-                "prácticas éticas, inclusivas y sostenibles."
+                "¡Asóciese con el Instituto LEAN 2.0 para transformar su lugar de trabajo! "
+                "Contáctenos hoy para soluciones éticas, inclusivas y sostenibles."
             ),
             "date_format": "%d/%m/%Y",
             "metric": "Métrica",
@@ -184,13 +183,18 @@ def generate_excel_report(
         report_date_formatted = datetime.strptime(REPORT_DATE, "%Y-%m-%d").strftime(translations[language]["date_format"])
         logger.debug("Formatted report date: %s", report_date_formatted)
     except ValueError:
-        logger.error("Invalid date format for REPORT_DATE: %s. Using current date.", REPORT_DATE)
+        logger.warning("Invalid date format for REPORT_DATE: %s. Using current date.", REPORT_DATE)
         report_date_formatted = datetime.now().strftime(translations[language]["date_format"])
 
+    # Initialize Excel output
     excel_output = io.BytesIO()
+    sheet_name = "Informe de Auditoría" if language == "Español" else "Audit Report"
+    logger.debug("Creating single worksheet: %s", sheet_name)
+
     with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
         workbook = writer.book
-        worksheet = workbook.add_worksheet("Informe de Auditoría" if language == "Español" else "Audit Report")
+        worksheet = workbook.add_worksheet(sheet_name)
+        logger.debug("Worksheet %s created", sheet_name)
 
         # Define formats
         title_format = workbook.add_format({
@@ -231,7 +235,7 @@ def generate_excel_report(
         })
 
         # Cover Section (Rows 1-5)
-        logger.debug("Generating Cover Section")
+        logger.debug("Writing Cover Section to %s", sheet_name)
         worksheet.merge_range('A1:G1', translations[language]["report_title"], title_format)
         worksheet.merge_range('A2:G2', translations[language]["prepared_by"], subtitle_format)
         worksheet.merge_range('A3:G3', f"Date: {report_date_formatted}", subtitle_format)
@@ -240,7 +244,7 @@ def generate_excel_report(
         worksheet.set_column('A:G', 20)
 
         # Executive Summary Section (Rows 7-12)
-        logger.debug("Generating Executive Summary Section")
+        logger.debug("Writing Executive Summary Section to %s", sheet_name)
         worksheet.merge_range('A7:G7', translations[language]["summary"], title_format)
         critical_count = len(df[df[translations[language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
         summary_data = {
@@ -256,8 +260,8 @@ def generate_excel_report(
             ]
         }
         summary_df = pd.DataFrame(summary_data)
-        summary_df.to_excel(writer, sheet_name="Informe de Auditoría" if language == "Español" else "Audit Report", 
-                           startrow=8, startcol=0, index=False)
+        summary_df.to_excel(writer, sheet_name=sheet_name, startrow=8, startcol=0, index=False)
+        logger.debug("Wrote Executive Summary to %s at row 8", sheet_name)
         worksheet.write('A9', translations[language]["metric"], header_format)
         worksheet.write('B9', translations[language]["value"], header_format)
         worksheet.set_column('A:A', 30)
@@ -278,7 +282,7 @@ def generate_excel_report(
         })
 
         # Results & Action Plan Section (Rows 14-40)
-        logger.debug("Generating Results & Action Plan Section")
+        logger.debug("Writing Results & Action Plan Section to %s", sheet_name)
         worksheet.merge_range('A14:G14', translations[language]["results"], title_format)
         action_plan_data = []
         for cat in questions.keys():
@@ -314,7 +318,7 @@ def generate_excel_report(
                 translations[language]["type"]: translations[language]["category_type"]
             })
             for idx, q_score in enumerate(responses[cat]):
-                if q_score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
+                if q_score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] and len(action_plan_data) < 20:  # Limit to 20 rows
                     question, _, rec = questions[cat][language][idx]
                     q_effort = (
                         "Alto" if q_score < SCORE_THRESHOLDS["CRITICAL"]/2 else
@@ -336,8 +340,8 @@ def generate_excel_report(
                         translations[language]["type"]: translations[language]["question_type"]
                     })
         action_plan_df = pd.DataFrame(action_plan_data).sort_values(translations[language]["score"])
-        action_plan_df.to_excel(writer, sheet_name="Informe de Auditoría" if language == "Español" else "Audit Report", 
-                               startrow=15, startcol=0, index=False)
+        action_plan_df.to_excel(writer, sheet_name=sheet_name, startrow=15, startcol=0, index=False)
+        logger.debug("Wrote Results & Action Plan to %s at row 15", sheet_name)
         worksheet.set_column('A:A', 30)
         worksheet.set_column('B:B', 15, percent_format)
         worksheet.set_column('C:C', 15, center_format)
@@ -373,21 +377,19 @@ def generate_excel_report(
         worksheet.freeze_panes(16, 0)
 
         # Performance Overview Section (Rows 42-55)
-        logger.debug("Generating Performance Overview Section")
+        logger.debug("Writing Performance Overview Section to %s", sheet_name)
         worksheet.merge_range('A42:G42', translations[language]["chart"], title_format)
         chart_data = df_display[[translations[language]["percent"]]].reset_index()
-        chart_data[translations[language]["score"]] = chart_data[translations[language]["-01:00
-        chart_data.to_excel(writer, sheet_name="Informe de Auditoría" if language == "Español" else "Audit Report", 
-                           startrow=43, startcol=0, index=False)
+        chart_data[translations[language]["score"]] = chart_data[translations[language]["percent"]] / 100
+        chart_data.to_excel(writer, sheet_name=sheet_name, startrow=43, startcol=0, index=False)
+        logger.debug("Wrote chart data to %s at row 43", sheet_name)
         worksheet.write('A44', translations[language]["category"], header_format)
         worksheet.write('B44', translations[language]["score"], header_format)
         bar_chart = workbook.add_chart({'type': 'bar'})
         bar_chart.add_series({
             'name': translations[language]["score"],
-            'categories': f"='Informe de Auditoría'!$A$45:$A${44 + len(chart_data)}" if language == "Español" else 
-                         f"='Audit Report'!$A$45:$A${44 + len(chart_data)}",
-            'values': f"='Informe de Auditoría'!$B$45:$B${44 + len(chart_data)}" if language == "Español" else 
-                     f"='Audit Report'!$B$45:$B${44 + len(chart_data)}",
+            'categories': f"='{sheet_name}'!$A$45:$A${44 + len(chart_data)}",
+            'values': f"='{sheet_name}'!$B$45:$B${44 + len(chart_data)}",
             'fill': {'color': '#1E88E5'},
             'data_labels': {'value': True, 'num_format': '0.0%'}
         })
@@ -396,22 +398,23 @@ def generate_excel_report(
         bar_chart.set_y_axis({'name': translations[language]["category"], 'reverse': True})
         bar_chart.set_size({'width': 400, 'height': 150})
         worksheet.insert_chart('D45', bar_chart)
+        logger.debug("Inserted bar chart to %s at D45", sheet_name)
 
         # Contact Section (Rows 57-62)
-        logger.debug("Generating Contact Section")
+        logger.debug("Writing Contact Section to %s", sheet_name)
         worksheet.merge_range('A57:G57', translations[language]["contact"], title_format)
         contact_df = pd.DataFrame({
             translations[language]["metric"]: ["Email" if language == "English" else "Correo", "Website" if language == "English" else "Sitio Web"],
             translations[language]["value"]: [CONFIG["contact"]["email"], CONFIG["contact"]["website"]]
         })
-        contact_df.to_excel(writer, sheet_name="Informe de Auditoría" if language == "Español" else "Audit Report", 
-                           startrow=58, startcol=0, index=False)
+        contact_df.to_excel(writer, sheet_name=sheet_name, startrow=58, startcol=0, index=False)
+        logger.debug("Wrote Contact to %s at row 58", sheet_name)
         worksheet.write('A59', translations[language]["metric"], header_format)
         worksheet.write('B59', translations[language]["value"], header_format)
         for row in range(59, 59 + len(contact_df)):
             worksheet.write(row, 0, contact_df[translations[language]["metric"]][row-59], cell_format)
         worksheet.merge_range('A61:G62', translations[language]["marketing_message"], wrap_format)
 
-    logger.debug("Excel report generation completed")
+    logger.debug("Excel report generation completed with single worksheet: %s", sheet_name)
     excel_output.seek(0)
     return excel_output
