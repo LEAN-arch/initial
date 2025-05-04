@@ -3,6 +3,11 @@ import io
 import xlsxwriter
 from typing import Dict, Any
 import numpy as np
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def generate_excel_report(
     df: pd.DataFrame,
@@ -39,8 +44,11 @@ def generate_excel_report(
     Returns:
         io.BytesIO: Excel file buffer
     """
+    logger.debug("Starting Excel report generation with language: %s", language)
+
     # Validate language input
     if language not in ["English", "Español"]:
+        logger.error("Unsupported language: %s", language)
         raise ValueError(f"Unsupported language: {language}. Must be 'English' or 'Español'")
 
     # Comprehensive translation dictionary
@@ -96,23 +104,38 @@ def generate_excel_report(
     # Format date according to language
     from datetime import datetime
     report_date_formatted = datetime.strptime(REPORT_DATE, "%Y-%m-%d").strftime(TRANSLATIONS[language]["date_format"])
+    logger.debug("Formatted report date: %s", report_date_formatted)
 
     # Enhanced Data Validation
+    logger.debug("Validating input data")
     if df.empty or df_display.empty or not responses:
+        logger.error("Input data is empty or invalid")
         raise ValueError("Input data is empty or invalid")
     required_columns = [TRANSLATIONS[language]["score"], TRANSLATIONS[language]["percent"], TRANSLATIONS[language]["priority"]]
     if not all(col in df.columns for col in required_columns):
+        logger.error("Required columns missing in df: %s", required_columns)
         raise ValueError(f"Required columns missing in df: {required_columns}")
     if not df.index.is_unique:
+        logger.error("DataFrame index contains duplicates")
         raise ValueError("DataFrame index must be unique for categories")
     if not all(cat in df.index for cat in questions.keys()):
+        logger.error("Not all question categories are present in DataFrame index")
         raise ValueError("Not all question categories are present in DataFrame index")
     if not pd.api.types.is_numeric_dtype(df[TRANSLATIONS[language]["percent"]]):
+        logger.error("Column %s must contain numeric values", TRANSLATIONS[language]["percent"])
         raise ValueError(f"Column {TRANSLATIONS[language]['percent']} must contain numeric values")
     if df[TRANSLATIONS[language]["percent"]].isnull().any():
+        logger.error("Column %s contains missing values", TRANSLATIONS[language]["percent"])
         raise ValueError(f"Column {TRANSLATIONS[language]['percent']} contains missing values")
+    if not (df[TRANSLATIONS[language]["percent"]] >= 0).all() or not (df[TRANSLATIONS[language]["percent"]] <= 100).all():
+        logger.error("Column %s contains values outside 0-100 range", TRANSLATIONS[language]["percent"])
+        raise ValueError(f"Column {TRANSLATIONS[language]['percent']} must contain values between 0 and 100")
+    if len(df) != len(df_display):
+        logger.error("Mismatch in row counts between df (%d) and df_display (%d)", len(df), len(df_display))
+        raise ValueError(f"Mismatch in row counts between df ({len(df)}) and df_display ({len(df_display)})")
     for cat in responses:
         if not responses[cat] or any(score is None for score in responses[cat]):
+            logger.error("Invalid or missing responses in category %s", cat)
             raise ValueError(f"Invalid or missing responses in category {cat}")
     # Validate translation keys
     required_keys = ["report_title", "summary", "results", "actionable_charts", "contact", "category",
@@ -121,6 +144,7 @@ def generate_excel_report(
                     "suggestion", "chart_title", "marketing_message", "date_format"]
     if not all(key in TRANSLATIONS[language] for key in required_keys):
         missing = [key for key in required_keys if key not in TRANSLATIONS[language]]
+        logger.error("Missing translation keys for %s: %s", language, missing)
         raise ValueError(f"Missing translation keys for {language}: {missing}")
 
     excel_output = io.BytesIO()
@@ -172,6 +196,7 @@ def generate_excel_report(
         })
 
         # Cover Sheet
+        logger.debug("Generating Cover Sheet")
         cover_sheet = workbook.add_worksheet("Cover")
         cover_sheet.merge_range('A1:F1', TRANSLATIONS[language]["report_title"], title_format)
         cover_sheet.merge_range('A2:F2', "Auditoría del Lugar de Trabajo Ético" if language == "Español" else "Ethical Lean Workplace Audit", subtitle_format)
@@ -198,6 +223,7 @@ def generate_excel_report(
         cover_sheet.set_column('A:F', 25)
 
         # Executive Summary Sheet
+        logger.debug("Generating Executive Summary Sheet")
         critical_count = len(df[df[TRANSLATIONS[language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
         improvement_count = len(df[
             (df[TRANSLATIONS[language]["percent"]] >= SCORE_THRESHOLDS["CRITICAL"]) & 
@@ -244,6 +270,7 @@ def generate_excel_report(
         worksheet_summary.freeze_panes(5, 0)
 
         # Statistical Insights Sheet
+        logger.debug("Generating Statistical Insights Sheet")
         stats_data = {
             TRANSLATIONS[language]["category"]: df_display.index,
             TRANSLATIONS[language]["score"]: df_display[TRANSLATIONS[language]["percent"]],
@@ -280,6 +307,7 @@ def generate_excel_report(
         worksheet_stats.freeze_panes(4, 0)
 
         # Results Sheet
+        logger.debug("Generating Results Sheet")
         results_df = df_display.copy()
         results_df.to_excel(writer, sheet_name=TRANSLATIONS[language]["results"], startrow=3)
         worksheet_results = writer.sheets[TRANSLATIONS[language]["results"]]
@@ -309,12 +337,15 @@ def generate_excel_report(
         worksheet_results.freeze_panes(4, 0)
 
         # Action Plan Sheet
+        logger.debug("Generating Action Plan Sheet")
         action_plan_data = []
         for cat in questions.keys():
             display_cat = next(k for k, v in category_mapping[language].items() if v == cat)
             try:
                 score = df.loc[cat, TRANSLATIONS[language]["percent"]].item()
+                logger.debug("Retrieved score for category %s: %s", cat, score)
             except (ValueError, KeyError) as e:
+                logger.error("Failed to retrieve scalar score for category %s: %s", cat, str(e))
                 raise ValueError(f"Failed to retrieve scalar score for category {cat}: {str(e)}")
             priority = (
                 TRANSLATIONS[language]["high_priority"] if score < SCORE_THRESHOLDS["CRITICAL"] else
@@ -398,6 +429,7 @@ def generate_excel_report(
         worksheet_action.freeze_panes(4, 0)
 
         # Visualizations Sheet
+        logger.debug("Generating Visualizations Sheet")
         worksheet_viz = workbook.add_worksheet(TRANSLATIONS[language]["actionable_charts"])
         worksheet_viz.merge_range('A1:I1', TRANSLATIONS[language]["actionable_charts"], title_format)
         worksheet_viz.write('A2', f"Fecha: {report_date_formatted}" if language == "Español" else f"Date: {report_date_formatted}", subtitle_format)
@@ -405,6 +437,7 @@ def generate_excel_report(
                               cell_format=workbook.add_format({'font_color': 'blue', 'underline': 1, 'font_size': 10, 'font_name': 'Arial'}))
 
         # Stacked Bar Chart
+        logger.debug("Generating Stacked Bar Chart")
         stacked_data = df_display[[TRANSLATIONS[language]["percent"]]].reset_index()
         stacked_data["Critical Gap"] = stacked_data[TRANSLATIONS[language]["percent"]].apply(
             lambda x: max(0, SCORE_THRESHOLDS["CRITICAL"]/100 - x)
@@ -422,7 +455,7 @@ def generate_excel_report(
         worksheet_viz.write('D5', "Brecha de Mejora (50-69%)" if language == "Español" else "Improvement Gap (50-69%)", header_format)
         stacked_chart = workbook.add_chart({'type': 'bar', 'subtype': 'stacked'})
         stacked_chart.add_series({
-            'name': TRANSLATIONS[language]["score_percent"],
+            'name': TRANSL subcribe[language]["score_percent"],
             'categories': f"='{TRANSLATIONS[language]['actionable_charts']}'!$A$6:$A${5 + len(stacked_data)}",
             'values': f"='{TRANSLATIONS[language]['actionable_charts']}'!$B$6:$B${5 + len(stacked_data)}",
             'fill': {'color': '#43A047'},
@@ -458,15 +491,16 @@ def generate_excel_report(
         worksheet_viz.insert_chart('G5', stacked_chart)
 
         # Visual Summary Table
+        logger.debug("Generating Visual Summary Table")
         summary_stats = {
             "Métrica" if language == "Español" else "Metric": [
                 "Puntuación Media" if language == "Español" else "Mean Score",
                 "Varianza" if language == "Español" else "Variance",
-                " happening Críticas" if language == "Español" else "Critical Categories"
+                "Categorías Críticas" if language == "Español" else "Critical Categories"
             ],
             "Valor" if language == "Español" else "Value": [
-                f"{df_display[TRANSLATIONS[language]['percent']].mean():.1f}%",
-                f"{df_display[TRANSLATIONS[language]['percent']].var():.2f}",
+                f"{df_display[TRANSLATIONS[language]['percent']].mean().item():.1f}%",
+                f"{df_display[TRANSLATIONS[language]['percent']].var().item():.2f}",
                 critical_count
             ]
         }
@@ -479,6 +513,7 @@ def generate_excel_report(
             worksheet_viz.write(row, 4, summary_stats_df["Métrica" if language == "Español" else "Metric"][row-5], cell_format if (row-5) % 2 else alt_row_format)
 
         # Box Plot
+        logger.debug("Generating Box Plot")
         box_data = []
         for cat in questions.keys():
             display_cat = next(k for k, v in category_mapping[language].items() if v == cat)
@@ -520,6 +555,7 @@ def generate_excel_report(
         worksheet_viz.insert_chart('G21', box_chart)
 
         # Scatter Plot for Prioritization
+        logger.debug("Generating Scatter Plot")
         scatter_data = action_plan_df[["Category", "Priority Score", "Estimated Effort"]].copy()
         scatter_data["Effort Value"] = scatter_data["Estimated Effort"].map({
             "Low": 1, "Medium": 2, "High": 3, "Bajo": 1, "Medio": 2, "Alto": 3
@@ -563,6 +599,7 @@ def generate_excel_report(
         worksheet_viz.insert_chart('G37', scatter_chart)
 
         # Heatmap
+        logger.debug("Generating Heatmap")
         question_scores = []
         for cat in questions.keys():
             display_cat = next(k for k, v in category_mapping[language].items() if v == cat)
@@ -588,6 +625,7 @@ def generate_excel_report(
             })
 
         # Contact Sheet
+        logger.debug("Generating Contact Sheet")
         contact_df = pd.DataFrame({
             "Método de Contacto" if language == "Español" else "Contact Method": ["Correo" if language == "Español" else "Email", "Sitio Web" if language == "Español" else "Website"],
             "Detalles" if language == "Español" else "Details": [CONFIG["contact"]["email"], CONFIG["contact"]["website"]]
@@ -607,5 +645,6 @@ def generate_excel_report(
         worksheet_contact.write('A7', "Colabore con Nosotros" if language == "Español" else "Collaborate with Us", bold_format)
         worksheet_contact.write('A8', TRANSLATIONS[language]["marketing_message"], wrap_format)
 
+    logger.debug("Excel report generation completed")
     excel_output.seek(0)
     return excel_output
