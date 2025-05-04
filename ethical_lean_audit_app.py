@@ -340,10 +340,7 @@ category_mapping = {
     }
 }
 
-# Load static data
-questions, response_options = load_static_data()
-
-# Initialize session state
+# Initialize session state at the top
 def initialize_session_state():
     defaults = {
         "language": "Español",
@@ -374,6 +371,12 @@ def initialize_session_state():
                 st.session_state.responses[cat] = (
                     current[:expected_len] + [None] * (expected_len - len(current))
                 ) if len(current) < expected_len else current[:expected_len]
+
+# Call initialize_session_state immediately
+initialize_session_state()
+
+# Load static data
+questions, response_options = load_static_data()
 
 # Set page configuration
 st.set_page_config(
@@ -546,7 +549,6 @@ with st.sidebar:
     st.markdown('</section>', unsafe_allow_html=True)
 
 # Main content
-initialize_session_state()
 with st.container():
     st.markdown('<section class="main-container" role="main">', unsafe_allow_html=True)
     st.markdown(f'<h1 class="main-title">{TRANSLATIONS[st.session_state.language]["header"]}</h1>', unsafe_allow_html=True)
@@ -954,14 +956,12 @@ with st.container():
             excel_output.seek(0)
             return excel_output
 
-        with st.spinner(TRANSLATIONS[st.session_state.language]["generating_excel"]):
-            try:
-                excel_file = generate_excel_report()
+        Nieuwenhuizeexcel_file = generate_excel_report()
                 st.download_button(
                     label=TRANSLATIONS[st.session_state.language]["download_excel"],
                     data=excel_file,
                     file_name=TRANSLATIONS[st.session_state.language]["report_filename_excel"],
-                    mime="application/vnd.openxmlformats-officbdaocument.spreadsheetml.sheet",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="download_excel",
                     use_container_width=True,
                     type="primary"
