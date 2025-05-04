@@ -195,7 +195,7 @@ st.markdown("""
             padding: 1.5rem;
             border-radius: 12px;
             margin: 1rem 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0,  Canadian);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             transition: transform 0.3s ease;
         }
         .card:hover {
@@ -316,6 +316,8 @@ if 'show_intro' not in st.session_state:
     st.session_state.show_intro = True
 if 'language_changed' not in st.session_state:
     st.session_state.language_changed = False
+if 'show_results' not in st.session_state:
+    st.session_state.show_results = False
 
 # Category mapping for bilingual support
 category_mapping = {
@@ -425,6 +427,7 @@ with st.sidebar:
         st.session_state.responses = {cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions}
         st.session_state.prev_language = st.session_state.language
         st.session_state.show_intro = True
+        st.session_state.show_results = False
         st.session_state.language_changed = False
         st.info("Cargando contenido en el nuevo idioma..." if st.session_state.language == "Español" else "Loading content in the new language...")
         st.rerun()
@@ -436,6 +439,7 @@ with st.sidebar:
         if st.button(f"{display_cat}", key=f"nav_{i}", help=f"Ir a {display_cat} / Go to {display_cat}"):
             st.session_state.current_category = i
             st.session_state.show_intro = False
+            st.session_state.show_results = False
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -595,7 +599,7 @@ if not st.session_state.show_intro:
         audit_complete = all(all(score is not None for score in scores) for scores in st.session_state.responses.values())
 
         # Category questions
-        if not audit_complete:
+        if not st.session_state.show_results:
             category_index = min(st.session_state.current_category, len(display_categories) - 1)
             display_category = display_categories[category_index]
             category = category_mapping[st.session_state.language][display_category]
@@ -650,6 +654,7 @@ if not st.session_state.show_intro:
                         help="Volver a la categoría anterior" if st.session_state.language == "Español" else "Go to previous category"
                     ):
                         st.session_state.current_category = max(category_index - 1, 0)
+                        st.session_state.show_results = False
                         st.rerun()
                 with col2:
                     if category_index < len(display_categories) - 1:
@@ -661,6 +666,7 @@ if not st.session_state.show_intro:
                         ):
                             if all(score is not None for score in st.session_state.responses[category]):
                                 st.session_state.current_category = min(category_index + 1, len(display_categories) - 1)
+                                st.session_state.show_results = False
                                 st.rerun()
                             else:
                                 unanswered = [q for i, (q, _) in enumerate(questions[category][st.session_state.language]) if st.session_state.responses[category][i] is None]
@@ -683,10 +689,11 @@ if not st.session_state.show_intro:
                         if st.button(
                             "Ver Resultados" if st.session_state.language == "Español" else "View Results",
                             use_container_width=True,
-                            help="Ver el informe de la auditoría" if st.session_state.language == "Español" else "View audit report"
+                            help="Ver el informe de la auditoría" if st.session_state.language == "Español" else "View audit report",
+                            disabled=not audit_complete
                         ):
-                            if all(all(score is not None for score in scores) for scores in st.session_state.responses.values()):
-                                st.session_state.current_category = len(display_categories)
+                            if audit_complete:
+                                st.session_state.show_results = True
                                 st.rerun()
                             else:
                                 unanswered_questions = []
@@ -733,7 +740,7 @@ if not st.session_state.show_intro:
                 )
 
         # Generate report
-        if audit_complete:
+        if st.session_state.show_results:
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown(
                 f'<div class="subheader">{"Tu Informe de Impacto en el Lugar de Trabajo" if st.session_state.language == "Español" else "Your Workplace Impact Report"}</div>',
