@@ -456,7 +456,7 @@ if st.session_state.show_intro:
         with st.expander("", expanded=True):
             st.markdown(
                 """
-                Esta auditoría está diseñada para directivos, gerentes y profesionales de Recursos Humanos para evaluar de manera objetiva el entorno laboral. Responde preguntas en 5 categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables. Al completar la auditoría, contacta a LEAN 2.0 Institute en <a href="https://lean2institute.mystrikingly.com/" target="_blank">https://lean2institute.mystrikingly.com/</a> para consultas personalizadas.
+                Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral.. Responde preguntas en 5 categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables. Al completar la auditoría, contacta a LEAN 2.0 Institute en <a href="https://lean2institute.mystrikingly.com/" target="_blank">https://lean2institute.mystrikingly.com/</a> para consultas personalizadas.
                 
                 **Pasos**:
                 1. Responde las preguntas de cada categoría.
@@ -466,7 +466,7 @@ if st.session_state.show_intro:
                 """
                 if st.session_state.language == "Español" else
                 """
-                This audit is designed for directors, managers and HR professionals to objectively assess the workplace environment. Answer questions across 5 categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations. Upon completion, contact LEAN 2.0 Institute at <a href="https://lean2institute.mystrikingly.com/" target="_blank">https://lean2institute.mystrikingly.com/</a> for personalized consultation.
+                This assessment is designed to be completed by management and HR, to provide an objective evaluation of the work environment at your company. Answer questions across 5 categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations. Upon completion, contact LEAN 2.0 Institute at <a href="https://lean2institute.mystrikingly.com/" target="_blank">https://lean2institute.mystrikingly.com/</a> for personalized consultation.
                 
                 **Steps**:
                 1. Answer questions for each category.
