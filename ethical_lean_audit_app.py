@@ -17,7 +17,7 @@ SCORE_THRESHOLDS = {
     "GOOD": 85,
 }
 TOTAL_QUESTIONS = 25  # Updated to include 5 new questions
-PROGRESS_DISPLAY_THRESHOLD = 20
+PROGRESS_DISPLAY_THRESHOLD = 20  # Show unanswered questions when 80% complete
 CHART_COLORS = ["#D32F2F", "#FFD54F", "#43A047"]
 CHART_HEIGHT = 400
 QUESTION_TRUNCATE_LENGTH = 100
@@ -208,7 +208,7 @@ def load_static_data() -> Tuple[Dict, Dict]:
             "English": [
                 ("17. Our organization has implemented or is exploring technologies such as Industry 4.0, AI, robotics, or digital automation to enhance both operational efficiency and employee working conditions.", "frequency", "Develop a strategic plan to integrate technologies like AI and robotics, prioritizing positive impacts on working conditions."),
                 ("18. We have operational excellence methodologies (Lean, Six Sigma, TPM, etc.) that not only pursue efficiency and quality but also actively integrate employee well-being into their design and implementation.", "frequency", "Redesign operational excellence methodologies to include employee well-being metrics in every phase."),
-                ("19. Before implementing new technologies or initiatives (social, environmental, or operational), employees are consulted to ensure changes benefit their experience and working conditions.", " VITAMINfrequency", "Establish a formal employee consultation process before implementing any new technology or initiative."),
+                ("19. Before implementing new technologies or initiatives (social, environmental, or operational), employees are consulted to ensure changes benefit their experience and working conditions.", "frequency", "Establish a formal employee consultation process before implementing any new technology or initiative."),
                 ("20. Current initiatives (technological, social, and operational) have tangibly contributed to a healthier, more inclusive, and respectful workplace for all employees.", "frequency", "Regularly evaluate the impact of initiatives on the workplace environment and adjust based on employee feedback.")
             ]
         },
@@ -602,7 +602,10 @@ else:
         st.markdown(f'<h1 class="main-title">{TRANSLATIONS[st.session_state.language]["header"]}</h1>', unsafe_allow_html=True)
 
         # Progress indicators
-        completed_questions = sum(len([s for s in scores if s is not None]) for scores in st.session_state.responses.values())
+        completed_questions = sum(
+            sum(1 for score in scores if score is not None)
+            for scores in st.session_state.responses.values()
+        )
         completion_percentage = (completed_questions / TOTAL_QUESTIONS) * 100 if TOTAL_QUESTIONS > 0 else 0
         st.markdown(
             f"""
@@ -625,7 +628,10 @@ else:
         )
 
         # Check audit completion
-        audit_complete = all(all(score is not None for score in scores) for scores in st.session_state.responses.values())
+        audit_complete = all(
+            all(score is not None for score in scores)
+            for scores in st.session_state.responses.values()
+        )
 
         # Display unanswered questions
         if completion_percentage >= PROGRESS_DISPLAY_THRESHOLD:
@@ -634,13 +640,21 @@ else:
             for cat in questions.keys():
                 for i, (q, _, _) in enumerate(questions[cat][st.session_state.language]):
                     if st.session_state.responses[cat][i] is None:
-                        display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
-                        truncated_q = q[:QUESTION_TRUNCATE_LENGTH] + ("..." if len(q) > QUESTION_TRUNCATE_LENGTH else "")
-                        unanswered_questions.append(f"{display_cat}: Pregunta {question_counter} - {truncated_q}")
+                        display_cat = next(
+                            k for k, v in category_mapping[st.session_state.language].items() if v == cat
+                        )
+                        truncated_q = (
+                            q[:QUESTION_TRUNCATE_LENGTH] + ("..." if len(q) > QUESTION_TRUNCATE_LENGTH else "")
+                        )
+                        unanswered_questions.append(
+                            f"{display_cat}: Pregunta {question_counter} - {truncated_q}"
+                        )
                     question_counter += 1
             if unanswered_questions:
                 st.error(
-                    TRANSLATIONS[st.session_state.language]["unanswered_error"].format(len(unanswered_questions)),
+                    TRANSLATIONS[st.session_state.language]["unanswered_error"].format(
+                        len(unanswered_questions)
+                    ),
                     icon="⚠️"
                 )
                 st.markdown(
@@ -707,7 +721,9 @@ else:
 
                 if all(score is not None for score in st.session_state.responses[category]):
                     st.success(
-                        TRANSLATIONS[st.session_state.language]["category_completed"].format(display_category, completed_questions, TOTAL_QUESTIONS),
+                        TRANSLATIONS[st.session_state.language]["category_completed"].format(
+                            display_category, completed_questions, TOTAL_QUESTIONS
+                        ),
                         icon="🎉"
                     )
 
@@ -755,7 +771,9 @@ else:
                                 st.session_state.show_results = True
                             else:
                                 st.error(
-                                    TRANSLATIONS[st.session_state.language]["unanswered_error"].format(len(unanswered_questions)),
+                                    TRANSLATIONS[st.session_state.language]["unanswered_error"].format(
+                                        len(unanswered_questions)
+                                    ),
                                     icon="⚠️"
                                 )
                 st.markdown('</nav>', unsafe_allow_html=True)
