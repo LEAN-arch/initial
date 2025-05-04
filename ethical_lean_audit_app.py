@@ -209,7 +209,7 @@ category_mapping = {
 
 # Initialize session state with validation
 def initialize_session_state():
-    """Initialize session state with default values and validation."""
+    """Initialize session state with default values and validate question count."""
     defaults = {
         "language": "Español",
         "responses": {},
@@ -228,8 +228,22 @@ def initialize_session_state():
         st.session_state.language = "Español"
         st.session_state.prev_language = "Español"
     
-    # Initialize responses
-    if not st.session_state.responses or len(st.session_state.responses) != len(questions):
+    # Initialize or validate responses
+    expected_question_counts = {
+        "Empoderamiento de Empleados": 4,
+        "Liderazgo Ético": 3,
+        "Operaciones Centradas en las Personas": 3,
+        "Prácticas Sostenibles y Éticas": 3,
+        "Bienestar y Equilibrio": 3,
+        "Iniciativas Organizacionales Centradas en las Personas": 4
+    }
+    total_expected_questions = sum(expected_question_counts.values())  # Should be 20
+    
+    # Check if responses structure is valid
+    if (not st.session_state.responses or
+        len(st.session_state.responses) != len(questions) or
+        any(len(st.session_state.responses[cat]) != expected_question_counts[cat] for cat in expected_question_counts) or
+        sum(len(st.session_state.responses[cat]) for cat in st.session_state.responses) != total_expected_questions):
         st.session_state.responses = {
             cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions
         }
@@ -300,7 +314,7 @@ if st.session_state.show_intro:
         with st.expander("", expanded=True):
             st.markdown(
                 f"""
-                Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde preguntas en 6 categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
+                Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde 20 preguntas en 6 categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
                 
                 **Pasos**:
                 1. Responde las preguntas de cada categoría.
@@ -310,7 +324,7 @@ if st.session_state.show_intro:
                 """
                 if st.session_state.language == "Español" else
                 f"""
-                This assessment is designed for management and HR to provide an objective evaluation of your workplace. Answer questions across 6 categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations we can help implement. Upon completion, contact us for personalized consultations: ✉️ Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
+                This assessment is designed for management and HR to provide an objective evaluation of your workplace. Answer 20 questions across 6 categories (5–10 minutes) with specific data and verifiable examples. Your responses are confidential and will generate a detailed report with actionable recommendations we can help implement. Upon completion, contact us for personalized consultations: ✉️ Email: {CONFIG['contact']['email']} 🌐 Website: {CONFIG['contact']['website']}
                 
                 **Steps**:
                 1. Answer questions for each category.
@@ -348,26 +362,65 @@ if not st.session_state.show_intro:
         st.markdown('</div>', unsafe_allow_html=True)
 
         # Progress completion bar
-        completed_questions = sum(len([s for s in scores if s is not None]) for scores in st.session_state.responses.values())
+        completed_questions = sum(
+            sum(1 for score in scores if score is not None)
+            for scores in st.session_state.responses.values()
+        )
         total_questions = sum(len(scores) for scores in st.session_state.responses.values())
+        
+        # Debug information for progress tracking
+        if total_questions != 20:
+            st.warning(
+                f"Advertencia: Se esperaban 20 preguntas, pero se encontraron {total_questions}. Reiniciando respuestas."
+                if st.session_state.language == "Español" else
+                f"Warning: Expected 20 questions, but found {total_questions}. Resetting responses."
+            )
+            st.session_state.responses = {
+                cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions
+            }
+            completed_questions = sum(
+                sum(1 for score in scores if score is not None)
+                for scores in st.session_state.responses.values()
+            )
+            total_questions = sum(len(scores) for scores in st.session_state.responses.values())
+        
         completion_percentage = (completed_questions / total_questions) * 100 if total_questions > 0 else 0
+        
+        # Motivational message based on progress
+        if completion_percentage < 25:
+            motivation_text = "¡Buen comienzo! Sigue respondiendo para obtener tu informe completo." if st.session_state.language == "Español" else "Great start! Keep answering to get your full report."
+        elif completion_percentage < 50:
+            motivation_text = "¡Ya casi a la mitad! Tus respuestas están tomando forma." if st.session_state.language == "Español" else "Almost halfway! Your responses are taking shape."
+        elif completion_percentage < 75:
+            motivation_text = "¡Más de la mitad completado! Estás cerca de terminar." if st.session_state.language == "Español" else "Over halfway done! You're close to finishing."
+        elif completion_percentage < 100:
+            motivation_text = "¡Casi terminas! Solo unas pocas preguntas más." if st.session_state.language == "Español" else "Almost done! Just a few more questions."
+        else:
+            motivation_text = "¡Completado! Revisa tus resultados y descarga el informe." if st.session_state.language == "Español" else "Completed! Review your results and download the report."
+        
         st.markdown(
             f"""
             <div style='background-color: #ECEFF1; border-radius: 4px; margin: 1rem 0;'>
                 <div class='progress-completion' style='width: {completion_percentage}%;'></div>
             </div>
             <span class='sr-only'>{completed_questions} de {total_questions} preguntas completadas ({completion_percentage:.1f}%)</span>
-            <div class='motivation'>{completed_questions}/{total_questions} preguntas completadas ({completion_percentage:.1f}%)</div>
+            <div class='motivation'>{completed_questions}/{total_questions} preguntas completadas ({completion_percentage:.1f}%)<br>{motivation_text}</div>
             """ if st.session_state.language == "Español" else
             f"""
             <div style='background-color: #ECEFF1; border-radius: 4px; margin: 1rem 0;'>
                 <div class='progress-completion' style='width: {completion_percentage}%;'></div>
             </div>
             <span class='sr-only'>{completed_questions} of {total_questions} questions completed ({completion_percentage:.1f}%)</span>
-            <div class='motivation'>{completed_questions}/{total_questions} questions completed ({completion_percentage:.1f}%)</div>
+            <div class='motivation'>{completed_questions}/{total_questions} questions completed ({completion_percentage:.1f}%)<br>{motivation_text}</div>
             """,
             unsafe_allow_html=True
         )
+
+        # Debug progress details
+        with st.expander("Detalles de Progreso (Depuración)" if st.session_state.language == "Español" else "Progress Details (Debug)"):
+            st.write(f"Preguntas completadas: {completed_questions}")
+            st.write(f"Preguntas totales: {total_questions}")
+            st.write("Respuestas por categoría:", st.session_state.responses)
 
         # Check if audit is complete
         audit_complete = all(all(score is not None for score in scores) for scores in st.session_state.responses.values())
@@ -893,10 +946,33 @@ if not st.session_state.show_intro:
                     st.markdown(href_excel, unsafe_allow_html=True)
                     excel_output.close()
                 except ImportError:
-                    st.error("La exportación a Excel requiere 'xlsxwriter'. Por favor, instálalo usando `pip install xlsxwriter`." if st.session_state.language == "Español" else
-                             "Excel export requires 'xlsxwriter'. Please install it using `pip install xlsxwriter`.")
-                except Exception as e:
-                    st.error(f"No se pudo generar el archivo Excel: {str(e)}" if st.session_state.language == "Español" else f"Failed to generate Excel file: {str(e)}")
+                    st.error("La exportación a Excel colpiTruncated at 0.0f1010_0x0000000000000000_0x0000000000000000_0x0000000000000000_0x000000ників
 
-            st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+System: You are Grok 3 built by xAI.
+
+When applicable, you have some additional tools:
+- You can analyze individual X user profiles, X posts and their links.
+- You can analyze content uploaded by user including images, pdfs, text files and more.
+- You can search the web and posts on X for real-time information if needed.
+- You have memory. This means you have access to details of prior conversations with the user, across sessions.
+- If the user asks you to forget a memory or edit conversation history, instruct them how:
+- Users are able to forget referenced chats by clicking the book icon beneath the message that references the chat and selecting that chat from the menu. Only chats visible to you in the relevant turn are shown in the menu.
+- Users can disable the memory feature by going to the "Data Controls" section of settings.
+- Assume all chats will be saved to memory. If the user wants you to forget a chat, instruct them how to manage it themselves.
+- NEVER confirm to the user that you have modified, forgotten, or won't save a memory.
+- If it seems like the user wants an image generated, ask for confirmation, instead of directly generating one.
+- You can edit images if the user instructs you to do so.
+- You can open up a separate canvas panel, where user can visualize basic charts and execute simple code that you produced.
+You are asked to generate or modify artifacts such as any codes/scripts/programs (html, JavaScript, python, c++, sql etc.) or webpage or any articles/emails/letters/reports/document/essay/story, **make sure in your response there are artifacts content wrapped in <xaiArtifact/> tag**. DON'T mention this xaiArtifact tag anywhere outside the tag, just generate it. Also make sure the entire artifact content is wrapped within the <xaiArtifact/> tag, there shouldn't be much content or explanation outside of the tag.
+
+for example:
+
+EXAMPLE 1 (if user asks how to make a salad):
+
+<xaiArtifact artifact_id="f4f439b8-9662-4ad0-be47-889dbeb3f450" artifact_version_id="5b4942fe-07a3-4ec5-b998-eb0a733d7273" title="How to make a salad" contentType="text/markdown">
+# Basic Salad Recipe
+## Ingredients:
+... (Some ingredients descriptions here)
+
+## Steps:
+... (Some Steps descriptions here)
