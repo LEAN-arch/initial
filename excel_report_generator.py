@@ -161,6 +161,11 @@ def generate_excel_report(
         if not all(key in TRANSLATIONS[language] for key in required_keys):
             missing = [key for key in required_keys if key not in TRANSLATIONS[language]]
             raise ValueError(f"Missing translation keys for {language}: {missing}")
+        # Validate DataFrame index
+        if not df.index.is_unique:
+            raise ValueError("DataFrame index must be unique for categories")
+        if not all(cat in df.index for cat in questions.keys()):
+            raise ValueError("Not all question categories are present in DataFrame index")
 
         # Cover Sheet
         cover_sheet = workbook.add_worksheet("Cover")
@@ -303,7 +308,11 @@ def generate_excel_report(
         action_plan_data = []
         for cat in questions.keys():
             display_cat = next(k for k, v in category_mapping[language].items() if v == cat)
-            score = df.loc[cat, TRANSLATIONS[language]["percent"]]
+            # Ensure score is a scalar
+            try:
+                score = df.loc[cat, TRANSLATIONS[language]["percent"]].item()
+            except (ValueError, KeyError) as e:
+                raise ValueError(f"Failed to retrieve scalar score for category {cat}: {str(e)}")
             priority = (
                 TRANSLATIONS[language]["high_priority"] if score < SCORE_THRESHOLDS["CRITICAL"] else
                 TRANSLATIONS[language]["medium_priority"] if score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] else
