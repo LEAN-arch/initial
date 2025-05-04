@@ -348,64 +348,64 @@ category_mapping = {
 questions = {
     "Empoderamiento de Empleados": {
         "Español": [
-            ("1. ¿Qué porcentaje de sugerencias de empleados presentadas en los últimos 12 meses fueron implementadas con resultados documentados?", "percentage"),
-            ("2. ¿Cuántos empleados recibieron capacitación en habilidades profesionales en el último año?", "count"),
-            ("3. En los últimos 12 meses, ¿cuántos empleados lideraron proyectos o iniciativas con presupuesto asignado?", "count"),
-            ("4. ¿Con qué frecuencia se realizan foros o reuniones formales para que los empleados compartan retroalimentación con la gerencia?", "frequency")
+            ("1.¿Qué porcentaje de sugerencias de empleados presentadas en los últimos 12 meses fueron implementadas con resultados documentados?", "percentage"),
+            ("2.¿Cuántos empleados recibieron capacitación en habilidades profesionales en el último año?", "count"),
+            ("3.En los últimos 12 meses, ¿cuántos empleados lideraron proyectos o iniciativas con presupuesto asignado?", "count"),
+            ("4.¿Con qué frecuencia se realizan foros o reuniones formales para que los empleados compartan retroalimentación con la gerencia?", "frequency")
         ],
         "English": [
-            ("1. What percentage of employee suggestions submitted in the past 12 months were implemented with documented outcomes?", "percentage"),
-            ("2. How many employees received professional skills training in the past year?", "count"),
-            ("3. In the past 12 months, how many employees led projects or initiatives with allocated budgets?", "count"),
-            ("4. How frequently are formal forums or meetings held for employees to share feedback with management?", "frequency")
+            ("1.What percentage of employee suggestions submitted in the past 12 months were implemented with documented outcomes?", "percentage"),
+            ("2.How many employees received professional skills training in the past year?", "count"),
+            ("3.In the past 12 months, how many employees led projects or initiatives with allocated budgets?", "count"),
+            ("4.How frequently are formal forums or meetings held for employees to share feedback with management?", "frequency")
         ]
     },
     "Liderazgo Ético": {
         "Español": [
-            ("5. ¿Con qué frecuencia los líderes compartieron actualizaciones escritas sobre decisiones que afectan a los empleados en los últimos 12 meses?", "frequency"),
-            ("6. ¿Qué porcentaje de políticas laborales nuevas o revisadas en el último año incluyó consulta formal con empleados?", "percentage"),
-            ("7. ¿Cuántos casos de comportamiento ético destacado fueron reconocidos formalmente en los últimos 12 meses?", "count")
+            ("5.¿Con qué frecuencia los líderes compartieron actualizaciones escritas sobre decisiones que afectan a los empleados en los últimos 12 meses?", "frequency"),
+            ("6.¿Qué porcentaje de políticas laborales nuevas o revisadas en el último año incluyó consulta formal con empleados?", "percentage"),
+            ("7.¿Cuántos casos de comportamiento ético destacado fueron reconocidos formalmente en los últimos 12 meses?", "count")
         ],
         "English": [
-            ("5. How frequently did leaders share written updates on decisions affecting employees in the past 12 months?", "frequency"),
-            ("6. What percentage of new or revised workplace policies in the past year included formal employee consultation?", "percentage"),
-            ("7. How many instances of exemplary ethical behavior were formally recognized in the past 12 months?", "count")
+            ("5.How frequently did leaders share written updates on decisions affecting employees in the past 12 months?", "frequency"),
+            ("6.What percentage of new or revised workplace policies in the past year included formal employee consultation?", "percentage"),
+            ("7.How many instances of exemplary ethical behavior were formally recognized in the past 12 months?", "count")
         ]
     },
     "Operaciones Centradas en las Personas": {
         "Español": [
-            ("8. ¿Qué porcentaje de procesos lean revisados en los últimos 12 meses incorporó retroalimentación de empleados para reducir tareas redundantes?", "percentage"),
-            ("9. ¿Con qué frecuencia se auditan las prácticas operativas para evaluar su impacto en el bienestar de los empleados?", "frequency"),
-            ("10. ¿Cuántos empleados recibieron capacitación en herramientas lean con énfasis en colaboración en el último año?", "count")
+            ("8.¿Qué porcentaje de procesos lean revisados en los últimos 12 meses incorporó retroalimentación de empleados para reducir tareas redundantes?", "percentage"),
+            ("9.¿Con qué frecuencia se auditan las prácticas operativas para evaluar su impacto en el bienestar de los empleados?", "frequency"),
+            ("10.¿Cuántos empleados recibieron capacitación en herramientas lean con énfasis en colaboración en el último año?", "count")
         ],
         "English": [
-            ("8. What percentage of lean processes revised in the past 12 months incorporated employee feedback to reduce redundant tasks?", "percentage"),
-            ("9. How frequently are operational practices audited to assess their impact on employee well-being?", "frequency"),
-            ("10. How many employees received training on lean tools emphasizing collaboration in the past year?", "count")
+            ("8.What percentage of lean processes revised in the past 12 months incorporated employee feedback to reduce redundant tasks?", "percentage"),
+            ("9.How frequently are operational practices audited to assess their impact on employee well-being?", "frequency"),
+            ("10.How many employees received training on lean tools emphasizing collaboration in the past year?", "count")
         ]
     },
     "Prácticas Sostenibles y Éticas": {
         "Español": [
-            ("11. ¿Qué porcentaje de iniciativas lean implementadas en los últimos 12 meses redujo el consumo de recursos?", "percentage"),
-            ("12. ¿Qué porcentaje de proveedores principales fueron auditados en el último año para verificar estándares laborales y ambientales?", "percentage"),
-            ("13. ¿Cuántos empleados participaron en proyectos de sostenibilidad con impacto comunitario o laboral en los últimos 12 meses?", "count")
+            ("11.¿Qué porcentaje de iniciativas lean implementadas en los últimos 12 meses redujo el consumo de recursos?", "percentage"),
+            ("12.¿Qué porcentaje de proveedores principales fueron auditados en el último año para verificar estándares laborales y ambientales?", "percentage"),
+            ("13.¿Cuántos empleados participaron en proyectos de sostenibilidad con impacto comunitario o laboral en los últimos 12 meses?", "count")
         ],
         "English": [
-            ("11. What percentage of lean initiatives implemented in the past 12 months reduced resource consumption?", "percentage"),
-            ("12. What percentage of primary suppliers were audited in the past year to verify labor and environmental standards?", "percentage"),
-            ("13. How many employees participated in sustainability projects with community or workplace impact in the past 12 months?", "count")
+            ("11.What percentage of lean initiatives implemented in the past 12 months reduced resource consumption?", "percentage"),
+            ("12.What percentage of primary suppliers were audited in the past year to verify labor and environmental standards?", "percentage"),
+            ("13.How many employees participated in sustainability projects with community or workplace impact in the past 12 months?", "count")
         ]
     },
     "Bienestar y Equilibrio": {
         "Español": [
-            ("14. ¿Qué porcentaje de empleados accedió a recursos de bienestar en los últimos 12 meses?", "percentage"),
-            ("15. ¿Con qué frecuencia se realizan encuestas o revisiones para evaluar el agotamiento o la fatiga de los empleados?", "frequency"),
-            ("16. ¿Cuántos casos de desafíos personales o profesionales reportados por empleados fueron abordados con planes de acción documentados en el último año?", "count")
+            ("14.¿Qué porcentaje de empleados accedió a recursos de bienestar en los últimos 12 meses?", "percentage"),
+            ("15.¿Con qué frecuencia se realizan encuestas o revisiones para evaluar el agotamiento o la fatiga de los empleados?", "frequency"),
+            ("16.¿Cuántos casos de desafíos personales o profesionales reportados por empleados fueron abordados con planes de acción documentados en el último año?", "count")
         ],
         "English": [
-            ("14. What percentage of employees accessed well-being resources in the past 12 months?", "percentage"),
-            ("15. How frequently are surveys or check-ins conducted to assess employee burnout or fatigue?", "frequency"),
-            ("16. How many reported employee personal or professional challenges were addressed with documented action plans in the past year?", "count")
+            ("14.What percentage of employees accessed well-being resources in the past 12 months?", "percentage"),
+            ("15.How frequently are surveys or check-ins conducted to assess employee burnout or fatigue?", "frequency"),
+            ("16.How many reported employee personal or professional challenges were addressed with documented action plans in the past year?", "count")
         ]
     }
 }
@@ -519,8 +519,8 @@ if not st.session_state.show_intro:
                     ],
                     "scores": [0, 25, 50, 75, 100]
                 },
-                "tooltip": "Selecciona la descripción que mejor refleje la proporción de casos aplicados." if st.session_state.language == "Español" else
-                          "Select the description that best reflects the proportion of cases applied."
+                "tooltip": "Selecciona la descripción que mejor refleje la proporción de casos aplicados. Haz doble clic en cada respuesta para registrarla." if st.session_state.language == "Español" else
+                          "Select the description that best reflects the proportion of cases applied. Please double-click on each response to register it."
             },
             "frequency": {
                 "Español": {
@@ -543,8 +543,8 @@ if not st.session_state.show_intro:
                     ],
                     "scores": [0, 25, 50, 75, 100]
                 },
-                "tooltip": "Selecciona la descripción que mejor refleje la frecuencia de la práctica." if st.session_state.language == "Español" else
-                          "Select the description that best reflects the frequency of the practice."
+                "tooltip": "Selecciona la descripción que mejor refleje la frecuencia de la práctica. Haz doble clic en cada respuesta para registrarla." if st.session_state.language == "Español" else
+                          "Select the description that best reflects the frequency of the practice. Please double-click on each response to register it."
             },
             "count": {
                 "Español": {
@@ -567,8 +567,8 @@ if not st.session_state.show_intro:
                     ],
                     "scores": [0, 25, 50, 75, 100]
                 },
-                "tooltip": "Selecciona la descripción que mejor refleje la cantidad de empleados o casos afectados." if st.session_state.language == "Español" else
-                          "Select the description that best reflects the number of employees or cases affected."
+                "tooltip": "Selecciona la descripción que mejor refleje la cantidad de empleados o casos afectados. Haz doble clic en cada respuesta para registrarla." if st.session_state.language == "Español" else
+                          "Select the description that best reflects the number of employees or cases affected. Please double-click on each response to register it."
             }
         }
 
@@ -605,40 +605,6 @@ if not st.session_state.show_intro:
         # Check if audit is complete
         audit_complete = all(all(score is not None for score in scores) for scores in st.session_state.responses.values())
 
-        # Display unanswered questions
-        unanswered_questions = []
-        for cat in questions.keys():
-            for i, (q, _) in enumerate(questions[cat][st.session_state.language]):
-                if st.session_state.responses[cat][i] is None:
-                    display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
-                    unanswered_questions.append(f"{display_cat}: {q}")
-        if unanswered_questions and completion_percentage >= 20:
-            st.error(
-                f"Preguntas sin responder ({len(unanswered_questions)}). Por favor, completa todas las preguntas antes de enviar la auditoría." if st.session_state.language == "Español" else
-                f"Unanswered questions ({len(unanswered_questions)}). Please complete all questions before submitting the audit."
-            )
-            st.markdown(
-                f"""
-                <div class='insights'>
-                    <strong>Preguntas faltantes:</strong><br>
-                    {"<br>".join([f"- {q}" for q in unanswered_questions])}
-                </div>
-                """ if st.session_state.language == "Español" else
-                f"""
-                <div class='insights'>
-                    <strong>Missing Questions:</strong><br>
-                    {"<br>".join([f"- {q}" for q in unanswered_questions])}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        else:
-            if not unanswered_questions:
-                st.success(
-                    "¡Todas las preguntas han sido respondidas! Puedes proceder a ver los resultados." if st.session_state.language == "Español" else
-                    "All questions have been answered! You can proceed to view the results."
-                )
-
         # Category questions
         if not st.session_state.show_results:
             category_index = min(st.session_state.current_category, len(display_categories) - 1)
@@ -652,8 +618,8 @@ if not st.session_state.show_intro:
                 # Response guide
                 with st.expander("Guía de Respuestas" if st.session_state.language == "Español" else "Response Guide", expanded=True):
                     st.markdown(
-                        "Selecciona la descripción que mejor represente la situación para cada pregunta. Las opciones describen el grado, frecuencia o cantidad aplicable." if st.session_state.language == "Español" else
-                        "Select the description that best represents the situation for each question. The options describe the degree, frequency, or quantity applicable."
+                        "Selecciona la descripción que mejor represente la situación para cada pregunta. Haz doble clic en cada respuesta para registrarla. Las opciones describen el grado, frecuencia o cantidad aplicable." if st.session_state.language == "Español" else
+                        "Select the description that best represents the situation for each question. Please double-click on each response to register it. The options describe the degree, frequency, or quantity applicable."
                     )
 
                 for idx, (q, q_type) in enumerate(questions[category][st.session_state.language]):
@@ -711,8 +677,8 @@ if not st.session_state.show_intro:
                             else:
                                 unanswered = [q for i, (q, _) in enumerate(questions[category][st.session_state.language]) if st.session_state.responses[category][i] is None]
                                 st.error(
-                                    f"Por favor, responde las siguientes preguntas: {', '.join(unanswered)}" if st.session_state.language == "Español" else
-                                    f"Please answer the following questions: {', '.join(unanswered)}"
+                                    f"Por favor, responde las siguientes preguntas: {', '.join([q[:50] + '...' if len(q) > 50 else q for q in unanswered])}" if st.session_state.language == "Español" else
+                                    f"Please answer the following questions: {', '.join([q[:50] + '...' if len(q) > 50 else q for q in unanswered])}"
                                 )
                                 first_unanswered_idx = next((i for i, score in enumerate(st.session_state.responses[category]) if score is None), None)
                                 if first_unanswered_idx is not None:
@@ -736,9 +702,15 @@ if not st.session_state.show_intro:
                                 st.session_state.show_results = True
                                 st.rerun()
                             else:
+                                unanswered_questions = []
+                                for cat in questions.keys():
+                                    for i, (q, _) in enumerate(questions[cat][st.session_state.language]):
+                                        if st.session_state.responses[cat][i] is None:
+                                            display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
+                                            unanswered_questions.append(f"{display_cat}: {q[:50] + '...' if len(q) > 50 else q}")
                                 st.error(
-                                    f"Por favor, responde todas las preguntas en todas las categorías. Revisa las preguntas faltantes arriba." if st.session_state.language == "Español" else
-                                    f"Please answer all questions in all categories. Review the missing questions above."
+                                    f"Por favor, responde todas las preguntas en todas las categorías. Preguntas faltantes: {', '.join(unanswered_questions)}" if st.session_state.language == "Español" else
+                                    f"Please answer all questions in all categories. Missing questions: {', '.join(unanswered_questions)}"
                                 )
                 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1067,8 +1039,8 @@ if not st.session_state.show_intro:
                         worksheet_summary.write(row, 0, "Colabora con LEAN 2.0 Institute" if st.session_state.language == "Español" else "Partner with LEAN 2.0 Institute", bold)
                         row += 1
                         invitation = (
-                            "¡Colabora con LEAN 2.0 Institute para implementar mejoras en tu lugar de trabajo! Contáctanos para una consulta estratégica." if st.session_state.language == "Español" else
-                            "Partner with LEAN 2.0 Institute to implement workplace improvements! Contact us for a strategic consultation."
+                            "¡Colaboremos para implementar mejoras en tu lugar de trabajo! Contáctanos para una consulta estratégica." if st.session_state.language == "Español" else
+                            "Let's partner withto implement workplace improvements! Contact us for a strategic consultation."
                         )
                         worksheet_summary.write(row, 0, invitation, wrap_format)
                         row += 1
@@ -1122,7 +1094,7 @@ if not st.session_state.show_intro:
                             ]
                         )
                         findings_df.to_excel(writer, sheet_name='Hallazgos' if st.session_state.language == "Español" else 'Findings', index=False)
-                        worksheet_findings = writer.sheets['Hall昏azgos' if st.session_state.language == "Español" else 'Findings']
+                        worksheet_findings = writer.sheets['Hallazgos' if st.session_state.language == "Español" else 'Findings']
                         worksheet_findings.set_column('A:A', 30)
                         worksheet_findings.set_column('B:B', 15)
                         worksheet_findings.set_column('C:C', 15)
