@@ -330,12 +330,83 @@ with st.sidebar:
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
+# Audit questions
+questions = {
+    "Empoderamiento de Empleados": {
+        "Español": [
+            ("¿Qué porcentaje de sugerencias de empleados presentadas en los últimos 12 meses fueron implementadas con resultados documentados?", "percentage"),
+            ("¿Cuántos empleados recibieron capacitación en habilidades profesionales en el último año?", "count"),
+            ("En los últimos 12 meses, ¿cuántos empleados lideraron proyectos o iniciativas con presupuesto asignado?", "count"),
+            ("¿Con qué frecuencia se realizan foros o reuniones formales para que los empleados compartan retroalimentación con la gerencia?", "frequency")
+        ],
+        "English": [
+            ("What percentage of employee suggestions submitted in the past 12 months were implemented with documented outcomes?", "percentage"),
+            ("How many employees received professional skills training in the past year?", "count"),
+            ("In the past 12 months, how many employees led projects or initiatives with allocated budgets?", "count"),
+            ("How frequently are formal forums or meetings held for employees to share feedback with management?", "frequency")
+        ]
+    },
+    "Liderazgo Ético": {
+        "Español": [
+            ("¿Con qué frecuencia los líderes compartieron actualizaciones escritas sobre decisiones que afectan a los empleados en los últimos 12 meses?", "frequency"),
+            ("¿Qué porcentaje de políticas laborales nuevas o revisadas en el último año incluyó consulta formal con empleados?", "percentage"),
+            ("¿Cuántos casos de comportamiento ético destacado fueron reconocidos formalmente en los últimos 12 meses?", "count")
+        ],
+        "English": [
+            ("How frequently did leaders share written updates on decisions affecting employees in the past 12 months?", "frequency"),
+            ("What percentage of new or revised workplace policies in the past year included formal employee consultation?", "percentage"),
+            ("How many instances of exemplary ethical behavior were formally recognized in the past 12 months?", "count")
+        ]
+    },
+    "Operaciones Centradas en las Personas": {
+        "Español": [
+            ("¿Qué porcentaje de procesos lean revisados en los últimos 12 meses incorporó retroalimentación de empleados para reducir tareas redundantes?", "percentage"),
+            ("¿Con qué frecuencia se auditan las prácticas operativas para evaluar su impacto en el bienestar de los empleados?", "frequency"),
+            ("¿Cuántos empleados recibieron capacitación en herramientas lean con énfasis en colaboración en el último año?", "count")
+        ],
+        "English": [
+            ("What percentage of lean processes revised in the past 12 months incorporated employee feedback to reduce redundant tasks?", "percentage"),
+            ("How frequently are operational practices audited to assess their impact on employee well-being?", "frequency"),
+            ("How many employees received training on lean tools emphasizing collaboration in the past year?", "count")
+        ]
+    },
+    "Prácticas Sostenibles y Éticas": {
+        "Español": [
+            ("¿Qué porcentaje de iniciativas lean implementadas en los últimos 12 meses redujo el consumo de recursos?", "percentage"),
+            ("¿Qué porcentaje de proveedores principales fueron auditados en el último año para verificar estándares laborales y ambientales?", "percentage"),
+            ("¿Cuántos empleados participaron en proyectos de sostenibilidad con impacto comunitario o laboral en los últimos 12 meses?", "count")
+        ],
+        "English": [
+            ("What percentage of lean initiatives implemented in the past 12 months reduced resource consumption?", "percentage"),
+            ("What percentage of primary suppliers were audited in the past year to verify labor and environmental standards?", "percentage"),
+            ("How many employees participated in sustainability projects with community or workplace impact in the past 12 months?", "count")
+        ]
+    },
+    "Bienestar y Equilibrio": {
+        "Español": [
+            ("¿Qué porcentaje de empleados accedió a recursos de bienestar en los últimos 12 meses?", "percentage"),
+            ("¿Con qué frecuencia se realizan encuestas o revisiones para evaluar el agotamiento o la fatiga de los empleados?", "frequency"),
+            ("¿Cuántos casos de desafíos personales o profesionales reportados por empleados fueron abordados con planes de acción documentados en el último año?", "count")
+        ],
+        "English": [
+            ("What percentage of employees accessed well-being resources in the past 12 months?", "percentage"),
+            ("How frequently are surveys or check-ins conducted to assess employee burnout or fatigue?", "frequency"),
+            ("How many reported employee personal or professional challenges were addressed with documented action plans in the past year?", "count")
+        ]
+    }
+}
+
 # Reset session state on language change
 if st.session_state.language != st.session_state.prev_language:
     st.session_state.current_category = 0
-    st.session_state.responses = {}
+    st.session_state.responses = {cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions}
     st.session_state.prev_language = st.session_state.language
     st.session_state.show_intro = True
+    st.rerun()
+
+# Initialize responses if empty or mismatched
+if not st.session_state.responses or len(st.session_state.responses) != len(questions):
+    st.session_state.responses = {cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions}
 
 # Introductory modal
 if st.session_state.show_intro:
@@ -379,91 +450,27 @@ if not st.session_state.show_intro:
             unsafe_allow_html=True
         )
 
-        # Likert scale labels
-        labels = {
+        # Response options
+        response_options = {
             "percentage": {
                 "Español": ["0%", "25%", "50%", "75%", "100%"],
-                "English": ["0%", "25%", "50%", "75%", "100%"]
+                "English": ["0%", "25%", "50%", "75%", "100%"],
+                "tooltip": "Selecciona el porcentaje que mejor refleje la situación. Por ejemplo, '100%' significa que todos los casos aplican, '0%' significa que ninguno aplica." if st.session_state.language == "Español" else
+                          "Select the percentage that best reflects the situation. For example, '100%' means all cases apply, '0%' means none apply."
             },
             "frequency": {
-                "Español": ["Nunca", "Anualmente", "Semestralmente", "Trimestralmente", "Mensualmente"],
-                "English": ["Never", "Annually", "Semi-Annually", "Quarterly", "Monthly"]
+                "Español": ["Nunca", "Rara vez", "A veces", "A menudo", "Siempre"],
+                "English": ["Never", "Rarely", "Sometimes", "Often", "Always"],
+                "tooltip": "Indica la frecuencia de la práctica. 'Siempre' significa que ocurre en cada oportunidad, 'Nunca' significa que no ocurre nunca." if st.session_state.language == "Español" else
+                          "Indicate the frequency of the practice. 'Always' means it happens every time, 'Never' means it never happens."
             },
             "count": {
-                "Español": ["Ninguno", "1–10% de la fuerza laboral", "11–25%", "26–50%", ">50%"],
-                "English": ["None", "1–10% of workforce", "11–25%", "26–50%", ">50%"]
+                "Español": ["Ninguno", "Pocos", "Algunos", "Muchos", "La mayoría"],
+                "English": ["None", "Few", "Some", "Many", "Most"],
+                "tooltip": "Estima la cantidad de empleados o casos afectados. 'La mayoría' significa más del 75%, 'Ninguno' significa 0%." if st.session_state.language == "Español" else
+                          "Estimate the number of employees or cases affected. 'Most' means over 75%, 'None' means 0%."
             }
         }
-
-        # Audit questions
-        questions = {
-            "Empoderamiento de Empleados": {
-                "Español": [
-                    ("¿Qué porcentaje de sugerencias de empleados presentadas en los últimos 12 meses fueron implementadas con resultados documentados?", "percentage"),
-                    ("¿Cuántas horas de capacitación en habilidades profesionales se ofrecieron por empleado en el último año?", "count"),
-                    ("En los últimos 12 meses, ¿cuántos empleados lideraron proyectos o iniciativas con presupuesto asignado?", "count"),
-                    ("¿Con qué frecuencia (en meses) se realizan foros o reuniones formales para que los empleados compartan retroalimentación con la gerencia?", "frequency")
-                ],
-                "English": [
-                    ("What percentage of employee suggestions submitted in the past 12 months were implemented with documented outcomes?", "percentage"),
-                    ("How many hours of professional skills training were provided per employee in the past year?", "count"),
-                    ("In the past 12 months, how many employees led projects or initiatives with allocated budgets?", "count"),
-                    ("How frequently (in months) are formal forums or meetings held for employees to share feedback with management?", "frequency")
-                ]
-            },
-            "Liderazgo Ético": {
-                "Español": [
-                    ("¿En cuántas ocasiones en los últimos 12 meses los líderes compartieron actualizaciones escritas sobre decisiones que afectan a los empleados?", "count"),
-                    ("¿Qué porcentaje de políticas laborales nuevas o revisadas en el último año incluyó consulta formal con empleados?", "percentage"),
-                    ("¿Cuántos casos de comportamiento ético destacado fueron reconocidos formalmente (por ejemplo, con premios o bonos) en los últimos 12 meses?", "count")
-                ],
-                "English": [
-                    ("How many times in the past 12 months have leaders shared written updates on decisions affecting employees?", "count"),
-                    ("What percentage of new or revised workplace policies in the past year included formal employee consultation?", "percentage"),
-                    ("How many instances of exemplary ethical behavior were formally recognized (e.g., with awards or bonuses) in the past 12 months?", "count")
-                ]
-            },
-            "Operaciones Centradas en las Personas": {
-                "Español": [
-                    ("¿Qué porcentaje de procesos lean revisados en los últimos 12 meses incorporó retroalimentación de empleados para reducir tareas redundantes?", "percentage"),
-                    ("¿Con qué frecuencia (en meses) se auditan las prácticas operativas para evaluar su impacto en el bienestar de los empleados?", "frequency"),
-                    ("¿Cuántos empleados recibieron capacitación en herramientas lean con énfasis en colaboración en el último año?", "count")
-                ],
-                "English": [
-                    ("What percentage of lean processes revised in the past 12 months incorporated employee feedback to reduce redundant tasks?", "percentage"),
-                    ("How frequently (in months) are operational practices audited to assess their impact on employee well-being?", "frequency"),
-                    ("How many employees received training on lean tools emphasizing collaboration in the past year?", "count")
-                ]
-            },
-            "Prácticas Sostenibles y Éticas": {
-                "Español": [
-                    ("¿Qué porcentaje de iniciativas lean implementadas en los últimos 12 meses redujo el consumo de recursos (por ejemplo, energía, materiales)?", "percentage"),
-                    ("¿Qué porcentaje de proveedores principales fueron auditados en el último año para verificar estándares laborales y ambientales?", "percentage"),
-                    ("¿Cuántos empleados participaron en proyectos de sostenibilidad con impacto comunitario o laboral en los últimos 12 meses?", "count")
-                ],
-                "English": [
-                    ("What percentage of lean initiatives implemented in the past 12 months reduced resource consumption (e.g., energy, materials)?", "percentage"),
-                    ("What percentage of primary suppliers were audited in the past year to verify labor and environmental standards?", "percentage"),
-                    ("How many employees participated in sustainability projects with community or workplace impact in the past 12 months?", "count")
-                ]
-            },
-            "Bienestar y Equilibrio": {
-                "Español": [
-                    ("¿Qué porcentaje de empleados accedió a recursos de bienestar (por ejemplo, asesoramiento, horarios flexibles) en los últimos 12 meses?", "percentage"),
-                    ("¿Con qué frecuencia (en meses) se realizan encuestas o revisiones para evaluar el agotamiento o la fatiga de los empleados?", "frequency"),
-                    ("¿Cuántos casos de desafíos personales o profesionales reportados por empleados fueron abordados con planes de acción documentados en el último año?", "count")
-                ],
-                "English": [
-                    ("What percentage of employees accessed well-being resources (e.g., counseling, flexible schedules) in the past 12 months?", "percentage"),
-                    ("How frequently (in months) are surveys or check-ins conducted to assess employee burnout or fatigue?", "frequency"),
-                    ("How many reported employee personal or professional challenges were addressed with documented action plans in the past year?", "count")
-                ]
-            }
-        }
-
-        # Initialize responses
-        if not st.session_state.responses or len(st.session_state.responses) != len(questions):
-            st.session_state.responses = {cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions}
 
         # Progress bar
         st.markdown('<div class="progress-bar">', unsafe_allow_html=True)
@@ -513,13 +520,7 @@ if not st.session_state.show_intro:
                             f"""
                             <div class="tooltip">
                                 <strong>{q}</strong> {'<span class="required">*</span>' if is_unanswered else ''}
-                                <span class="tooltiptext">Proporciona datos verificables para una evaluación precisa.</span>
-                            </div>
-                            """ if st.session_state.language == "Español" else
-                            f"""
-                            <div class="tooltip">
-                                <strong>{q}</strong> {'<span class="required">*</span>' if is_unanswered else ''}
-                                <span class="tooltiptext">Provide verifiable data for an accurate assessment.</span>
+                                <span class="tooltiptext">{response_options[q_type]['tooltip']}</span>
                             </div>
                             """,
                             unsafe_allow_html=True
@@ -528,11 +529,10 @@ if not st.session_state.show_intro:
                         score = st.radio(
                             "",
                             options,
-                            format_func=lambda x: f"{x}% - {labels[q_type][st.session_state.language][options.index(x)]}",
+                            format_func=lambda x: response_options[q_type][st.session_state.language][options.index(x)],
                             key=f"{category}_{idx}",
                             horizontal=True,
-                            help="Selecciona una respuesta basada en datos verificables." if st.session_state.language == "Español" else
-                                 "Select a response based on verifiable data."
+                            help=response_options[q_type]['tooltip']
                         )
                         st.session_state.responses[category][idx] = score
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -758,7 +758,7 @@ if not st.session_state.show_intro:
                 recommendations = {
                     "Empoderamiento de Empleados": {
                         0: "Establece un sistema formal para rastrear e implementar sugerencias de empleados con métricas claras.",
-                        1: "Aumenta las horas de capacitación profesional, asegurando acceso equitativo para todos los empleados.",
+                        1: "Aumenta las oportunidades de capacitación profesional para todos los empleados.",
                         2: "Asigna presupuestos a más iniciativas lideradas por empleados para fomentar la innovación.",
                         3: "Programa foros mensuales para retroalimentación directa entre empleados y gerencia."
                     },
@@ -785,7 +785,7 @@ if not st.session_state.show_intro:
                 } if st.session_state.language == "Español" else {
                     "Empowering Employees": {
                         0: "Establish a formal system to track and implement employee suggestions with clear metrics.",
-                        1: "Increase professional training hours, ensuring equitable access for all employees.",
+                        1: "Increase professional training opportunities for all employees.",
                         2: "Allocate budgets to more employee-led initiatives to foster innovation.",
                         3: "Schedule monthly forums for direct employee-management feedback."
                     },
