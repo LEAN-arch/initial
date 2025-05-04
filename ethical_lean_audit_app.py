@@ -16,7 +16,7 @@ SCORE_THRESHOLDS = {
     "NEEDS_IMPROVEMENT": 70,
     "GOOD": 85,
 }
-TOTAL_QUESTIONS = 20
+TOTAL_QUESTIONS = 25  # Updated to include 5 new questions
 PROGRESS_DISPLAY_THRESHOLD = 20
 CHART_COLORS = ["#D32F2F", "#FFD54F", "#43A047"]
 CHART_HEIGHT = 400
@@ -190,7 +190,7 @@ def load_static_data() -> Tuple[Dict, Dict]:
             "Español": [
                 ("14. ¿Qué porcentaje de empleados accedió a recursos de bienestar en los últimos 12 meses?", "percentage", "Amplía el acceso a recursos de bienestar, como asesoramiento y horarios flexibles."),
                 ("15. ¿Con qué frecuencia se realizan encuestas o revisiones para evaluar el agotamiento o la fatiga de los empleados?", "frequency", "Implementa encuestas mensuales para monitorear el agotamiento y actuar rápidamente."),
-                ("16. ¿Cuántos casos de desafíos personales o profesionales reportados por empleados fueron abordados con planes de acción documentados en el último año?", "count", "Establece procesos formales paraliteralmente para abordar desafíos reportados por empleados con planes de acción documentados.")
+                ("16. ¿Cuántos casos de desafíos personales o profesionales reportados por empleados fueron abordados con planes de acción documentados en el último año?", "count", "Establece procesos formales para abordar desafíos reportados por empleados con planes de acción documentados.")
             ],
             "English": [
                 ("14. What percentage of employees accessed well-being resources in the past 12 months?", "percentage", "Expand access to well-being resources, such as counseling and flexible schedules."),
@@ -208,8 +208,24 @@ def load_static_data() -> Tuple[Dict, Dict]:
             "English": [
                 ("17. Our organization has implemented or is exploring technologies such as Industry 4.0, AI, robotics, or digital automation to enhance both operational efficiency and employee working conditions.", "frequency", "Develop a strategic plan to integrate technologies like AI and robotics, prioritizing positive impacts on working conditions."),
                 ("18. We have operational excellence methodologies (Lean, Six Sigma, TPM, etc.) that not only pursue efficiency and quality but also actively integrate employee well-being into their design and implementation.", "frequency", "Redesign operational excellence methodologies to include employee well-being metrics in every phase."),
-                ("19. Before implementing new technologies or initiatives (social, environmental, or operational), employees are consulted to ensure changes benefit their experience and working conditions.", "frequency", "Establish a formal employee consultation process before implementing any new technology or initiative."),
+                ("19. Before implementing new technologies or initiatives (social, environmental, or operational), employees are consulted to ensure changes benefit their experience and working conditions.", " VITAMINfrequency", "Establish a formal employee consultation process before implementing any new technology or initiative."),
                 ("20. Current initiatives (technological, social, and operational) have tangibly contributed to a healthier, more inclusive, and respectful workplace for all employees.", "frequency", "Regularly evaluate the impact of initiatives on the workplace environment and adjust based on employee feedback.")
+            ]
+        },
+        "Impacto Humano de Procesos Lean": {
+            "Español": [
+                ("21. ¿Qué porcentaje de sugerencias de mejora de empleados fue implementado con impacto positivo en la carga mental o emocional del trabajo?", "percentage", "Implementa un sistema para priorizar y rastrear sugerencias que reduzcan la carga mental o emocional."),
+                ("22. ¿Con qué frecuencia la alta dirección comunica cómo las decisiones lean impactan en el bienestar, seguridad y desarrollo del personal?", "frequency", "Establece comunicaciones regulares de la alta dirección sobre el impacto de decisiones lean en el personal."),
+                ("23. ¿Con qué frecuencia se evalúan los efectos de los cambios lean sobre la fatiga, carga cognitiva o sentido de propósito de los empleados?", "frequency", "Realiza evaluaciones trimestrales del impacto de cambios lean en fatiga, carga cognitiva y propósito."),
+                ("24. ¿Qué porcentaje de procesos rediseñados eliminó tareas percibidas como sin sentido, humillantes o redundantes por los trabajadores?", "percentage", "Incluye retroalimentación de empleados en el rediseño de procesos para eliminar tareas sin valor."),
+                ("25. ¿Qué porcentaje de proyectos lean en los últimos 12 meses incluyó objetivos explícitos de equidad, inclusión o sostenibilidad humana?", "percentage", "Define objetivos de equidad e inclusión en todos los proyectos lean con métricas claras.")
+            ],
+            "English": [
+                ("21. What percentage of employee improvement suggestions were implemented with a positive impact on mental or emotional workload?", "percentage", "Implement a system to prioritize and track suggestions that reduce mental or emotional workload."),
+                ("22. How frequently does senior management communicate how lean decisions impact employee well-being, safety, and development?", "frequency", "Establish regular communications from senior management on the impact of lean decisions on employees."),
+                ("23. How frequently are the effects of lean changes evaluated on employee fatigue, cognitive load, or sense of purpose?", "frequency", "Conduct quarterly evaluations of lean changes’ impact on fatigue, cognitive load, and purpose."),
+                ("24. What percentage of redesigned processes eliminated tasks perceived as meaningless, humiliating, or redundant by workers?", "percentage", "Include employee feedback in process redesigns to eliminate valueless tasks."),
+                ("25. What percentage of lean projects in the past 12 months included explicit goals for equity, inclusion, or human sustainability?", "percentage", "Define equity and inclusion goals in all lean projects with clear metrics.")
             ]
         }
     }
@@ -315,7 +331,8 @@ category_mapping = {
         "Operaciones Centradas en las Personas": "Operaciones Centradas en las Personas",
         "Prácticas Sostenibles y Éticas": "Prácticas Sostenibles y Éticas",
         "Bienestar y Equilibrio": "Bienestar y Equilibrio",
-        "Iniciativas Organizacionales Centradas en las Personas": "Iniciativas Organizacionales Centradas en las Personas"
+        "Iniciativas Organizacionales Centradas en las Personas": "Iniciativas Organizacionales Centradas en las Personas",
+        "Impacto Humano de Procesos Lean": "Impacto Humano de Procesos Lean"
     },
     "English": {
         "Employee Empowerment": "Empoderamiento de Empleados",
@@ -323,7 +340,8 @@ category_mapping = {
         "Human-Centered Operations": "Operaciones Centradas en las Personas",
         "Sustainable and Ethical Practices": "Prácticas Sostenibles y Éticas",
         "Well-Being and Balance": "Bienestar y Equilibrio",
-        "Human-Centered Organizational Initiatives": "Iniciativas Organizacionales Centradas en las Personas"
+        "Human-Centered Organizational Initiatives": "Iniciativas Organizacionales Centradas en las Personas",
+        "Human Impact of Lean Processes": "Impacto Humano de Procesos Lean"
     }
 }
 
@@ -1021,7 +1039,7 @@ else:
                     worksheet_contact.set_column('B:B', 50)
                     for col_num, value in enumerate(contact_df.columns.values):
                         worksheet_contact.write(2, col_num, value, header_format)
-                    worksheet_contact.write('A6', "Trabajemos juntos | Let's work together", bold)
+                    worksheet_contact.write('A6', "Collaborate with Us", bold)
                     worksheet_contact.write('A7', TRANSLATIONS[st.session_state.language]["marketing_message"], wrap_format)
 
                 excel_output.seek(0)
