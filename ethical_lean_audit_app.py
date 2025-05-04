@@ -238,6 +238,41 @@ st.markdown("""
             visibility: visible;
             opacity: 1;
         }
+        .stSelectbox select {
+            background-color: #E3F2FD;
+            border-radius: 8px;
+            padding: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        .stSelectbox select:hover {
+            background-color: #BBDEFB;
+        }
+        .reference-table {
+            background-color: #E3F2FD;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid var(--primary);
+        }
+        .reference-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .reference-table th, .reference-table td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #BBDEFB;
+        }
+        .reference-table th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+        .reference-table td {
+            background-color: var(--surface);
+        }
         @media (max-width: 768px) {
             .main-container {
                 padding: 1rem;
@@ -268,6 +303,10 @@ st.markdown("""
             .sticky-nav {
                 flex-direction: column;
                 gap: 0.5rem;
+            }
+            .reference-table th, .reference-table td {
+                font-size: 0.9rem;
+                padding: 0.3rem;
             }
         }
         [role="radiogroup"] {
@@ -304,31 +343,6 @@ if 'prev_language' not in st.session_state:
     st.session_state.prev_language = st.session_state.language
 if 'show_intro' not in st.session_state:
     st.session_state.show_intro = True
-
-# Sidebar navigation
-with st.sidebar:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.selectbox(
-        "Idioma / Language",
-        ["Español", "English"],
-        key="language_select",
-        help="Selecciona tu idioma preferido / Select your preferred language"
-    )
-    st.markdown('<div class="subheader">Progreso</div>', unsafe_allow_html=True)
-    categories = [
-        "Empoderamiento de Empleados", "Liderazgo Ético", "Operaciones Centradas en las Personas",
-        "Prácticas Sostenibles y Éticas", "Bienestar y Equilibrio"
-    ] if st.session_state.language == "Español" else [
-        "Empowering Employees", "Ethical Leadership", "Human-Centered Operations",
-        "Sustainable and Ethical Practices", "Well-Being and Balance"
-    ]
-    for i, cat in enumerate(categories):
-        status = 'active' if i == st.session_state.current_category else 'completed' if i < st.session_state.current_category else ''
-        if st.button(f"{cat}", key=f"nav_{i}", help=f"Ir a {cat} / Go to {cat}"):
-            st.session_state.current_category = i
-            st.session_state.show_intro = False
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # Audit questions
 questions = {
@@ -396,13 +410,47 @@ questions = {
     }
 }
 
-# Reset session state on language change
-if st.session_state.language != st.session_state.prev_language:
-    st.session_state.current_category = 0
-    st.session_state.responses = {cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions}
-    st.session_state.prev_language = st.session_state.language
-    st.session_state.show_intro = True
-    st.rerun()
+# Sidebar navigation
+with st.sidebar:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    
+    # Language selection with on_change callback
+    def update_language():
+        if st.session_state.language_select != st.session_state.language:
+            st.session_state.language = st.session_state.language_select
+            st.session_state.current_category = 0
+            st.session_state.responses = {cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions}
+            st.session_state.prev_language = st.session_state.language
+            st.session_state.show_intro = True
+            st.rerun()
+    
+    st.selectbox(
+        "Idioma / Language",
+        ["Español", "English"],
+        key="language_select",
+        help="Selecciona tu idioma preferido / Select your preferred language",
+        on_change=update_language
+    )
+    
+    # Loading message during language switch
+    if st.session_state.language != st.session_state.prev_language:
+        st.info("Cargando contenido en el nuevo idioma..." if st.session_state.language == "Español" else "Loading content in the new language...")
+    
+    st.markdown('<div class="subheader">Progreso</div>', unsafe_allow_html=True)
+    categories = [
+        "Empoderamiento de Empleados", "Liderazgo Ético", "Operaciones Centradas en las Personas",
+        "Prácticas Sostenibles y Éticas", "Bienestar y Equilibrio"
+    ] if st.session_state.language == "Español" else [
+        "Empowering Employees", "Ethical Leadership", "Human-Centered Operations",
+        "Sustainable and Ethical Practices", "Well-Being and Balance"
+    ]
+    for i, cat in enumerate(categories):
+        status = 'active' if i == st.session_state.current_category else 'completed' if i < st.session_state.current_category else ''
+        if st.button(f"{cat}", key=f"nav_{i}", help=f"Ir a {cat} / Go to {cat}"):
+            st.session_state.current_category = i
+            st.session_state.show_intro = False
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Initialize responses if empty or mismatched
 if not st.session_state.responses or len(st.session_state.responses) != len(questions):
@@ -456,19 +504,67 @@ if not st.session_state.show_intro:
                 "Español": ["0%", "25%", "50%", "75%", "100%"],
                 "English": ["0%", "25%", "50%", "75%", "100%"],
                 "tooltip": "Selecciona el porcentaje que mejor refleje la situación. Por ejemplo, '100%' significa que todos los casos aplican, '0%' significa que ninguno aplica." if st.session_state.language == "Español" else
-                          "Select the percentage that best reflects the situation. For example, '100%' means all cases apply, '0%' means none apply."
+                          "Select the percentage that best reflects the situation. For example, '100%' means all cases apply, '0%' means none apply.",
+                "reference": {
+                    "Español": [
+                        ("0%", "Ninguna sugerencia/proceso fue implementado."),
+                        ("25%", "Aproximadamente una cuarta parte fue implementada."),
+                        ("50%", "La mitad fue implementada."),
+                        ("75%", "Tres cuartas partes fueron implementadas."),
+                        ("100%", "Todas las sugerencias/procesos fueron implementados.")
+                    ],
+                    "English": [
+                        ("0%", "No suggestions/processes were implemented."),
+                        ("25%", "About one-quarter were implemented."),
+                        ("50%", "Half were implemented."),
+                        ("75%", "Three-quarters were implemented."),
+                        ("100%", "All suggestions/processes were implemented.")
+                    ]
+                }
             },
             "frequency": {
                 "Español": ["Nunca", "Rara vez", "A veces", "A menudo", "Siempre"],
                 "English": ["Never", "Rarely", "Sometimes", "Often", "Always"],
                 "tooltip": "Indica la frecuencia de la práctica. 'Siempre' significa que ocurre en cada oportunidad, 'Nunca' significa que no ocurre nunca." if st.session_state.language == "Español" else
-                          "Indicate the frequency of the practice. 'Always' means it happens every time, 'Never' means it never happens."
+                          "Indicate the frequency of the practice. 'Always' means it happens every time, 'Never' means it never happens.",
+                "reference": {
+                    "Español": [
+                        ("Nunca", "Esto nunca ocurre."),
+                        ("Rara vez", "Ocurre muy pocas veces al año."),
+                        ("A veces", "Ocurre varias veces al año."),
+                        ("A menudo", "Ocurre regularmente, casi siempre."),
+                        ("Siempre", "Ocurre en cada oportunidad.")
+                    ],
+                    "English": [
+                        ("Never", "This never occurs."),
+                        ("Rarely", "Occurs very few times a year."),
+                        ("Sometimes", "Occurs several times a year."),
+                        ("Often", "Occurs regularly, almost always."),
+                        ("Always", "Occurs every time.")
+                    ]
+                }
             },
             "count": {
                 "Español": ["Ninguno", "Pocos", "Algunos", "Muchos", "La mayoría"],
                 "English": ["None", "Few", "Some", "Many", "Most"],
                 "tooltip": "Estima la cantidad de empleados o casos afectados. 'La mayoría' significa más del 75%, 'Ninguno' significa 0%." if st.session_state.language == "Español" else
-                          "Estimate the number of employees or cases affected. 'Most' means over 75%, 'None' means 0%."
+                          "Estimate the number of employees or cases affected. 'Most' means over 75%, 'None' means 0%.",
+                "reference": {
+                    "Español": [
+                        ("Ninguno", "Ningún empleado o caso afectado (0%)."),
+                        ("Pocos", "Menos de un cuarto de los empleados (1-25%)."),
+                        ("Algunos", "Entre un cuarto y la mitad (25-50%)."),
+                        ("Muchos", "Más de la mitad pero no la mayoría (50-75%)."),
+                        ("La mayoría", "Más del 75% de los empleados o casos.")
+                    ],
+                    "English": [
+                        ("None", "No employees or cases affected (0%)."),
+                        ("Few", "Less than a quarter of employees (1-25%)."),
+                        ("Some", "Between a quarter and half (25-50%)."),
+                        ("Many", "More than half but not most (50-75%)."),
+                        ("Most", "Over 75% of employees or cases.")
+                    ]
+                }
             }
         }
 
@@ -513,6 +609,53 @@ if not st.session_state.show_intro:
             with st.container():
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.markdown(f'<div class="subheader">{category}</div>', unsafe_allow_html=True)
+                
+                # Reference guide for responses
+                with st.expander("Guía de Referencia para Respuestas" if st.session_state.language == "Español" else "Reference Guide for Responses", expanded=True):
+                    st.markdown(
+                        "Consulta esta guía para entender las opciones de respuesta para cada tipo de pregunta." if st.session_state.language == "Español" else
+                        "Refer to this guide to understand the response options for each question type."
+                    )
+                    st.markdown('<div class="reference-table">', unsafe_allow_html=True)
+                    st.markdown(
+                        """
+                        <table>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Opción</th>
+                                <th>Descripción</th>
+                            </tr>
+                        """ + "".join(
+                            f"""
+                            <tr>
+                                <td>{'Porcentaje' if st.session_state.language == 'Español' else 'Percentage'}</td>
+                                <td>{opt}</td>
+                                <td>{desc}</td>
+                            </tr>
+                            """ for opt, desc in response_options["percentage"]["reference"][st.session_state.language]
+                        ) + "".join(
+                            f"""
+                            <tr>
+                                <td>{'Frecuencia' if st.session_state.language == 'Español' else 'Frequency'}</td>
+                                <td>{opt}</td>
+                                <td>{desc}</td>
+                            </tr>
+                            """ for opt, desc in response_options["frequency"]["reference"][st.session_state.language]
+                        ) + "".join(
+                            f"""
+                            <tr>
+                                <td>{'Cantidad' if st.session_state.language == 'Español' else 'Count'}</td>
+                                <td>{opt}</td>
+                                <td>{desc}</td>
+                            </tr>
+                            """ for opt, desc in response_options["count"]["reference"][st.session_state.language]
+                        ) + """
+                        </table>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    st.markdown('</div>', unsafe_allow_html=True)
+
                 for idx, (q, q_type) in enumerate(questions[category][st.session_state.language]):
                     with st.container():
                         is_unanswered = st.session_state.responses[category][idx] is None
@@ -695,7 +838,7 @@ if not st.session_state.show_intro:
                 x="Porcentaje" if st.session_state.language == "Español" else "Percent",
                 orientation='h',
                 title="Fortalezas y Oportunidades del Lugar de Trabajo" if st.session_state.language == "Español" else "Workplace Strengths and Opportunities",
-                labels={"index": "Categoría" if st.session_state.language == "Español" else "Category", "Porcentaje" if st.session_state.language == "Español" else "Percent": "Puntuación (%)" if st.session_state.language == "Español" else "Score (%)"},
+                labels={"index": "Categoría" if st.session_state.language == "Español" else "Category", "Porcentaje" if st.session_state.language == "Español" else "Percent": "Puntuación (%)" if st.session_state.language == "Esp SECRETARY OF STATE
                 color="Porcentaje" if st.session_state.language == "Español" else "Percent",
                 color_continuous_scale=["#D32F2F", "#FFD54F", "#43A047"],
                 range_x=[0, 100],
