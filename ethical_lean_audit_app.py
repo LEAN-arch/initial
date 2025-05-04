@@ -38,10 +38,7 @@ TRANSLATIONS = {
         "low_priority": "Baja",
         "report_title": "Tu Informe de Bienestar Laboral",
         "download_excel": "Descargar Informe Excel",
-        "download_pdf": "Descargar Informe PDF",
-        "email_report": "Enviar Informe por Email",
         "report_filename_excel": "resultados_auditoria_lugar_trabajo_etico.xlsx",
-        "report_filename_pdf": "resultados_auditoria_lugar_trabajo_etico.pdf",
         "unanswered_error": "Preguntas sin responder ({}). Por favor, completa todas las preguntas antes de enviar la auditoría.",
         "missing_questions": "Preguntas faltantes:",
         "category_completed": "¡Categoría '{}' completada! {}/{} preguntas respondidas.",
@@ -50,9 +47,6 @@ TRANSLATIONS = {
         "language_change_warning": "Cambiar el idioma reiniciará tus respuestas. ¿Deseas continuar?",
         "reset_audit": "Reiniciar Auditoría",
         "reset_warning": "Reiniciar la auditoría eliminará todas las respuestas. ¿Deseas continuar?",
-        "email_label": "Correo electrónico para enviar el informe",
-        "email_success": "Informe enviado exitosamente a {}.",
-        "email_error": "Error al enviar el informe: {}.",
         "contact_info": "Contáctanos en {} o {} para soporte adicional.",
         "high_priority_categories": "Categorías con Alta Prioridad",
         "average_score": "Puntuación Promedio",
@@ -74,14 +68,13 @@ TRANSLATIONS = {
         "findings_and_suggestions": "Hallazgos y Sugerencias",
         "contact": "Contacto",
         "generating_excel": "Generando Excel...",
-        "generating_pdf": "Generando PDF...",
         "excel_error": "No se pudo generar el archivo Excel: {}",
-        "pdf_error": "No se pudo generar el archivo PDF: {}",
         "grade_excellent_desc": "Tu lugar de trabajo demuestra prácticas sobresalientes. ¡Continúa fortaleciendo estas áreas!",
         "grade_good_desc": "Tu lugar de trabajo tiene fortalezas, pero requiere mejoras específicas para alcanzar la excelencia.",
         "grade_needs_improvement_desc": "Se identificaron debilidades moderadas. Prioriza acciones correctivas en áreas críticas.",
         "grade_critical_desc": "Existen problemas significativos que requieren intervención urgente. Considera apoyo externo.",
-        "suggestion": "Sugerencia"
+        "suggestion": "Sugerencia",
+        "actionable_charts": "Gráficos Accionables"
     },
     "English": {
         "title": "Ethical Lean Workplace Audit",
@@ -96,10 +89,7 @@ TRANSLATIONS = {
         "low_priority": "Low",
         "report_title": "Your Workplace Wellness Report",
         "download_excel": "Download Excel Report",
-        "download_pdf": "Download PDF Report",
-        "email_report": "Send Report via Email",
         "report_filename_excel": "ethical_workplace_audit_results.xlsx",
-        "report_filename_pdf": "ethical_workplace_audit_results.pdf",
         "unanswered_error": "Unanswered questions ({}). Please complete all questions before submitting the audit.",
         "missing_questions": "Missing Questions:",
         "category_completed": "Category '{}' completed! {}/{} questions answered.",
@@ -108,9 +98,6 @@ TRANSLATIONS = {
         "language_change_warning": "Changing the language will reset your responses. Do you wish to continue?",
         "reset_audit": "Reset Audit",
         "reset_warning": "Resetting the audit will clear all responses. Do you wish to continue?",
-        "email_label": "Email address to send the report",
-        "email_success": "Report successfully sent to {}.",
-        "email_error": "Failed to send report: {}.",
         "contact_info": "Contact us at {} or {} for additional support.",
         "high_priority_categories": "High Priority Categories",
         "average_score": "Average Score",
@@ -132,14 +119,13 @@ TRANSLATIONS = {
         "findings_and_suggestions": "Findings and Suggestions",
         "contact": "Contact",
         "generating_excel": "Generating Excel...",
-        "generating_pdf": "Generating PDF...",
         "excel_error": "Failed to generate Excel file: {}",
-        "pdf_error": "Failed to generate PDF file: {}",
         "grade_excellent_desc": "Your workplace demonstrates outstanding practices. Continue strengthening these areas!",
         "grade_good_desc": "Your workplace has strengths but requires specific improvements to achieve excellence.",
         "grade_needs_improvement_desc": "Moderate weaknesses identified. Prioritize corrective actions in critical areas.",
         "grade_critical_desc": "Significant issues exist requiring urgent intervention. Consider external support.",
-        "suggestion": "Suggestion"
+        "suggestion": "Suggestion",
+        "actionable_charts": "Actionable Charts"
     }
 }
 
@@ -354,7 +340,6 @@ def initialize_session_state():
         "language_changed": False,
         "show_results": False,
         "reset_confirmed": False,
-        "email_sent": False,
         "report_id": str(uuid.uuid4())
     }
     for key, value in defaults.items():
@@ -884,9 +869,9 @@ else:
                         unsafe_allow_html=True
                     )
 
-            # Download reports
+            # Download Excel report
             def generate_excel_report() -> io.BytesIO:
-                """Generate Excel report with summary, results, and findings."""
+                """Generate comprehensive Excel report with summary, results, findings, actionable charts, and contact info."""
                 excel_output = io.BytesIO()
                 with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
                     workbook = writer.book
@@ -894,6 +879,7 @@ else:
                     percent_format = workbook.add_format({'num_format': '0.0%'})
                     wrap_format = workbook.add_format({'text_wrap': True})
                     border_format = workbook.add_format({'border': 1})
+                    header_format = workbook.add_format({'bold': True, 'bg_color': '#1E88E5', 'color': 'white', 'border': 1})
 
                     # Summary Sheet
                     critical_count = len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
@@ -912,18 +898,27 @@ else:
                             )
                         ]
                     })
-                    summary_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["summary"], index=False)
+                    summary_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["summary"], index=False, startrow=2)
                     worksheet_summary = writer.sheets[TRANSLATIONS[st.session_state.language]["summary"]]
+                    worksheet_summary.write('A1', TRANSLATIONS[st.session_state.language]["report_title"], bold)
+                    worksheet_summary.write('A2', f"Date: {REPORT_DATE}", bold)
                     worksheet_summary.set_column('A:A', 20)
                     worksheet_summary.set_column('B:B', 15)
-                    worksheet_summary.set_column('C:C', 80)
+                    worksheet_summary.set_column('C:C', 80, wrap_format)
+                    for col_num, value in enumerate(summary_df.columns.values):
+                        worksheet_summary.write(2, col_num, value, header_format)
 
                     # Results Sheet
-                    df_display.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["results"], float_format="%.1f")
+                    df_display.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["results"], float_format="%.1f", startrow=2)
                     worksheet_results = writer.sheets[TRANSLATIONS[st.session_state.language]["results"]]
+                    worksheet_results.write('A1', TRANSLATIONS[st.session_state.language]["results"], bold)
+                    worksheet_results.write('A2', f"Date: {REPORT_DATE}", bold)
                     worksheet_results.set_column('A:A', 30)
                     worksheet_results.set_column('B:C', 15)
                     worksheet_results.set_column('D:D', 20)
+                    for col_num, value in enumerate(df_display.columns.values):
+                        worksheet_results.write(2, col_num + 1, value, header_format)
+                    worksheet_results.write(2, 0, TRANSLATIONS[st.session_state.language]["category"], header_format)
 
                     # Findings Sheet
                     findings_data = []
@@ -953,89 +948,99 @@ else:
                             TRANSLATIONS[st.session_state.language]["findings_and_suggestions"]
                         ]
                     )
-                    findings_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["findings"], index=False)
+                    findings_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["findings"], index=False, startrow=2)
                     worksheet_findings = writer.sheets[TRANSLATIONS[st.session_state.language]["findings"]]
+                    worksheet_findings.write('A1', TRANSLATIONS[st.session_state.language]["findings"], bold)
+                    worksheet_findings.write('A2', f"Date: {REPORT_DATE}", bold)
                     worksheet_findings.set_column('A:A', 30)
                     worksheet_findings.set_column('B:B', 15)
                     worksheet_findings.set_column('C:C', 15)
-                    worksheet_findings.set_column('D:D', 60)
+                    worksheet_findings.set_column('D:D', 60, wrap_format)
+                    for col_num, value in enumerate(findings_df.columns.values):
+                        worksheet_findings.write(2, col_num, value, header_format)
+
+                    # Actionable Insights Sheet
+                    insights_data = []
+                    for cat in questions.keys():
+                        display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
+                        score = df.loc[cat, TRANSLATIONS[st.session_state.language]["percent"]]
+                        if score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
+                            priority = TRANSLATIONS[st.session_state.language]["high_priority"] if score < SCORE_THRESHOLDS["CRITICAL"] else TRANSLATIONS[st.session_state.language]["medium_priority"]
+                            insights_data.append([display_cat, f"{score:.1f}%", priority, f"Focus on immediate improvements in {display_cat}."])
+                    insights_df = pd.DataFrame(
+                        insights_data,
+                        columns=[
+                            TRANSLATIONS[st.session_state.language]["category"],
+                            TRANSLATIONS[st.session_state.language]["score"],
+                            TRANSLATIONS[st.session_state.language]["priority"],
+                            TRANSLATIONS[st.session_state.language]["actionable_insights"]
+                        ]
+                    )
+                    insights_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_insights"], index=False, startrow=2)
+                    worksheet_insights = writer.sheets[TRANSLATIONS[st.session_state.language]["actionable_insights"]]
+                    worksheet_insights.write('A1', TRANSLATIONS[st.session_state.language]["actionable_insights"], bold)
+                    worksheet_insights.write('A2', f"Date: {REPORT_DATE}", bold)
+                    worksheet_insights.set_column('A:A', 30)
+                    worksheet_insights.set_column('B:B', 15)
+                    worksheet_insights.set_column('C:C', 15)
+                    worksheet_insights.set_column('D:D', 60, wrap_format)
+                    for col_num, value in enumerate(insights_df.columns.values):
+                        worksheet_insights.write(2, col_num, value, header_format)
+
+                    # Actionable Charts Sheet
+                    chart_df = df_display[[TRANSLATIONS[st.session_state.language]["percent"]]].copy()
+                    chart_df.index = df_display.index
+                    chart_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_charts"], startrow=2, startcol=0)
+                    priority_counts = df[TRANSLATIONS[st.session_state.language]["priority"]].value_counts()
+                    priority_df = pd.DataFrame({
+                        TRANSLATIONS[st.session_state.language]["priority"]: priority_counts.index,
+                        "Count": priority_counts.values
+                    })
+                    priority_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_charts"], startrow=2, startcol=4)
+                    worksheet_charts = writer.sheets[TRANSLATIONS[st.session_state.language]["actionable_charts"]]
+                    worksheet_charts.write('A1', TRANSLATIONS[st.session_state.language]["actionable_charts"], bold)
+                    worksheet_charts.write('A2', f"Date: {REPORT_DATE}", bold)
+
+                    # Bar Chart for Category Scores
+                    bar_chart = workbook.add_chart({'type': 'bar'})
+                    bar_chart.add_series({
+                        'name': TRANSLATIONS[st.session_state.language]["score_percent"],
+                        'categories': [TRANSLATIONS[st.session_state.language]["actionable_charts"], 3, 0, 2 + len(chart_df), 0],
+                        'values': [TRANSLATIONS[st.session_state.language]["actionable_charts"], 3, 1, 2 + len(chart_df), 1],
+                        'fill': {'color': '#1E88E5'},
+                    })
+                    bar_chart.set_title({'name': TRANSLATIONS[st.session_state.language]["chart_title"]})
+                    bar_chart.set_x_axis({'name': TRANSLATIONS[st.session_state.language]["score_percent"]})
+                    bar_chart.set_y_axis({'name': TRANSLATIONS[st.session_state.language]["category"]})
+                    worksheet_charts.insert_chart('A10', bar_chart)
+
+                    # Pie Chart for Priority Distribution
+                    pie_chart = workbook.add_chart({'type': 'pie'})
+                    pie_chart.add_series({
+                        'name': TRANSLATIONS[st.session_state.language]["priority"],
+                        'categories': [TRANSLATIONS[st.session_state.language]["actionable_charts"], 3, 4, 2 + len(priority_df), 4],
+                        'values': [TRANSLATIONS[st.session_state.language]["actionable_charts"], 3, 5, 2 + len(priority_df), 5],
+                        'data_labels': {'percentage': True},
+                    })
+                    pie_chart.set_title({'name': 'Priority Distribution'})
+                    worksheet_charts.insert_chart('J10', pie_chart)
+
+                    # Contact Sheet
+                    contact_df = pd.DataFrame({
+                        "Field": ["Email", "Website"],
+                        "Value": [CONFIG['contact']['email'], CONFIG['contact']['website']]
+                    })
+                    contact_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["contact"], index=False, startrow=2)
+                    worksheet_contact = writer.sheets[TRANSLATIONS[st.session_state.language]["contact"]]
+                    worksheet_contact.write('A1', TRANSLATIONS[st.session_state.language]["contact"], bold)
+                    worksheet_contact.write('A2', f"Date: {REPORT_DATE}", bold)
+                    worksheet_contact.set_column('A:A', 20)
+                    worksheet_contact.set_column('B:B', 50)
+                    for col_num, value in enumerate(contact_df.columns.values):
+                        worksheet_contact.write(2, col_num, value, header_format)
 
                 excel_output.seek(0)
                 return excel_output
-
-            def generate_pdf_report() -> str:
-                """Generate LaTeX code for PDF report."""
-                critical_count = len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
-                improvement_count = len(df[(df[TRANSLATIONS[st.session_state.language]["percent"]] >= SCORE_THRESHOLDS["CRITICAL"]) & (df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"])])
-                results_rows = "".join([
-                    f"{next(k for k, v in category_mapping[st.session_state.language].items() if v == idx)} & {row[TRANSLATIONS[st.session_state.language]['percent']]:.1f}\\% & {row[TRANSLATIONS[st.session_state.language]['priority']]} \\\\" 
-                    for idx, row in df.iterrows()
-                ])
-                insights_latex = "".join([f"\\item {insight.replace('**', '\\textbf{').replace('**', '}')}" for insight in insights])
-                latex_content = f"""
-                \\documentclass{{article}}
-                \\usepackage[utf8]{{inputenc}}
-                \\usepackage{{geometry}}
-                \\geometry{{a4paper, margin=1in}}
-                \\usepackage{{booktabs}}
-                \\usepackage{{hyperref}}
-                \\usepackage{{xcolor}}
-                \\definecolor{{excellent}}{{HTML}}{{43A047}}
-                \\definecolor{{good}}{{HTML}}{{FFD54F}}
-                \\definecolor{{needsimprovement}}{{HTML}}{{FF9800}}
-                \\definecolor{{critical}}{{HTML}}{{D32F2F}}
-                \\usepackage{{enumitem}}
-                \\setlist{{noitemsep}}
-                \\begin{{document}}
-                \\title{{{TRANSLATIONS[st.session_state.language]["report_title"]}}}
-                \\author{{LEAN 2.0 Institute}}
-                \\date{{{REPORT_DATE}}}
-                \\maketitle
-
-                \\section*{{{TRANSLATIONS[st.session_state.language]["summary"]}}}
-                \\textbf{{{TRANSLATIONS[st.session_state.language]["overall_score"]}}}: {overall_score:.1f}\\% \\\\
-                \\textbf{{{TRANSLATIONS[st.session_state.language]["grade"]}}}: \\textcolor{{{grade_class.replace('grade-', '')}}}{{{grade}}} \\\\
-                \\textbf{{{TRANSLATIONS[st.session_state.language]["findings_summary"]}}}:
-                {critical_count} categories require urgent action (<{SCORE_THRESHOLDS["CRITICAL"]}\\%),
-                {improvement_count} need specific improvements ({SCORE_THRESHOLDS["CRITICAL"]}-{SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]-1}\\%).
-                Overall score is {overall_score:.1f}\\%.
-
-                \\section*{{{TRANSLATIONS[st.session_state.language]["results"]}}}
-                \\begin{{table}}[h]
-                    \\centering
-                    \\begin{{tabular}}{{l c c}}
-                        \\toprule
-                        {TRANSLATIONS[st.session_state.language]["category"]} & {TRANSLATIONS[st.session_state.language]["score"]} & {TRANSLATIONS[st.session_state.language]["priority"]} \\\\
-                        \\midrule
-                        {results_rows}
-                        \\bottomrule
-                    \\end{{tabular}}
-                \\end{{table}}
-
-                \\section*{{{TRANSLATIONS[st.session_state.language]["actionable_insights"]}}}
-                \\begin{{itemize}}
-                    {insights_latex if insights_latex else "\\item No actionable insights required at this time."}
-                \\end{{itemize}}
-
-                \\section*{{{TRANSLATIONS[st.session_state.language]["contact"]}}}
-                {TRANSLATIONS[st.session_state.language]["contact_info"].format(
-                    f"\\href{{mailto:{CONFIG['contact']['email']}}}{{{CONFIG['contact']['email']}}}",
-                    f"\\href{{{CONFIG['contact']['website']}}}{{{CONFIG['contact']['website']}}}"
-                )}
-
-                \\end{{document}}
-                """
-                return latex_content
-
-            # Email report
-            def send_email_report(email: str) -> Tuple[bool, str]:
-                """Simulate sending email with report link."""
-                if not email:
-                    return False, "Email address is empty."
-                if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-                    return False, "Invalid email address format."
-                # Simulate email sending
-                return True, "Email sent successfully."
 
             st.markdown('<h3 class="subsection-title">Descarga tu Informe</h3>', unsafe_allow_html=True)
             with st.spinner(TRANSLATIONS[st.session_state.language]["generating_excel"]):
@@ -1048,26 +1053,6 @@ else:
                     st.markdown(href_excel, unsafe_allow_html=True)
                 except Exception as e:
                     st.error(TRANSLATIONS[st.session_state.language]["excel_error"].format(str(e)), icon="❌")
-
-            with st.spinner(TRANSLATIONS[st.session_state.language]["generating_pdf"]):
-                try:
-                    pdf_content = generate_pdf_report()
-                    # Simulate PDF generation (actual rendering handled by LaTeX)
-                    b64_pdf = base64.b64encode(pdf_content.encode()).decode()
-                    href_pdf = (
-                        f'<a href="data:application/pdf;base64,{b64_pdf}" download="{TRANSLATIONS[st.session_state.language]["report_filename_pdf"]}" class="btn btn-primary">{TRANSLATIONS[st.session_state.language]["download_pdf"]}</a>'
-                    )
-                    st.markdown(href_pdf, unsafe_allow_html=True)
-                except Exception as e:
-                    st.error(TRANSLATIONS[st.session_state.language]["pdf_error"].format(str(e)), icon="❌")
-
-            email_input = st.text_input(TRANSLATIONS[st.session_state.language]["email_label"])
-            if st.button(TRANSLATIONS[st.session_state.language]["email_report"]):
-                success, message = send_email_report(email_input)
-                if success:
-                    st.success(TRANSLATIONS[st.session_state.language]["email_success"].format(email_input))
-                else:
-                    st.error(TRANSLATIONS[st.session_state.language]["email_error"].format(message))
 
             st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</section>', unsafe_allow_html=True)
