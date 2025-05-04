@@ -195,7 +195,7 @@ st.markdown("""
             padding: 1.5rem;
             border-radius: 12px;
             margin: 1rem 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0,  Canadian);
             transition: transform 0.3s ease;
         }
         .card:hover {
@@ -317,6 +317,24 @@ if 'show_intro' not in st.session_state:
 if 'language_changed' not in st.session_state:
     st.session_state.language_changed = False
 
+# Category mapping for bilingual support
+category_mapping = {
+    "Español": {
+        "Empoderamiento de Empleados": "Empoderamiento de Empleados",
+        "Liderazgo Ético": "Liderazgo Ético",
+        "Operaciones Centradas en las Personas": "Operaciones Centradas en las Personas",
+        "Prácticas Sostenibles y Éticas": "Prácticas Sostenibles y Éticas",
+        "Bienestar y Equilibrio": "Bienestar y Equilibrio"
+    },
+    "English": {
+        "Empowering Employees": "Empoderamiento de Empleados",
+        "Ethical Leadership": "Liderazgo Ético",
+        "Human-Centered Operations": "Operaciones Centradas en las Personas",
+        "Sustainable and Ethical Practices": "Prácticas Sostenibles y Éticas",
+        "Well-Being and Balance": "Bienestar y Equilibrio"
+    }
+}
+
 # Audit questions
 questions = {
     "Empoderamiento de Empleados": {
@@ -412,16 +430,10 @@ with st.sidebar:
         st.rerun()
     
     st.markdown('<div class="subheader">Progreso</div>', unsafe_allow_html=True)
-    categories = [
-        "Empoderamiento de Empleados", "Liderazgo Ético", "Operaciones Centradas en las Personas",
-        "Prácticas Sostenibles y Éticas", "Bienestar y Equilibrio"
-    ] if st.session_state.language == "Español" else [
-        "Empowering Employees", "Ethical Leadership", "Human-Centered Operations",
-        "Sustainable and Ethical Practices", "Well-Being and Balance"
-    ]
-    for i, cat in enumerate(categories):
+    display_categories = list(category_mapping[st.session_state.language].keys())
+    for i, display_cat in enumerate(display_categories):
         status = 'active' if i == st.session_state.current_category else 'completed' if i < st.session_state.current_category else ''
-        if st.button(f"{cat}", key=f"nav_{i}", help=f"Ir a {cat} / Go to {cat}"):
+        if st.button(f"{display_cat}", key=f"nav_{i}", help=f"Ir a {display_cat} / Go to {display_cat}"):
             st.session_state.current_category = i
             st.session_state.show_intro = False
             st.rerun()
@@ -551,10 +563,10 @@ if not st.session_state.show_intro:
 
         # Progress bar
         st.markdown('<div class="progress-bar">', unsafe_allow_html=True)
-        for i, cat in enumerate(categories):
+        for i, display_cat in enumerate(display_categories):
             status = 'active' if i == st.session_state.current_category else 'completed' if i < st.session_state.current_category else ''
             st.markdown(
-                f'<div class="progress-step {status}" onclick="Streamlit.setComponentValue({i})">{cat}</div>',
+                f'<div class="progress-step {status}" onclick="Streamlit.setComponentValue({i})">{display_cat}</div>',
                 unsafe_allow_html=True
             )
         st.markdown('</div>', unsafe_allow_html=True)
@@ -584,12 +596,13 @@ if not st.session_state.show_intro:
 
         # Category questions
         if not audit_complete:
-            category_index = min(st.session_state.current_category, len(categories) - 1)
-            category = categories[category_index]
+            category_index = min(st.session_state.current_category, len(display_categories) - 1)
+            display_category = display_categories[category_index]
+            category = category_mapping[st.session_state.language][display_category]
             
             with st.container():
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown(f'<div class="subheader">{category}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="subheader">{display_category}</div>', unsafe_allow_html=True)
                 
                 # Response guide (no table, just instructions)
                 with st.expander("Guía de Respuestas" if st.session_state.language == "Español" else "Response Guide", expanded=True):
@@ -639,15 +652,15 @@ if not st.session_state.show_intro:
                         st.session_state.current_category = max(category_index - 1, 0)
                         st.rerun()
                 with col2:
-                    if category_index < len(categories) - 1:
+                    if category_index < len(display_categories) - 1:
                         if st.button(
                             "Siguiente ➡" if st.session_state.language == "Español" else "Next ➡",
-                            disabled=category_index == len(categories) - 1,
+                            disabled=category_index == len(display_categories) - 1,
                             use_container_width=True,
                             help="Avanzar a la siguiente categoría" if st.session_state.language == "Español" else "Go to next category"
                         ):
                             if all(score is not None for score in st.session_state.responses[category]):
-                                st.session_state.current_category = min(category_index + 1, len(categories) - 1)
+                                st.session_state.current_category = min(category_index + 1, len(display_categories) - 1)
                                 st.rerun()
                             else:
                                 unanswered = [q for i, (q, _) in enumerate(questions[category][st.session_state.language]) if st.session_state.responses[category][i] is None]
@@ -673,14 +686,15 @@ if not st.session_state.show_intro:
                             help="Ver el informe de la auditoría" if st.session_state.language == "Español" else "View audit report"
                         ):
                             if all(all(score is not None for score in scores) for scores in st.session_state.responses.values()):
-                                st.session_state.current_category = len(categories)
+                                st.session_state.current_category = len(display_categories)
                                 st.rerun()
                             else:
                                 unanswered_questions = []
-                                for cat in categories:
+                                for cat in questions.keys():
                                     for i, (q, _) in enumerate(questions[cat][st.session_state.language]):
                                         if st.session_state.responses[cat][i] is None:
-                                            unanswered_questions.append(f"{cat}: {q[:50] + '...' if len(q) > 50 else q}")
+                                            display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
+                                            unanswered_questions.append(f"{display_cat}: {q[:50] + '...' if len(q) > 50 else q}")
                                 st.error(
                                     f"Por favor, responde todas las preguntas en todas las categorías. Preguntas faltantes: {', '.join(unanswered_questions)}" if st.session_state.language == "Español" else
                                     f"Please answer all questions in all categories. Missing questions: {', '.join(unanswered_questions)}"
@@ -777,8 +791,10 @@ if not st.session_state.show_intro:
             st.dataframe(styled_df, use_container_width=True)
 
             # Interactive bar chart
+            df_display = df.copy()
+            df_display.index = [next(k for k, v in category_mapping[st.session_state.language].items() if v == idx) for idx in df.index]
             fig = px.bar(
-                df.reset_index(),
+                df_display.reset_index(),
                 y="index",
                 x="Porcentaje" if st.session_state.language == "Español" else "Percent",
                 orientation='h',
@@ -793,7 +809,7 @@ if not st.session_state.show_intro:
                 height=400
             )
             fig.add_vline(x=70, line_dash="dash", line_color="blue", annotation_text="Objetivo (70%)" if st.session_state.language == "Español" else "Target (70%)", annotation_position="top")
-            for i, row in df.iterrows():
+            for i, row in df_display.iterrows():
                 if row["Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70:
                     fig.add_annotation(
                         x=row["Porcentaje" if st.session_state.language == "Español" else "Percent"], y=i,
@@ -812,11 +828,12 @@ if not st.session_state.show_intro:
 
             # Question-level breakdown (collapsible)
             with st.expander("Análisis Detallado: Perspectivas a Nivel de Pregunta" if st.session_state.language == "Español" else "Drill Down: Question-Level Insights"):
-                selected_category = st.selectbox(
+                selected_display_category = st.selectbox(
                     "Seleccionar Categoría para Explorar" if st.session_state.language == "Español" else "Select Category to Explore",
-                    categories,
+                    display_categories,
                     key="category_explore"
                 )
+                selected_category = category_mapping[st.session_state.language][selected_display_category]
                 question_scores = pd.DataFrame({
                     "Pregunta" if st.session_state.language == "Español" else "Question": [q for q, _ in questions[selected_category][st.session_state.language]],
                     "Puntuación" if st.session_state.language == "Español" else "Score": st.session_state.responses[selected_category]
@@ -826,7 +843,7 @@ if not st.session_state.show_intro:
                     x="Puntuación" if st.session_state.language == "Español" else "Score",
                     y="Pregunta" if st.session_state.language == "Español" else "Question",
                     orientation='h',
-                    title=f"Puntuaciones de Preguntas para {selected_category}" if st.session_state.language == "Español" else f"Question Scores for {selected_category}",
+                    title=f"Puntuaciones de Preguntas para {selected_display_category}" if st.session_state.language == "Español" else f"Question Scores for {selected_display_category}",
                     labels={"Puntuación" if st.session_state.language == "Español" else "Score": "Puntuación (%)" if st.session_state.language == "Español" else "Score (%)", "Pregunta" if st.session_state.language == "Español" else "Question": "Pregunta" if st.session_state.language == "Español" else "Question"},
                     color="Puntuación" if st.session_state.language == "Español" else "Score",
                     color_continuous_scale=["#D32F2F", "#FFD54F", "#43A047"],
@@ -874,43 +891,44 @@ if not st.session_state.show_intro:
                         2: "Establece procesos formales para abordar desafíos reportados con planes de acción."
                     }
                 } if st.session_state.language == "Español" else {
-                    "Empowering Employees": {
+                    "Empoderamiento de Empleados": {
                         0: "Establish a formal system to track and implement employee suggestions with clear metrics.",
                         1: "Increase professional training opportunities for all employees.",
                         2: "Allocate budgets to more employee-led initiatives to foster innovation.",
                         3: "Schedule monthly forums for direct employee-management feedback."
                     },
-                    "Ethical Leadership": {
+                    "Liderazgo Ético": {
                         0: "Implement monthly newsletters to transparently communicate leadership decisions.",
                         1: "Include employee representatives in reviewing all new workplace policies.",
                         2: "Create a formal recognition program for ethical behavior with clear incentives."
                     },
-                    "Human-Centered Operations": {
+                    "Operaciones Centradas en las Personas": {
                         0: "Integrate employee feedback into every lean process review to eliminate redundancies.",
                         1: "Conduct quarterly audits of operational practices focusing on well-being.",
                         2: "Train all employees on lean tools, prioritizing collaboration."
                     },
-                    "Sustainable and Ethical Practices": {
+                    "Prácticas Sostenibles y Éticas": {
                         0: "Launch specific lean initiatives to reduce resource consumption with measurable goals.",
                         1: "Audit all primary suppliers annually to ensure ethical standards.",
                         2: "Engage more employees in sustainability projects with community impact."
                     },
-                    "Well-Being and Balance": {
+                    "Bienestar y Equilibrio": {
                         0: "Expand access to well-being resources, such as counseling and flexible schedules.",
                         1: "Implement monthly surveys to monitor burnout and act swiftly.",
                         2: "Establish formal processes to address reported challenges with action plans."
                     }
                 }
-                for cat in categories:
+                for cat in questions.keys():
+                    display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
                     if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50:
                         insights.append(
-                            f"**{cat}** obtuvo {df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Alta Prioridad). Enfócate en mejoras inmediatas." if st.session_state.language == "Español" else
-                            f"**{cat}** scored {df.loc[cat, 'Percent']:.1f}% (High Priority). Focus on immediate improvements."
+                            f"**{display_cat}** obtuvo {df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Alta Prioridad). Enfócate en mejoras inmediatas." if st.session_state.language == "Español" else
+                            f"**{display_cat}** scored {df.loc[cat, 'Percent']:.1f}% (High Priority). Focus on immediate improvements."
                         )
                     elif df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70:
                         insights.append(
-                            f"**{cat}** obtuvo {df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Prioridad Media). Considera acciones específicas." if st.session_state.language == "Español" else
-                            f"**{cat}** scored {df.loc[cat, 'Percent']:.1f}% (Medium Priority). Consider targeted actions."
+                            f"**{display_cat}** obtuvo {df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Prioridad Media). Considera acciones específicas." if st.session_state.language == "Español" else
+                            f"**{display_cat}** scored {df.loc[cat, 'Percent']:.1f}% (Medium Priority). Consider targeted actions."
                         )
                 if insights:
                     st.markdown(
@@ -938,6 +956,7 @@ if not st.session_state.show_intro:
                 )
                 if df["Porcentaje" if st.session_state.language == "Español" else "Percent"].min() < 70:
                     low_categories = df[df["Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70].index.tolist()
+                    low_display_categories = [next(k for k, v in category_mapping[st.session_state.language].items() if v == cat) for cat in low_categories]
                     services = {
                         "Empoderamiento de Empleados": "Programas de Compromiso y Liderazgo de Empleados",
                         "Liderazgo Ético": "Capacitación en Liderazgo Ético y Gobernanza",
@@ -945,15 +964,15 @@ if not st.session_state.show_intro:
                         "Prácticas Sostenibles y Éticas": "Consultoría en Sostenibilidad y Ética Empresarial",
                         "Bienestar y Equilibrio": "Estrategias de Bienestar Organizacional"
                     } if st.session_state.language == "Español" else {
-                        "Empowering Employees": "Employee Engagement and Leadership Programs",
-                        "Ethical Leadership": "Ethical Leadership and Governance Training",
-                        "Human-Centered Operations": "Process Optimization with Human Focus",
-                        "Sustainable and Ethical Practices": "Sustainability and Business Ethics Consulting",
-                        "Well-Being and Balance": "Organizational Well-Being Strategies"
+                        "Empoderamiento de Empleados": "Employee Engagement and Leadership Programs",
+                        "Liderazgo Ético": "Ethical Leadership and Governance Training",
+                        "Operaciones Centradas en las Personas": "Process Optimization with Human Focus",
+                        "Prácticas Sostenibles y Éticas": "Sustainability and Business Ethics Consulting",
+                        "Bienestar y Equilibrio": "Organizational Well-Being Strategies"
                     }
                     ad_text.append(
-                        f"Las áreas clave para mejorar incluyen {', '.join(low_categories)}. LEAN 2.0 Institute se especializa en: {', '.join([services[cat] for cat in low_categories])}." if st.session_state.language == "Español" else
-                        f"Key areas for improvement include {', '.join(low_categories)}. LEAN 2.0 Institute specializes in: {', '.join([services[cat] for cat in low_categories])}."
+                        f"Las áreas clave para mejorar incluyen {', '.join(low_display_categories)}. LEAN 2.0 Institute se especializa en: {', '.join([services[cat] for cat in low_categories])}." if st.session_state.language == "Español" else
+                        f"Key areas for improvement include {', '.join(low_display_categories)}. LEAN 2.0 Institute specializes in: {', '.join([services[cat] for cat in low_categories])}."
                     )
             else:
                 ad_text.append(
@@ -1002,7 +1021,7 @@ if not st.session_state.show_intro:
                             worksheet_summary.write(0, col_num, value, bold)
 
                         # Results Sheet
-                        df.to_excel(writer, sheet_name='Resultados' if st.session_state.language == "Español" else 'Results', float_format="%.1f")
+                        df_display.to_excel(writer, sheet_name='Resultados' if st.session_state.language == "Español" else 'Results', float_format="%.1f")
                         worksheet_results = writer.sheets['Resultados' if st.session_state.language == "Español" else 'Results']
                         worksheet_results.set_column('A:A', 30)
                         worksheet_results.set_column('B:C', 15)
@@ -1017,10 +1036,11 @@ if not st.session_state.show_intro:
 
                         # Findings and Suggestions Sheet
                         findings_data = []
-                        for cat in categories:
+                        for cat in questions.keys():
+                            display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
                             if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70:
                                 findings_data.append([
-                                    cat,
+                                    display_cat,
                                     f"{df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}%",
                                     "Alta" if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50 else "Media" if st.session_state.language == "Español" else
                                     "High" if df.loc[cat, "Percent"] < 50 else "Medium",
@@ -1056,7 +1076,7 @@ if not st.session_state.show_intro:
                                 worksheet_findings.write(row_num + 1, col_num, findings_df.iloc[row_num, col_num], border_format)
 
                         # Bar Chart
-                        chart_data_df = df[["Porcentaje" if st.session_state.language == "Español" else "Percent"]].reset_index()
+                        chart_data_df = df_display[["Porcentaje" if st.session_state.language == "Español" else "Percent"]].reset_index()
                         chart_data_df.to_excel(writer, sheet_name='Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', index=False)
                         worksheet_chart = writer.sheets['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data']
                         chart = workbook.add_chart({'type': 'bar'})
