@@ -111,7 +111,6 @@ def generate_excel_report(
                                string=name, cell_format=workbook.add_format({
                                    'font_color': 'blue', 'underline': 1, 'font_size': 10
                                }))
-        cover_sheet.write('A14', "Logo Placeholder: Insert LEAN 2.0 Institute logo", bold_format)
         cover_sheet.set_column('A:F', 20)
 
         # Executive Summary Sheet
@@ -359,7 +358,7 @@ def generate_excel_report(
         worksheet_contact.set_column('B:B', 50, cell_format)
         for col_num, value in enumerate(contact_df.columns.values):
             worksheet_contact.write(3, col_num, value, header_format)
-        worksheet_contact.write('A7', "Collaborate with Us", bold_format)
+        worksheet_contact.write('A7', "¡Trabajemos juntos! | Let's work together!", bold_format)
         worksheet_contact.write('A8', TRANSLATIONS[language]["marketing_message"], wrap_format)
 
     excel_output.seek(0)
