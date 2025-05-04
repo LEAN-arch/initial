@@ -1023,7 +1023,6 @@ else:
                         'values': [TRANSLATIONS[st.session_state.language]["actionable_charts"], 3, 5, 2 + len(priority_df), 5],
                         'data_labels': {'percentage': True},
                     })
-                    pie_chart.set_title({'name': 'Priority Distribution'})
                     worksheet_charts.insert_chart('J10', pie_chart)
 
                     # Contact Sheet
