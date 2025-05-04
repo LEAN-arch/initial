@@ -7,7 +7,6 @@ import base64
 import io
 import numpy as np
 import os
-import uuid
 
 # Set page configuration
 st.set_page_config(page_title="Auditoría Ética de Lugar de Trabajo Lean", layout="wide", initial_sidebar_state="expanded")
@@ -73,16 +72,10 @@ st.markdown("""
         .stRadio>label:hover {
             background-color: #BBDEFB;
         }
-        .unanswered {
-            border: 2px solid var(--error);
-            border-radius: 8px;
-            padding: 0.5rem;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { border-color: var(--error); }
-            50% { border-color: #EF5350; }
-            100% { border-color: var(--error); }
+        .required {
+            color: var(--error);
+            font-weight: 600;
+            margin-left: 0.25rem;
         }
         .header {
             color: var(--primary);
@@ -191,6 +184,12 @@ st.markdown("""
         }
         .progress-step:hover {
             background-color: #BBDEFB;
+        }
+        .progress-completion {
+            background-color: var(--secondary);
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.3s ease;
         }
         .card {
             background-color: #FAFAFA;
@@ -307,8 +306,6 @@ if 'prev_language' not in st.session_state:
     st.session_state.prev_language = st.session_state.language
 if 'show_intro' not in st.session_state:
     st.session_state.show_intro = True
-if 'submission_confirmed' not in st.session_state:
-    st.session_state.submission_confirmed = False
 
 # Sidebar navigation
 with st.sidebar:
@@ -341,7 +338,6 @@ if st.session_state.language != st.session_state.prev_language:
     st.session_state.responses = {}
     st.session_state.prev_language = st.session_state.language
     st.session_state.show_intro = True
-    st.session_state.submission_confirmed = False
 
 # Introductory modal
 if st.session_state.show_intro:
@@ -355,7 +351,7 @@ if st.session_state.show_intro:
                 
                 **Pasos**:
                 1. Responde las preguntas de cada categoría.
-                2. Genera y descarga tu informe.
+                2. Revisa y descarga tu informe.
                 
                 ¡Empecemos!
                 """
@@ -365,7 +361,7 @@ if st.session_state.show_intro:
                 
                 **Steps**:
                 1. Answer questions for each category.
-                2. Generate and download your report.
+                2. Review and download your report.
                 
                 Let’s get started!
                 """
@@ -481,123 +477,129 @@ if not st.session_state.show_intro:
             )
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # Progress feedback
+        # Progress completion bar
+        completed_questions = sum(len([s for s in scores if s is not None]) for scores in st.session_state.responses.values())
+        total_questions = sum(len(scores) for scores in st.session_state.responses.values())
+        completion_percentage = (completed_questions / total_questions) * 100 if total_questions > 0 else 0
         st.markdown(
-            f'<div class="motivation">{st.session_state.current_category + 1}/{len(categories)} categorías completadas</div>'
-            if st.session_state.language == "Español" else
-            f'<div class="motivation">{st.session_state.current_category + 1}/{len(categories)} categories completed</div>',
+            f"""
+            <div style='background-color: #ECEFF1; border-radius: 4px; margin: 1rem 0;'>
+                <div class='progress-completion' style='width: {completion_percentage}%;'></div>
+            </div>
+            <div class='motivation'>{completed_questions}/{total_questions} preguntas completadas ({completion_percentage:.1f}%)</div>
+            """ if st.session_state.language == "Español" else
+            f"""
+            <div style='background-color: #ECEFF1; border-radius: 4px; margin: 1rem 0;'>
+                <div class='progress-completion' style='width: {completion_percentage}%;'></div>
+            </div>
+            <div class='motivation'>{completed_questions}/{total_questions} questions completed ({completion_percentage:.1f}%)</div>
+            """,
             unsafe_allow_html=True
         )
 
-        # Category questions
-        category_index = min(st.session_state.current_category, len(categories) - 1)
-        category = categories[category_index]
-        
-        with st.container():
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown(f'<div class="subheader">{category}</div>', unsafe_allow_html=True)
-            for idx, (q, q_type) in enumerate(questions[category][st.session_state.language]):
-                with st.container():
-                    is_unanswered = st.session_state.responses[category][idx] is None
-                    st.markdown(
-                        f"""
-                        <div class="tooltip">
-                            <strong>{q}</strong> {'<span style="color: var(--error);">*</span>' if is_unanswered else ''}
-                            <span class="tooltiptext">Proporciona datos verificables para una evaluación precisa.</span>
-                        </div>
-                        """ if st.session_state.language == "Español" else
-                        f"""
-                        <div class="tooltip">
-                            <strong>{q}</strong> {'<span style="color: var(--error);">*</span>' if is_unanswered else ''}
-                            <span class="tooltiptext">Provide verifiable data for an accurate assessment.</span>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-                    css_class = "unanswered" if is_unanswered else ""
-                    st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
-                    options = [0, 25, 50, 75, 100]
-                    score = st.radio(
-                        "",
-                        options,
-                        format_func=lambda x: f"{x}% - {labels[q_type][st.session_state.language][options.index(x)]}",
-                        key=f"{category}_{idx}",
-                        horizontal=True,
-                        help="Selecciona una respuesta basada en datos verificables." if st.session_state.language == "Español" else
-                             "Select a response based on verifiable data."
-                    )
-                    st.session_state.responses[category][idx] = score
-                    st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+        # Check if audit is complete
+        audit_complete = all(all(score is not None for score in scores) for scores in st.session_state.responses.values())
 
-        # Sticky navigation
-        with st.container():
-            st.markdown('<div class="sticky-nav">', unsafe_allow_html=True)
-            col1, col2 = st.columns([1, 1], gap="small")
-            with col1:
-                if st.button(
-                    "⬅ Anterior" if st.session_state.language == "Español" else "⬅ Previous",
-                    disabled=category_index == 0,
-                    use_container_width=True,
-                    help="Volver a la categoría anterior" if st.session_state.language == "Español" else "Go to previous category"
-                ):
-                    st.session_state.current_category = max(category_index - 1, 0)
-                    st.rerun()
-            with col2:
-                if category_index < len(categories) - 1:
+        # Category questions
+        if not audit_complete:
+            category_index = min(st.session_state.current_category, len(categories) - 1)
+            category = categories[category_index]
+            
+            with st.container():
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown(f'<div class="subheader">{category}</div>', unsafe_allow_html=True)
+                for idx, (q, q_type) in enumerate(questions[category][st.session_state.language]):
+                    with st.container():
+                        is_unanswered = st.session_state.responses[category][idx] is None
+                        st.markdown(
+                            f"""
+                            <div class="tooltip">
+                                <strong>{q}</strong> {'<span class="required">*</span>' if is_unanswered else ''}
+                                <span class="tooltiptext">Proporciona datos verificables para una evaluación precisa.</span>
+                            </div>
+                            """ if st.session_state.language == "Español" else
+                            f"""
+                            <div class="tooltip">
+                                <strong>{q}</strong> {'<span class="required">*</span>' if is_unanswered else ''}
+                                <span class="tooltiptext">Provide verifiable data for an accurate assessment.</span>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        options = [0, 25, 50, 75, 100]
+                        score = st.radio(
+                            "",
+                            options,
+                            format_func=lambda x: f"{x}% - {labels[q_type][st.session_state.language][options.index(x)]}",
+                            key=f"{category}_{idx}",
+                            horizontal=True,
+                            help="Selecciona una respuesta basada en datos verificables." if st.session_state.language == "Español" else
+                                 "Select a response based on verifiable data."
+                        )
+                        st.session_state.responses[category][idx] = score
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            # Sticky navigation
+            with st.container():
+                st.markdown('<div class="sticky-nav">', unsafe_allow_html=True)
+                col1, col2 = st.columns([1, 1], gap="small")
+                with col1:
                     if st.button(
-                        "Siguiente ➡" if st.session_state.language == "Español" else "Next ➡",
-                        disabled=category_index == len(categories) - 1,
+                        "⬅ Anterior" if st.session_state.language == "Español" else "⬅ Previous",
+                        disabled=category_index == 0,
                         use_container_width=True,
-                        help="Avanzar a la siguiente categoría" if st.session_state.language == "Español" else "Go to next category"
+                        help="Volver a la categoría anterior" if st.session_state.language == "Español" else "Go to previous category"
                     ):
-                        if all(score is not None for score in st.session_state.responses[category]):
-                            st.session_state.current_category = min(category_index + 1, len(categories) - 1)
-                            st.rerun()
-                        else:
-                            unanswered = [q for i, (q, _) in enumerate(questions[category][st.session_state.language]) if st.session_state.responses[category][i] is None]
-                            st.error(
-                                f"Por favor, responde las siguientes preguntas: {', '.join([q[:50] + '...' if len(q) > 50 else q for q in unanswered])}" if st.session_state.language == "Español" else
-                                f"Please answer the following questions: {', '.join([q[:50] + '...' if len(q) > 50 else q for q in unanswered])}"
-                            )
-                            first_unanswered_idx = next((i for i, score in enumerate(st.session_state.responses[category]) if score is None), None)
-                            if first_unanswered_idx is not None:
-                                st.markdown(
-                                    f"""
-                                    <script>
-                                        document.getElementById('{category}_{first_unanswered_idx}').scrollIntoView({{behavior: 'smooth', block: 'center'}});
-                                        document.getElementById('{category}_{first_unanswered_idx}').focus();
-                                    </script>
-                                    """,
-                                    unsafe_allow_html=True
+                        st.session_state.current_category = max(category_index - 1, 0)
+                        st.rerun()
+                with col2:
+                    if category_index < len(categories) - 1:
+                        if st.button(
+                            "Siguiente ➡" if st.session_state.language == "Español" else "Next ➡",
+                            disabled=category_index == len(categories) - 1,
+                            use_container_width=True,
+                            help="Avanzar a la siguiente categoría" if st.session_state.language == "Español" else "Go to next category"
+                        ):
+                            if all(score is not None for score in st.session_state.responses[category]):
+                                st.session_state.current_category = min(category_index + 1, len(categories) - 1)
+                                st.rerun()
+                            else:
+                                unanswered = [q for i, (q, _) in enumerate(questions[category][st.session_state.language]) if st.session_state.responses[category][i] is None]
+                                st.error(
+                                    f"Por favor, responde las siguientes preguntas: {', '.join([q[:50] + '...' if len(q) > 50 else q for q in unanswered])}" if st.session_state.language == "Español" else
+                                    f"Please answer the following questions: {', '.join([q[:50] + '...' if len(q) > 50 else q for q in unanswered])}"
                                 )
-                else:
-                    if st.button(
-                        "Enviar Auditoría" if st.session_state.language == "Español" else "Submit Audit",
-                        use_container_width=True,
-                        help="Finalizar y generar el informe" if st.session_state.language == "Español" else "Finalize and generate report"
-                    ):
-                        if all(all(score is not None for score in scores) for scores in st.session_state.responses.values()):
-                            with st.form(key="submission_form"):
-                                st.markdown(
-                                    "Estás a punto de enviar la auditoría. ¿Deseas continuar?" if st.session_state.language == "Español" else
-                                    "You are about to submit the audit. Do you wish to continue?"
+                                first_unanswered_idx = next((i for i, score in enumerate(st.session_state.responses[category]) if score is None), None)
+                                if first_unanswered_idx is not None:
+                                    st.markdown(
+                                        f"""
+                                        <script>
+                                            document.getElementById('{category}_{first_unanswered_idx}').scrollIntoView({{behavior: 'smooth', block: 'center'}});
+                                            document.getElementById('{category}_{first_unanswered_idx}').focus();
+                                        </script>
+                                        """,
+                                        unsafe_allow_html=True
+                                    )
+                    else:
+                        if st.button(
+                            "Ver Resultados" if st.session_state.language == "Español" else "View Results",
+                            use_container_width=True,
+                            help="Ver el informe de la auditoría" if st.session_state.language == "Español" else "View audit report"
+                        ):
+                            if all(all(score is not None for score in scores) for scores in st.session_state.responses.values()):
+                                st.session_state.current_category = len(categories)
+                                st.rerun()
+                            else:
+                                unanswered_questions = []
+                                for cat in categories:
+                                    for i, (q, _) in enumerate(questions[cat][st.session_state.language]):
+                                        if st.session_state.responses[cat][i] is None:
+                                            unanswered_questions.append(f"{cat}: {q[:50] + '...' if len(q) > 50 else q}")
+                                st.error(
+                                    f"Por favor, responde todas las preguntas en todas las categorías. Preguntas faltantes: {', '.join(unanswered_questions)}" if st.session_state.language == "Español" else
+                                    f"Please answer all questions in all categories. Missing questions: {', '.join(unanswered_questions)}"
                                 )
-                                if st.form_submit_button("Confirmar / Confirm"):
-                                    st.session_state.submission_confirmed = True
-                                    st.session_state.current_category = len(categories)
-                                    st.rerun()
-                        else:
-                            unanswered_questions = []
-                            for cat in categories:
-                                for i, (q, _) in enumerate(questions[cat][st.session_state.language]):
-                                    if st.session_state.responses[cat][i] is None:
-                                        unanswered_questions.append(f"{cat}: {q[:50] + '...' if len(q) > 50 else q}")
-                            st.error(
-                                f"Por favor, responde todas las preguntas en todas las categorías. Preguntas faltantes: {', '.join(unanswered_questions)}" if st.session_state.language == "Español" else
-                                f"Please answer all questions in all categories. Missing questions: {', '.join(unanswered_questions)}"
-                            )
-            st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
 
         # Grading matrix
         def get_grade(score):
@@ -631,7 +633,7 @@ if not st.session_state.show_intro:
                 )
 
         # Generate report
-        if st.session_state.current_category >= len(categories) and st.session_state.submission_confirmed:
+        if audit_complete:
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown(
                 f'<div class="subheader">{"Tu Informe de Impacto en el Lugar de Trabajo" if st.session_state.language == "Español" else "Your Workplace Impact Report"}</div>',
@@ -719,126 +721,119 @@ if not st.session_state.show_intro:
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            # Question-level breakdown
-            st.markdown(
-                "<div class='subheader'>Análisis Detallado: Perspectivas a Nivel de Pregunta</div>" if st.session_state.language == "Español" else 
-                "<div class='subheader'>Drill Down: Question-Level Insights</div>",
-                unsafe_allow_html=True
-            )
-            selected_category = st.selectbox(
-                "Seleccionar Categoría para Explorar" if st.session_state.language == "Español" else "Select Category to Explore",
-                categories,
-                key="category_explore"
-            )
-            question_scores = pd.DataFrame({
-                "Pregunta" if st.session_state.language == "Español" else "Question": [q for q, _ in questions[selected_category][st.session_state.language]],
-                "Puntuación" if st.session_state.language == "Español" else "Score": st.session_state.responses[selected_category]
-            })
-            fig_questions = px.bar(
-                question_scores,
-                x="Puntuación" if st.session_state.language == "Español" else "Score",
-                y="Pregunta" if st.session_state.language == "Español" else "Question",
-                orientation='h',
-                title=f"Puntuaciones de Preguntas para {selected_category}" if st.session_state.language == "Español" else f"Question Scores for {selected_category}",
-                labels={"Puntuación" if st.session_state.language == "Español" else "Score": "Puntuación (%)" if st.session_state.language == "Español" else "Score (%)", "Pregunta" if st.session_state.language == "Español" else "Question": "Pregunta" if st.session_state.language == "Español" else "Question"},
-                color="Puntuación" if st.session_state.language == "Español" else "Score",
-                color_continuous_scale=["#D32F2F", "#FFD54F", "#43A047"],
-                range_x=[0, 100],
-                height=300 + len(question_scores) * 50
-            )
-            fig_questions.update_layout(
-                showlegend=False,
-                title_x=0.5,
-                xaxis_title="Puntuación (%)" if st.session_state.language == "Español" else "Score (%)",
-                yaxis_title="Pregunta" if st.session_state.language == "Español" else "Question",
-                coloraxis_showscale=False,
-                margin=dict(l=150, r=50, t=100, b=50)
-            )
-            st.plotly_chart(fig_questions, use_container_width=True)
+            # Question-level breakdown (collapsible)
+            with st.expander("Análisis Detallado: Perspectivas a Nivel de Pregunta" if st.session_state.language == "Español" else "Drill Down: Question-Level Insights"):
+                selected_category = st.selectbox(
+                    "Seleccionar Categoría para Explorar" if st.session_state.language == "Español" else "Select Category to Explore",
+                    categories,
+                    key="category_explore"
+                )
+                question_scores = pd.DataFrame({
+                    "Pregunta" if st.session_state.language == "Español" else "Question": [q for q, _ in questions[selected_category][st.session_state.language]],
+                    "Puntuación" if st.session_state.language == "Español" else "Score": st.session_state.responses[selected_category]
+                })
+                fig_questions = px.bar(
+                    question_scores,
+                    x="Puntuación" if st.session_state.language == "Español" else "Score",
+                    y="Pregunta" if st.session_state.language == "Español" else "Question",
+                    orientation='h',
+                    title=f"Puntuaciones de Preguntas para {selected_category}" if st.session_state.language == "Español" else f"Question Scores for {selected_category}",
+                    labels={"Puntuación" if st.session_state.language == "Español" else "Score": "Puntuación (%)" if st.session_state.language == "Español" else "Score (%)", "Pregunta" if st.session_state.language == "Español" else "Question": "Pregunta" if st.session_state.language == "Español" else "Question"},
+                    color="Puntuación" if st.session_state.language == "Español" else "Score",
+                    color_continuous_scale=["#D32F2F", "#FFD54F", "#43A047"],
+                    range_x=[0, 100],
+                    height=300 + len(question_scores) * 50
+                )
+                fig_questions.update_layout(
+                    showlegend=False,
+                    title_x=0.5,
+                    xaxis_title="Puntuación (%)" if st.session_state.language == "Español" else "Score (%)",
+                    yaxis_title="Pregunta" if st.session_state.language == "Español" else "Question",
+                    coloraxis_showscale=False,
+                    margin=dict(l=150, r=50, t=100, b=50)
+                )
+                st.plotly_chart(fig_questions, use_container_width=True)
 
             # Actionable insights
-            st.markdown(
-                "<div class='subheader'>Perspectivas Accionables</div>" if st.session_state.language == "Español" else "<div class='subheader'>Actionable Insights</div>",
-                unsafe_allow_html=True
-            )
-            insights = []
-            recommendations = {
-                "Empoderamiento de Empleados": {
-                    0: "Establece un sistema formal para rastrear e implementar sugerencias de empleados con métricas claras.",
-                    1: "Aumenta las horas de capacitación profesional, asegurando acceso equitativo para todos los empleados.",
-                    2: "Asigna presupuestos a más iniciativas lideradas por empleados para fomentar la innovación.",
-                    3: "Programa foros mensuales para retroalimentación directa entre empleados y gerencia."
-                },
-                "Liderazgo Ético": {
-                    0: "Implementa boletines mensuales para comunicar decisiones de liderazgo de manera transparente.",
-                    1: "Incluye a representantes de empleados en la revisión de todas las políticas laborales nuevas.",
-                    2: "Crea un programa formal de reconocimiento para comportamientos éticos, con incentivos claros."
-                },
-                "Operaciones Centradas en las Personas": {
-                    0: "Integra retroalimentación de empleados en cada revisión de procesos lean para eliminar redundancias.",
-                    1: "Realiza auditorías trimestrales de prácticas operativas con enfoque en el bienestar.",
-                    2: "Capacita a todos los empleados en herramientas lean, priorizando la colaboración."
-                },
-                "Prácticas Sostenibles y Éticas": {
-                    0: "Lanza iniciativas lean específicas para reducir el consumo de recursos, con metas medibles.",
-                    1: "Audita anualmente a todos los proveedores principales para garantizar estándares éticos.",
-                    2: "Involucra a más empleados en proyectos de sostenibilidad con impacto comunitario."
-                },
-                "Bienestar y Equilibrio": {
-                    0: "Amplía el acceso a recursos de bienestar, como asesoramiento y horarios flexibles.",
-                    1: "Implementa encuestas mensuales para monitorear el agotamiento y actuar rápidamente.",
-                    2: "Establece procesos formales para abordar desafíos reportados con planes de acción."
+            with st.expander("Perspectivas Accionables" if st.session_state.language == "Español" else "Actionable Insights"):
+                insights = []
+                recommendations = {
+                    "Empoderamiento de Empleados": {
+                        0: "Establece un sistema formal para rastrear e implementar sugerencias de empleados con métricas claras.",
+                        1: "Aumenta las horas de capacitación profesional, asegurando acceso equitativo para todos los empleados.",
+                        2: "Asigna presupuestos a más iniciativas lideradas por empleados para fomentar la innovación.",
+                        3: "Programa foros mensuales para retroalimentación directa entre empleados y gerencia."
+                    },
+                    "Liderazgo Ético": {
+                        0: "Implementa boletines mensuales para comunicar decisiones de liderazgo de manera transparente.",
+                        1: "Incluye a representantes de empleados en la revisión de todas las políticas laborales nuevas.",
+                        2: "Crea un programa formal de reconocimiento para comportamientos éticos, con incentivos claros."
+                    },
+                    "Operaciones Centradas en las Personas": {
+                        0: "Integra retroalimentación de empleados en cada revisión de procesos lean para eliminar redundancias.",
+                        1: "Realiza auditorías trimestrales de prácticas operativas con enfoque en el bienestar.",
+                        2: "Capacita a todos los empleados en herramientas lean, priorizando la colaboración."
+                    },
+                    "Prácticas Sostenibles y Éticas": {
+                        0: "Lanza iniciativas lean específicas para reducir el consumo de recursos, con metas medibles.",
+                        1: "Audita anualmente a todos los proveedores principales para garantizar estándares éticos.",
+                        2: "Involucra a más empleados en proyectos de sostenibilidad con impacto comunitario."
+                    },
+                    "Bienestar y Equilibrio": {
+                        0: "Amplía el acceso a recursos de bienestar, como asesoramiento y horarios flexibles.",
+                        1: "Implementa encuestas mensuales para monitorear el agotamiento y actuar rápidamente.",
+                        2: "Establece procesos formales para abordar desafíos reportados con planes de acción."
+                    }
+                } if st.session_state.language == "Español" else {
+                    "Empowering Employees": {
+                        0: "Establish a formal system to track and implement employee suggestions with clear metrics.",
+                        1: "Increase professional training hours, ensuring equitable access for all employees.",
+                        2: "Allocate budgets to more employee-led initiatives to foster innovation.",
+                        3: "Schedule monthly forums for direct employee-management feedback."
+                    },
+                    "Ethical Leadership": {
+                        0: "Implement monthly newsletters to transparently communicate leadership decisions.",
+                        1: "Include employee representatives in reviewing all new workplace policies.",
+                        2: "Create a formal recognition program for ethical behavior with clear incentives."
+                    },
+                    "Human-Centered Operations": {
+                        0: "Integrate employee feedback into every lean process review to eliminate redundancies.",
+                        1: "Conduct quarterly audits of operational practices focusing on well-being.",
+                        2: "Train all employees on lean tools, prioritizing collaboration."
+                    },
+                    "Sustainable and Ethical Practices": {
+                        0: "Launch specific lean initiatives to reduce resource consumption with measurable goals.",
+                        1: "Audit all primary suppliers annually to ensure ethical standards.",
+                        2: "Engage more employees in sustainability projects with community impact."
+                    },
+                    "Well-Being and Balance": {
+                        0: "Expand access to well-being resources, such as counseling and flexible schedules.",
+                        1: "Implement monthly surveys to monitor burnout and act swiftly.",
+                        2: "Establish formal processes to address reported challenges with action plans."
+                    }
                 }
-            } if st.session_state.language == "Español" else {
-                "Empowering Employees": {
-                    0: "Establish a formal system to track and implement employee suggestions with clear metrics.",
-                    1: "Increase professional training hours, ensuring equitable access for all employees.",
-                    2: "Allocate budgets to more employee-led initiatives to foster innovation.",
-                    3: "Schedule monthly forums for direct employee-management feedback."
-                },
-                "Ethical Leadership": {
-                    0: "Implement monthly newsletters to transparently communicate leadership decisions.",
-                    1: "Include employee representatives in reviewing all new workplace policies.",
-                    2: "Create a formal recognition program for ethical behavior with clear incentives."
-                },
-                "Human-Centered Operations": {
-                    0: "Integrate employee feedback into every lean process review to eliminate redundancies.",
-                    1: "Conduct quarterly audits of operational practices focusing on well-being.",
-                    2: "Train all employees on lean tools, prioritizing collaboration."
-                },
-                "Sustainable and Ethical Practices": {
-                    0: "Launch specific lean initiatives to reduce resource consumption with measurable goals.",
-                    1: "Audit all primary suppliers annually to ensure ethical standards.",
-                    2: "Engage more employees in sustainability projects with community impact."
-                },
-                "Well-Being and Balance": {
-                    0: "Expand access to well-being resources, such as counseling and flexible schedules.",
-                    1: "Implement monthly surveys to monitor burnout and act swiftly.",
-                    2: "Establish formal processes to address reported challenges with action plans."
-                }
-            }
-            for cat in categories:
-                if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50:
-                    insights.append(
-                        f"**{cat}** obtuvo {df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Alta Prioridad). Enfócate en mejoras inmediatas." if st.session_state.language == "Español" else
-                        f"**{cat}** scored {df.loc[cat, 'Percent']:.1f}% (High Priority). Focus on immediate improvements."
+                for cat in categories:
+                    if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50:
+                        insights.append(
+                            f"**{cat}** obtuvo {df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Alta Prioridad). Enfócate en mejoras inmediatas." if st.session_state.language == "Español" else
+                            f"**{cat}** scored {df.loc[cat, 'Percent']:.1f}% (High Priority). Focus on immediate improvements."
+                        )
+                    elif df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70:
+                        insights.append(
+                            f"**{cat}** obtuvo {df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Prioridad Media). Considera acciones específicas." if st.session_state.language == "Español" else
+                            f"**{cat}** scored {df.loc[cat, 'Percent']:.1f}% (Medium Priority). Consider targeted actions."
+                        )
+                if insights:
+                    st.markdown(
+                        "<div class='insights'>" + "<br>".join(insights) + "</div>",
+                        unsafe_allow_html=True
                     )
-                elif df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70:
-                    insights.append(
-                        f"**{cat}** obtuvo {df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Prioridad Media). Considera acciones específicas." if st.session_state.language == "Español" else
-                        f"**{cat}** scored {df.loc[cat, 'Percent']:.1f}% (Medium Priority). Consider targeted actions."
+                else:
+                    st.markdown(
+                        "<div class='insights'>¡Todas las categorías obtuvieron más del 70%! Continúa manteniendo estas fortalezas.</div>" if st.session_state.language == "Español" else 
+                        "<div class='insights'>All categories scored above 70%! Continue maintaining these strengths.</div>",
+                        unsafe_allow_html=True
                     )
-            if insights:
-                st.markdown(
-                    "<div class='insights'>" + "<br>".join(insights) + "</div>",
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown(
-                    "<div class='insights'>¡Todas las categorías obtuvieron más del 70%! Continúa manteniendo estas fortalezas.</div>" if st.session_state.language == "Español" else 
-                    "<div class='insights'>All categories scored above 70%! Continue maintaining these strengths.</div>",
-                    unsafe_allow_html=True
-                )
 
             # LEAN 2.0 Institute Advertisement
             st.markdown(
@@ -977,8 +972,8 @@ if not st.session_state.show_intro:
                         pdf_output.seek(0)
                         b64_pdf = base64.b64encode(pdf_output.getvalue()).decode()
                         href_pdf = (
-                            f'<a href="data:application/pdf;base64,{b64_pdf}" download="informe_auditoria_lugar_trabajo_etico.pdf" class="download-link">Descargar Informe PDF y Plan de Acción</a>' if st.session_state.language == "Español" else 
-                            f'<a href="data:application/pdf;base64,{b64_pdf}" download="ethical_workplace_audit_report.pdf" class="download-link">Download PDF Report & Action Plan</a>'
+                            f'<a href="data:application/pdf;base64,{b64_pdf}" download="informe_auditoria_lugar_trabajo_etico.pdf" class="download-link" role="button" aria-label="Descargar Informe PDF">Descargar Informe PDF y Plan de Acción</a>' if st.session_state.language == "Español" else 
+                            f'<a href="data:application/pdf;base64,{b64_pdf}" download="ethical_workplace_audit_report.pdf" class="download-link" role="button" aria-label="Download PDF Report">Download PDF Report & Action Plan</a>'
                         )
                         st.markdown(href_pdf, unsafe_allow_html=True)
                         pdf_output.close()
@@ -1004,8 +999,8 @@ if not st.session_state.show_intro:
                         excel_output.seek(0)
                         b64_excel = base64.b64encode(excel_output.getvalue()).decode()
                         href_excel = (
-                            f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lugar_trabajo_etico.xlsx" class="download-link">Descargar Informe Excel</a>' if st.session_state.language == "Español" else 
-                            f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="ethical_workplace_audit_results.xlsx" class="download-link">Download Excel Report</a>'
+                            f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lugar_trabajo_etico.xlsx" class="download-link" role="button" aria-label="Descargar Informe Excel">Descargar Informe Excel</a>' if st.session_state.language == "Español" else 
+                            f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="ethical_workplace_audit_results.xlsx" class="download-link" role="button" aria-label="Download Excel Report">Download Excel Report</a>'
                         )
                         st.markdown(href_excel, unsafe_allow_html=True)
                         excel_output.close()
