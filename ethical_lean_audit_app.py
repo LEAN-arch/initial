@@ -1,197 +1,359 @@
 import streamlit as st
 import pandas as pd
-from io import BytesIO
 import matplotlib.pyplot as plt
-import seaborn as sns
-import uuid
-import os
+from fpdf import FPDF
+import base64
+import io
+import numpy as np
 
-# Set Streamlit page configuration
-st.set_page_config(page_title="Ethical Lean Audit", layout="wide")
-
-# CSS for styling the Streamlit app
+# Custom CSS for enhanced visual impact
 st.markdown("""
-<style>
-    .main {background-color: #f9f9f9;}
-    .block-container {padding-top: 2rem;}
-    h1, h2, h3, h4 {color: #2c3e50;}
-    .stRadio > div {flex-direction: row;}
-    .stButton > button {background-color: #4CAF50; color: white;}
-    .stDownloadButton > button {background-color: #2196F3; color: white;}
-</style>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f9f9f9;
+        }
+        .main {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .stButton>button {
+            background-color: #005b96;
+            color: white;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .stButton>button:hover {
+            background-color: #003366;
+        }
+        .stRadio>label {
+            background-color: #e6f0fa;
+            padding: 8px;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        .header {
+            color: #005b96;
+            font-size: 2.5em;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .subheader {
+            color: #333;
+            font-size: 1.5em;
+            margin-top: 20px;
+        }
+        .sidebar .sidebar-content {
+            background-color: #f0f4f8;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .download-link {
+            color: #005b96;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .download-link:hover {
+            color: #003366;
+            text-decoration: underline;
+        }
+    </style>
 """, unsafe_allow_html=True)
 
-# Language selection with session state to persist choice
-if 'language' not in st.session_state:
-    st.session_state.language = "English"
+# Set page configuration
+st.set_page_config(page_title="Ethical Lean Audit", layout="wide", initial_sidebar_state="expanded")
 
-language = st.selectbox("Select Language", ["English", "Español"], index=["English", "Español"].index(st.session_state.language))
-st.session_state.language = language
+# Bilingual support
+LANG = st.sidebar.selectbox("Language / Idioma", ["English", "Español"], help="Select your preferred language / Selecciona tu idioma preferido")
 
-# Define sections and questions in both languages
-audit_sections = {
-    "Respect for People": {
+# Likert scale labels
+labels = {
+    "English": ["Not Practiced", "Rarely Practiced", "Partially Implemented", "Mostly Practiced", "Fully Integrated"],
+    "Español": ["No practicado", "Raramente practicado", "Parcialmente implementado", "Mayormente practicado", "Totalmente integrado"]
+}
+
+# Audit categories and questions in both languages
+questions = {
+    "Employee Empowerment and Engagement": {
         "English": [
-            "Are employees engaged in designing solutions that directly affect their work?",
-            "Is there a formal program for upskilling and cross-training employees to ensure they are equipped for evolving roles?",
-            "Do employees have clear career advancement pathways within the Lean system?",
-            "Is there a recognition system for employees who contribute to continuous improvement?"
+            "Are employees actively involved in decision-making processes that directly impact their daily work and job satisfaction?",
+            "Do employees feel their contributions to continuous improvement are valued and recognized by leadership?",
+            "Is there a structured feedback system where employees can openly express concerns and suggest improvements?",
+            "Are all employees given equal access to training and career development opportunities?",
+            "Is there a culture of trust and respect where employees are encouraged to suggest innovations?"
         ],
         "Español": [
-            "¿Están los empleados involucrados en diseñar soluciones que afectan directamente a su trabajo?",
-            "¿Existe un programa formal para mejorar y capacitar a los empleados para que estén preparados para roles cambiantes?",
-            "¿Los empleados tienen caminos claros de desarrollo profesional dentro del sistema Lean?",
-            "¿Existe un sistema de reconocimiento para los empleados que contribuyen a la mejora continua?"
+            "¿Están los empleados activamente involucrados en los procesos de toma de decisiones que impactan directamente en su trabajo diario y satisfacción laboral?",
+            "¿Sienten los empleados que sus contribuciones a la mejora continua son valoradas y reconocidas por el liderazgo?",
+            "¿Existe un sistema estructurado de retroalimentación donde los empleados puedan expresar abiertamente preocupaciones y sugerir mejoras?",
+            "¿Tienen todos los empleados igual acceso a oportunidades de capacitación y desarrollo profesional?",
+            "¿Hay una cultura de confianza y respeto donde se fomenta que los empleados sugieran innovaciones?"
         ]
     },
-    "Operational Integrity": {
+    "Operational Integrity and Continuous Improvement": {
         "English": [
-            "Are Lean processes continuously evaluated for compliance with industry best practices and regulations?",
-            "Is waste reduction and process optimization directly linked to customer satisfaction?",
-            "Is there a framework for continuously identifying and mitigating bottlenecks in production or service delivery?",
-            "Are digital tools and automation incorporated into Lean to enhance data-driven decision-making?"
+            "Are Lean processes regularly assessed for compliance with ethical standards?",
+            "Is there a link between Lean waste reduction and environmental/social responsibility?",
+            "Are bottlenecks proactively identified and addressed?",
+            "Does the Lean system adapt based on internal/external feedback?",
+            "Are digital tools integrated to ensure transparency and traceability?"
         ],
         "Español": [
-            "¿Los procesos Lean se evalúan continuamente para cumplir con las mejores prácticas y regulaciones de la industria?",
-            "¿La reducción de desperdicios y la optimización de procesos están directamente relacionados con la satisfacción del cliente?",
-            "¿Existe un marco para identificar y mitigar continuamente los cuellos de botella en la producción o entrega de servicios?",
-            "¿Se incorporan herramientas digitales y automatización en Lean para mejorar la toma de decisiones basada en datos?"
+            "¿Se evalúan regularmente los procesos Lean para garantizar el cumplimiento de los estándares éticos?",
+            "¿Existe una conexión entre la reducción de desperdicios Lean y la responsabilidad ambiental/social?",
+            "¿Se identifican y abordan proactivamente los cuellos de botella?",
+            "¿Se adapta el sistema Lean en función de retroalimentación interna/externa?",
+            "¿Se integran herramientas digitales para garantizar transparencia y trazabilidad?"
+        ]
+    },
+    "Customer Satisfaction and Value": {
+        "English": [
+            "Is customer satisfaction a key metric for Lean success?",
+            "Is feedback integrated into continuous improvement?",
+            "Do Lean processes prioritize value over efficiency?",
+            "Is customer satisfaction regularly measured?",
+            "Are product/service improvements validated by customers?"
+        ],
+        "Español": [
+            "¿Es la satisfacción del cliente una métrica clave para el éxito de Lean?",
+            "¿Se integra la retroalimentación en la mejora continua?",
+            "¿Priorizan los procesos Lean el valor sobre la eficiencia?",
+            "¿Se mide regularmente la satisfacción del cliente?",
+            "¿Se validan las mejoras de productos/servicios con los clientes?"
+        ]
+    },
+    "Ethical Leadership and Decision-Making": {
+        "English": [
+            "Does leadership model ethical behavior and transparency?",
+            "Are ethical considerations part of Lean tool implementation?",
+            "Is the workforce impact of Lean transparent to stakeholders?",
+            "Are social and ethical Lean impacts tracked and addressed?",
+            "Are leaders accountable for ethical Lean implementation?"
+        ],
+        "Español": [
+            "¿Modela el liderazgo un comportamiento ético y transparencia?",
+            "¿Forman parte las consideraciones éticas de la implementación de herramientas Lean?",
+            "¿Es transparente el impacto de Lean en la fuerza laboral para las partes interesadas?",
+            "¿Se rastrean y abordan los impactos sociales y éticos de Lean?",
+            "¿Son los líderes responsables de la implementación ética de Lean?"
+        ]
+    },
+    "Sustainability and Long-Term Impact": {
+        "English": [
+            "Does Lean focus on long-term sustainable practices?",
+            "Are Lean principles part of CSR strategies?",
+            "Is carbon footprint reduction part of Lean?",
+            "Are sustainability metrics part of Lean performance?",
+            "Is there a scaling plan that maintains ethics and sustainability?"
+        ],
+        "Español": [
+            "¿Se enfoca Lean en prácticas sostenibles a largo plazo?",
+            "¿Forman parte los principios Lean de las estrategias de responsabilidad social corporativa?",
+            "¿Es la reducción de la huella de carbono parte de Lean?",
+            "¿Forman parte las métricas de sostenibilidad del rendimiento Lean?",
+            "¿Existe un plan de escalado que mantenga la ética y la sostenibilidad?"
+        ]
+    },
+    "Supplier and Partner Relationships": {
+        "English": [
+            "Are Lean principles applied fairly to suppliers?",
+            "Does Lean avoid unfair labor or environmental harm in supply chains?",
+            "Do suppliers collaborate in Lean process improvements?",
+            "Are ethical suppliers prioritized?",
+            "Are supplier ethics regularly assessed?"
+        ],
+        "Español": [
+            "¿Se aplican los principios Lean de manera justa a los proveedores?",
+            "¿Evita Lean el daño laboral o ambiental injusto en las cadenas de suministro?",
+            "¿Colaboran los proveedores en las mejoras de procesos Lean?",
+            "¿Se priorizan los proveedores éticos?",
+            "¿Se evalúan regularmente la ética de los proveedores?"
+        ]
+    },
+    "Lean System Transparency and Adaptability": {
+        "English": [
+            "Are Lean processes transparent to stakeholders?",
+            "Is the Lean system flexible to change?",
+            "Are Lean strategies regularly reviewed?",
+            "Can employees propose Lean process changes?",
+            "Is continuous learning fostered in Lean culture?"
+        ],
+        "Español": [
+            "¿Son los procesos Lean transparentes para las partes interesadas?",
+            "¿Es el sistema Lean flexible al cambio?",
+            "¿Se revisan regularmente las estrategias Lean?",
+            "¿Pueden los empleados proponer cambios en los procesos Lean?",
+            "¿Se fomenta el aprendizaje continuo en la cultura Lean?"
+        ]
+    },
+    "Cultural Alignment and Organizational Health": {
+        "English": [
+            "Is Lean aligned with organizational mission and culture?",
+            "Are Lean tools adapted to company culture?",
+            "Is cross-departmental collaboration promoted?",
+            "Are voices from all levels heard in Lean?",
+            "Is psychological safety encouraged?"
+        ],
+        "Español": [
+            "¿Está Lean alineado con la misión y la cultura organizacional?",
+            "¿Se adaptan las herramientas Lean a la cultura de la empresa?",
+            "¿Se promueve la colaboración interdepartamental?",
+            "¿Se escuchan las voces de todos los niveles en Lean?",
+            "¿Se fomenta la seguridad psicológica?"
+        ]
+    },
+    "Employee Well-Being and Work-Life Balance": {
+        "English": [
+            "Is employee well-being prioritized in Lean?",
+            "Are stress and burnout monitored?",
+            "Are workloads regularly assessed and adjusted?",
+            "Is there a culture of empathy and support?",
+            "Is Lean performance measured holistically (efficiency + satisfaction)?"
+        ],
+        "Español": [
+            "¿Se prioriza el bienestar de los empleados en Lean?",
+            "¿Se monitorean el estrés y el agotamiento?",
+            "¿Se evalúan y ajustan regularmente las cargas de trabajo?",
+            "¿Hay una cultura de empatía y apoyo?",
+            "¿Se mide el rendimiento Lean de manera holística (eficiencia + satisfacción)?"
+        ]
+    },
+    "Ethical Decision-Making and Transparency in Metrics": {
+        "English": [
+            "Are ethical frameworks used in Lean performance evaluation?",
+            "Are KPIs aligned with ethical values?",
+            "Are Lean outcomes celebrated fairly?",
+            "Are ethical implications reviewed before Lean decisions?",
+            "Are Lean metrics shared externally for accountability?"
+        ],
+        "Español": [
+            "¿Se utilizan marcos éticos en la evaluación del rendimiento Lean?",
+            "¿Están los KPI alineados con valores éticos?",
+            "¿Se celebran los resultados Lean de manera justa?",
+            "¿Se revisan las implicaciones éticas antes de las decisiones Lean?",
+            "¿Se comparten las métricas Lean externamente para rendir cuentas?"
         ]
     }
 }
 
-# Initialize results in session state
-if 'results' not in st.session_state:
-    st.session_state.results = {}
+# Initialize session state for responses and progress
+if 'responses' not in st.session_state:
+    st.session_state.responses = {cat: [0] * len(questions[cat][LANG]) for cat in questions}
+if 'current_category' not in st.session_state:
+    st.session_state.current_category = 0
 
-st.title(f"Ethical Lean Audit Checklist - {language}")
+# Main title with logo placeholder
+st.markdown('<div class="header">Ethical Lean Audit</div>' if LANG == "English" else '<div class="header">Auditoría Lean Ética</div>', unsafe_allow_html=True)
+st.markdown("![Logo](https://via.placeholder.com/100x50?text=Your+Logo)" if LANG == "English" else "![Logo](https://via.placeholder.com/100x50?text=Tu+Logo)", unsafe_allow_html=True)
 
-st.write("### Step 1: Answer the Questions")
+# Progress bar
+categories = list(questions.keys())
+progress = (st.session_state.current_category / len(categories)) * 100
+st.progress(progress)
 
-# Form for audit questions
-with st.form("audit_form"):
-    for section, questions in audit_sections.items():
-        st.subheader(section)
-        for i, q in enumerate(questions[language]):
-            # Use unique key for each radio button
-            key = f"{section}_{i}_{str(uuid.uuid4())[:8]}"
-            response = st.radio(q, ["Yes", "No"], key=key)
-            st.session_state.results[q] = 1 if response == "Yes" else 0
-    submitted = st.form_submit_button("Generate Report")
+# Category navigation
+st.sidebar.subheader("Progress" if LANG == "English" else "Progreso")
+category_index = st.sidebar.slider(
+    "Select Category / Seleccionar Categoría",
+    0, len(categories) - 1, st.session_state.current_category,
+    disabled=False
+)
+st.session_state.current_category = category_index
+category = categories[category_index]
 
-# Process results after form submission
-if submitted:
-    st.markdown("---")
-    st.header("Step 2: Audit Results & Summary")
+# Collect responses for the current category
+st.markdown(f'<div class="subheader">{category}</div>', unsafe_allow_html=True)
+for idx, q in enumerate(questions[category][LANG]):
+    score = st.radio(
+        f"{q}",
+        list(range(1, 6)),
+        format_func=lambda x: f"{x} - {labels[LANG][x-1]}",
+        key=f"{category}_{idx}",
+        horizontal=True
+    )
+    st.session_state.responses[category][idx] = score
+
+# Navigation buttons
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("Previous Category" if LANG == "English" else "Categoría Anterior", disabled=category_index == 0):
+        st.session_state.current_category -= 1
+        st.rerun()
+with col2:
+    if st.button("Next Category" if LANG == "English" else "Siguiente Categoría", disabled=category_index == len(categories) - 1):
+        st.session_state.current_category += 1
+        st.rerun()
+
+# Generate report
+if st.button("Generate Report" if LANG == "English" else "Generar Informe", key="generate_report"):
+    st.markdown(f'<div class="subheader">{"Audit Results" if LANG == "English" else "Resultados de la Auditoría"}</div>', unsafe_allow_html=True)
     
-    # Calculate section scores
-    section_scores = {}
-    for section, questions in audit_sections.items():
-        score = sum([st.session_state.results.get(q, 0) for q in questions[language]])
-        section_scores[section] = score
+    # Calculate scores
+    results = {cat: sum(scores) for cat, scores in st.session_state.responses.items()}
+    df = pd.DataFrame.from_dict(results, orient="index", columns=["Score"])
+    df["Percent"] = (df["Score"] / (len(questions[category][LANG]) * 5)) * 100
+    st.dataframe(df.style.format({"Percent": "{:.1f}%"}))
 
-    # Create DataFrame for results
-    df = pd.DataFrame.from_dict(section_scores, orient='index', columns=['Score'])
-    df["Max Score"] = len(audit_sections[list(audit_sections.keys())[0]][language])
-    df["Percentage"] = (df["Score"] / df["Max Score"] * 100).round(1)
+    # Radar chart
+    categories = list(df.index)
+    values = df["Percent"].values.tolist()
     
-    # Display results table
-    st.dataframe(df.style.format({"Percentage": "{:.1f}%"}), use_container_width=True)
-
-    # Calculate and display total score
-    total_score = df["Score"].sum()
-    max_total_score = df["Max Score"].sum()
-    st.metric("Total Ethical Lean Score", f"{total_score} / {max_total_score}")
-
-    # Generate and display bar chart
-    plt.style.use('seaborn')
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.barplot(x=df.index, y="Percentage", data=df, palette="viridis")
-    ax.set_title("Audit Section Performance", pad=20)
-    ax.set_ylabel("Percentage")
-    ax.set_xlabel("Sections")
-    plt.xticks(rotation=45, ha='right')
+    fig, ax = plt.subplots(figsize=(12, 8), subplot_kw=dict(polar=True))
+    angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
+    values += values[:1]
+    angles += angles[:1]
+    
+    ax.plot(angles, values, linewidth=2, linestyle='solid', label='Score', color='#005b96')
+    ax.fill(angles, values, '#e6f0fa', alpha=0.5)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories, fontsize=10, wrap=True, color='#333')
+    ax.set_yticklabels([])
+    ax.set_title("Ethical Lean Audit Radar" if LANG == "English" else "Radar de Auditoría Lean Ética", size=18, pad=20, color='#005b96')
+    ax.grid(True, color='#ccc', linestyle='--')
     plt.tight_layout()
     st.pyplot(fig)
-    plt.close(fig)
 
-    # Generate and display pie chart
-    fig2, ax2 = plt.subplots(figsize=(6, 6))
-    ax2.pie([total_score, max_total_score - total_score], 
-            labels=["Score", "Remaining"], 
-            autopct='%1.1f%%', 
-            startangle=90, 
-            colors=["#4CAF50", "#FFC107"])
-    ax2.axis('equal')
-    ax2.set_title("Overall Score Distribution")
-    plt.tight_layout()
-    st.pyplot(fig2)
-    
-    # Excel export function
-    def to_excel(dataframe):
-        output = BytesIO()
-        try:
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                dataframe.to_excel(writer, sheet_name='Audit Summary', index=True)
-                
-                # Adding bar chart to Excel
-                workbook = writer.book
-                worksheet = writer.sheets['Audit Summary']
-                chart = workbook.add_chart({'type': 'column'})
-                chart.add_series({
-                    'name': 'Percentage',
-                    'categories': f"=Audit Summary!$A$2:$A${len(dataframe) + 1}",
-                    'values': f"=Audit Summary!$C$2:$C${len(dataframe) + 1}"
-                })
-                chart.set_title({'name': 'Section Performance'})
-                chart.set_x_axis({'name': 'Sections'})
-                chart.set_y_axis({'name': 'Percentage (%)'})
-                worksheet.insert_chart('F2', chart)
-                
-                # Save pie chart as image
-                temp_img_path = f"temp_pie_chart_{str(uuid.uuid4())[:8]}.png"
-                fig2.savefig(temp_img_path, bbox_inches='tight')
-                worksheet.insert_image('F18', temp_img_path)
-                
-            output.seek(0)
-        finally:
-            # Clean up temporary file
-            if os.path.exists(temp_img_path):
-                os.remove(temp_img_path)
+    # PDF Report
+    class PDF(FPDF):
+        def header(self):
+            self.set_font("Helvetica", "B", 14)
+            self.set_text_color(0, 91, 150)
+            self.cell(0, 10, "Ethical Lean Audit Report" if LANG == "English" else "Informe de Auditoría Lean Ética", 0, 1, "C")
+            self.ln(5)
         
-        return output
+        def footer(self):
+            self.set_y(-15)
+            self.set_font("Helvetica", "I", 8)
+            self.set_text_color(100)
+            self.cell(0, 10, f"Page {self.page_no()}", 0, 0, "C")
 
-    # Generate and provide Excel download
-    excel_file = to_excel(df)
-    st.download_button(
-        label="Download Excel Report",
-        data=excel_file,
-        file_name="Ethical_Lean_Audit_Report.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-    # Actionable recommendations
-    st.markdown("### Actionable Insights")
+    pdf = PDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=12)
+    pdf.set_text_color(51)
+    pdf.cell(0, 10, "Audit Results" if LANG == "English" else "Resultados de la Auditoría", ln=True)
+    pdf.ln(5)
     
-    percentage_score = (total_score / max_total_score * 100) if max_total_score > 0 else 0
-    if percentage_score <= 50:
-        st.write("""
-        **Recommendation:** Your organization is in the early stages of implementing ethical Lean practices. 
-        Prioritize employee engagement through participatory decision-making and establish formal upskilling programs. 
-        Align Lean processes with customer satisfaction metrics and conduct regular compliance audits.
-        """)
-    elif percentage_score <= 75:
-        st.write("""
-        **Recommendation:** You're making good progress with ethical Lean practices. 
-        Focus on strengthening cross-functional collaboration and integrating digital tools for data-driven decisions. 
-        Enhance bottleneck identification processes and ensure consistent employee recognition programs.
-        """)
-    else:
-        st.write("""
-        **Recommendation:** Your organization demonstrates strong alignment with ethical Lean principles. 
-        To maintain excellence, scale innovation through advanced feedback loops and predictive analytics. 
-        Ensure incentives are aligned with long-term goals and expand employee-driven continuous improvement initiatives.
-        """)
+    for cat, row in df.iterrows():
+        pdf.cell(0, 10, f"{cat}: {row['Percent']:.1f}%", ln=True)
+    
+    pdf_output = io.BytesIO()
+    pdf.output(pdf_output)
+    pdf_output.seek(0)
+    b64_pdf = base64.b64encode(pdf_output.getvalue()).decode()
+    href_pdf = f'<a href="data:application/pdf;base64,{b64_pdf}" download="ethical_lean_audit_report.pdf" class="download-link">Download PDF Report</a>' if LANG == "English" else f'<a href="data:application/pdf;base64,{b64_pdf}" download="informe_auditoria_lean_etica.pdf" class="download-link">Descargar Informe PDF</a>'
+    st.markdown(href_pdf, unsafe_allow_html=True)
 
-if __name__ == "__main__":
-    st.write("Run this app with: streamlit run ethical_lean_audit_app.py")
+    # Excel export
+    excel_output = io.BytesIO()
+    with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, sheet_name='Audit Results' if LANG == "English" else 'Resultados de la Auditoría', float_format="%.1f")
+    excel_output.seek(0)
+    b64_excel = base64.b64encode(excel_output.getvalue()).decode()
+    href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="ethical_lean_audit_results.xlsx" class="download-link">Download Excel Report</a>' if LANG == "English" else f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lean_etica.xlsx" class="download-link">Descargar Informe Excel</a>'
+    st.markdown(href_excel, unsafe_allow_html=True)
+
