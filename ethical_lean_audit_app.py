@@ -437,7 +437,7 @@ if not st.session_state.show_intro:
                             f"""
                             <div class="tooltip">
                                 <strong>{q}</strong> {'<span class="required">*</span>' if is_unanswered else ''}
-                                <span class="tooltiptext">{response_options[q_type]['tooltip']}</span>
+                                <span class="tooltiptext">{response_options[q_type][st.session_state.language]['tooltip']}</span>
                             </div>
                             """,
                             unsafe_allow_html=True
@@ -450,7 +450,7 @@ if not st.session_state.show_intro:
                             format_func=lambda x: x,
                             key=f"{category}_{idx}",
                             horizontal=False,
-                            help=response_options[q_type]['tooltip'],
+                            help=response_options[q_type][st.session_state.language]['tooltip'],
                             label_visibility="hidden",
                             args=({"aria-label": q},)
                         )
