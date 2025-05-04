@@ -2,11 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from fpdf import FPDF
 import base64
 import io
 import numpy as np
-import textwrap
+import xlsxwriter
 
 # Set page configuration
 st.set_page_config(page_title="Auditoría Ética de Lugar de Trabajo Lean", layout="wide", initial_sidebar_state="expanded")
@@ -249,31 +248,6 @@ st.markdown("""
         .stSelectbox select:hover {
             background-color: #BBDEFB;
         }
-        .reference-table {
-            background-color: #E3F2FD;
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-            border-left: 4px solid var(--primary);
-        }
-        .reference-table .stDataFrame {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .reference-table .stDataFrame th {
-            background-color: var(--primary);
-            color: white;
-            font-weight: 600;
-            padding: 0.5rem;
-            text-align: left;
-            border-bottom: 1px solid #BBDEFB;
-        }
-        .reference-table .stDataFrame td {
-            background-color: var(--surface);
-            padding: 0.5rem;
-            text-align: left;
-            border-bottom: 1px solid #BBDEFB;
-        }
         @media (max-width: 768px) {
             .main-container {
                 padding: 1rem;
@@ -304,10 +278,6 @@ st.markdown("""
             .sticky-nav {
                 flex-direction: column;
                 gap: 0.5rem;
-            }
-            .reference-table .stDataFrame th, .reference-table .stDataFrame td {
-                font-size: 0.9rem;
-                padding: 0.3rem;
             }
         }
         [role="radiogroup"] {
@@ -503,73 +473,79 @@ if not st.session_state.show_intro:
             unsafe_allow_html=True
         )
 
-        # Response options
+        # Response options with descriptions as selectable options
         response_options = {
             "percentage": {
-                "Español": ["0%", "25%", "50%", "75%", "100%"],
-                "English": ["0%", "25%", "50%", "75%", "100%"],
-                "tooltip": "Selecciona el porcentaje que mejor refleje la situación. Por ejemplo, '100%' significa que todos los casos aplican, '0%' significa que ninguno aplica." if st.session_state.language == "Español" else
-                          "Select the percentage that best reflects the situation. For example, '100%' means all cases apply, '0%' means none apply.",
-                "reference": {
-                    "Español": [
-                        ("0%", "Ninguna sugerencia/proceso fue implementado."),
-                        ("25%", "Aproximadamente una cuarta parte fue implementada."),
-                        ("50%", "La mitad fue implementada."),
-                        ("75%", "Tres cuartas partes fueron implementadas."),
-                        ("100%", "Todas las sugerencias/procesos fueron implementados.")
+                "Español": {
+                    "descriptions": [
+                        "Ninguna sugerencia/proceso fue implementado.",
+                        "Aproximadamente una cuarta parte fue implementada.",
+                        "La mitad fue implementada.",
+                        "Tres cuartas partes fueron implementadas.",
+                        "Todas las sugerencias/procesos fueron implementados."
                     ],
-                    "English": [
-                        ("0%", "No suggestions/processes were implemented."),
-                        ("25%", "About one-quarter were implemented."),
-                        ("50%", "Half were implemented."),
-                        ("75%", "Three-quarters were implemented."),
-                        ("100%", "All suggestions/processes were implemented.")
-                    ]
-                }
+                    "scores": [0, 25, 50, 75, 100]
+                },
+                "English": {
+                    "descriptions": [
+                        "No suggestions/processes were implemented.",
+                        "About one-quarter were implemented.",
+                        "Half were implemented.",
+                        "Three-quarters were implemented.",
+                        "All suggestions/processes were implemented."
+                    ],
+                    "scores": [0, 25, 50, 75, 100]
+                },
+                "tooltip": "Selecciona la descripción que mejor refleje la proporción de casos aplicados." if st.session_state.language == "Español" else
+                          "Select the description that best reflects the proportion of cases applied."
             },
             "frequency": {
-                "Español": ["Nunca", "Rara vez", "A veces", "A menudo", "Siempre"],
-                "English": ["Never", "Rarely", "Sometimes", "Often", "Always"],
-                "tooltip": "Indica la frecuencia de la práctica. 'Siempre' significa que ocurre en cada oportunidad, 'Nunca' significa que no ocurre nunca." if st.session_state.language == "Español" else
-                          "Indicate the frequency of the practice. 'Always' means it happens every time, 'Never' means it never happens.",
-                "reference": {
-                    "Español": [
-                        ("Nunca", "Esto nunca ocurre."),
-                        ("Rara vez", "Ocurre muy pocas veces al año."),
-                        ("A veces", "Ocurre varias veces al año."),
-                        ("A menudo", "Ocurre regularmente, casi siempre."),
-                        ("Siempre", "Ocurre en cada oportunidad.")
+                "Español": {
+                    "descriptions": [
+                        "Esto nunca ocurre.",
+                        "Ocurre muy pocas veces al año.",
+                        "Ocurre varias veces al año.",
+                        "Ocurre regularmente, casi siempre.",
+                        "Ocurre en cada oportunidad."
                     ],
-                    "English": [
-                        ("Never", "This never occurs."),
-                        ("Rarely", "Occurs very few times a year."),
-                        ("Sometimes", "Occurs several times a year."),
-                        ("Often", "Occurs regularly, almost always."),
-                        ("Always", "Occurs every time.")
-                    ]
-                }
+                    "scores": [0, 25, 50, 75, 100]
+                },
+                "English": {
+                    "descriptions": [
+                        "This never occurs.",
+                        "Occurs very few times a year.",
+                        "Occurs several times a year.",
+                        "Occurs regularly, almost always.",
+                        "Occurs every time."
+                    ],
+                    "scores": [0, 25, 50, 75, 100]
+                },
+                "tooltip": "Selecciona la descripción que mejor refleje la frecuencia de la práctica." if st.session_state.language == "Español" else
+                          "Select the description that best reflects the frequency of the practice."
             },
             "count": {
-                "Español": ["Ninguno", "Pocos", "Algunos", "Muchos", "La mayoría"],
-                "English": ["None", "Few", "Some", "Many", "Most"],
-                "tooltip": "Estima la cantidad de empleados o casos afectados. 'La mayoría' significa más del 75%, 'Ninguno' significa 0%." if st.session_state.language == "Español" else
-                          "Estimate the number of employees or cases affected. 'Most' means over 75%, 'None' means 0%.",
-                "reference": {
-                    "Español": [
-                        ("Ninguno", "Ningún empleado o caso afectado (0%)."),
-                        ("Pocos", "Menos de un cuarto de los empleados (1-25%)."),
-                        ("Algunos", "Entre un cuarto y la mitad (25-50%)."),
-                        ("Muchos", "Más de la mitad pero no la mayoría (50-75%)."),
-                        ("La mayoría", "Más del 75% de los empleados o casos.")
+                "Español": {
+                    "descriptions": [
+                        "Ningún empleado o caso afectado (0%).",
+                        "Menos de un cuarto de los empleados (1-25%).",
+                        "Entre un cuarto y la mitad (25-50%).",
+                        "Más de la mitad pero no la mayoría (50-75%).",
+                        "Más del 75% de los empleados o casos."
                     ],
-                    "English": [
-                        ("None", "No employees or cases affected (0%)."),
-                        ("Few", "Less than a quarter of employees (1-25%)."),
-                        ("Some", "Between a quarter and half (25-50%)."),
-                        ("Many", "More than half but not most (50-75%)."),
-                        ("Most", "Over 75% of employees or cases.")
-                    ]
-                }
+                    "scores": [0, 25, 50, 75, 100]
+                },
+                "English": {
+                    "descriptions": [
+                        "No employees or cases affected (0%).",
+                        "Less than a quarter of employees (1-25%).",
+                        "Between a quarter and half (25-50%).",
+                        "More than half but not most (50-75%).",
+                        "Over 75% of employees or cases."
+                    ],
+                    "scores": [0, 25, 50, 75, 100]
+                },
+                "tooltip": "Selecciona la descripción que mejor refleje la cantidad de empleados o casos afectados." if st.session_state.language == "Español" else
+                          "Select the description that best reflects the number of employees or cases affected."
             }
         }
 
@@ -615,33 +591,12 @@ if not st.session_state.show_intro:
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.markdown(f'<div class="subheader">{category}</div>', unsafe_allow_html=True)
                 
-                # Reference guide for responses
-                with st.expander("Guía de Referencia para Respuestas" if st.session_state.language == "Español" else "Reference Guide for Responses", expanded=True):
+                # Response guide (no table, just instructions)
+                with st.expander("Guía de Respuestas" if st.session_state.language == "Español" else "Response Guide", expanded=True):
                     st.markdown(
-                        "Consulta esta guía para entender las opciones de respuesta para cada tipo de pregunta." if st.session_state.language == "Español" else
-                        "Refer to this guide to understand the response options for each question type."
+                        "Selecciona la descripción que mejor represente la situación para cada pregunta. Las opciones describen el grado, frecuencia o cantidad aplicable." if st.session_state.language == "Español" else
+                        "Select the description that best represents the situation for each question. The options describe the degree, frequency, or quantity applicable."
                     )
-                    st.markdown('<div class="reference-table">', unsafe_allow_html=True)
-                    # Create DataFrame for reference table
-                    reference_data = []
-                    type_label = "Porcentaje" if st.session_state.language == "Español" else "Percentage"
-                    for opt, desc in response_options["percentage"]["reference"][st.session_state.language]:
-                        reference_data.append([type_label, opt, desc])
-                    type_label = "Frecuencia" if st.session_state.language == "Español" else "Frequency"
-                    for opt, desc in response_options["frequency"]["reference"][st.session_state.language]:
-                        reference_data.append([type_label, opt, desc])
-                    type_label = "Cantidad" if st.session_state.language == "Español" else "Count"
-                    for opt, desc in response_options["count"]["reference"][st.session_state.language]:
-                        reference_data.append([type_label, opt, desc])
-                    
-                    reference_df = pd.DataFrame(
-                        reference_data,
-                        columns=["Tipo" if st.session_state.language == "Español" else "Type",
-                                 "Opción" if st.session_state.language == "Español" else "Option",
-                                 "Descripción" if st.session_state.language == "Español" else "Description"]
-                    )
-                    st.dataframe(reference_df, use_container_width=True, hide_index=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
 
                 for idx, (q, q_type) in enumerate(questions[category][st.session_state.language]):
                     with st.container():
@@ -655,16 +610,19 @@ if not st.session_state.show_intro:
                             """,
                             unsafe_allow_html=True
                         )
-                        options = [0, 25, 50, 75, 100]
-                        score = st.radio(
+                        descriptions = response_options[q_type][st.session_state.language]["descriptions"]
+                        scores = response_options[q_type][st.session_state.language]["scores"]
+                        selected_description = st.radio(
                             "",
-                            options,
-                            format_func=lambda x: response_options[q_type][st.session_state.language][options.index(x)],
+                            descriptions,
+                            format_func=lambda x: x,  # Display descriptions as-is
                             key=f"{category}_{idx}",
-                            horizontal=True,
+                            horizontal=False,  # Vertical layout for readability due to longer descriptions
                             help=response_options[q_type]['tooltip']
                         )
-                        st.session_state.responses[category][idx] = score
+                        # Map selected description to its corresponding score
+                        score_idx = descriptions.index(selected_description)
+                        st.session_state.responses[category][idx] = scores[score_idx]
                 st.markdown('</div>', unsafe_allow_html=True)
 
             # Sticky navigation
@@ -1008,145 +966,124 @@ if not st.session_state.show_intro:
             )
             st.markdown("<div class='insights'>" + "<br>".join(ad_text) + "</div>", unsafe_allow_html=True)
 
-            # Download buttons
+            # Download button (Excel only)
             st.markdown(
                 '<div class="subheader">Descarga tu Informe</div>' if st.session_state.language == "Español" else
                 '<div class="subheader">Download Your Report</div>',
                 unsafe_allow_html=True
             )
-            col1, col2 = st.columns(2)
+            with st.spinner("Generando Excel..." if st.session_state.language == "Español" else "Generating Excel..."):
+                try:
+                    excel_output = io.BytesIO()
+                    with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
+                        workbook = writer.book
+                        bold = workbook.add_format({'bold': True})
+                        percent_format = workbook.add_format({'num_format': '0.0%'})
+                        red_format = workbook.add_format({'bg_color': '#D32F2F', 'font_color': '#FFFFFF'})
+                        yellow_format = workbook.add_format({'bg_color': '#FFD54F', 'font_color': '#212121'})
+                        green_format = workbook.add_format({'bg_color': '#43A047', 'font_color': '#FFFFFF'})
+                        border_format = workbook.add_format({'border': 1})
 
-            # PDF Report
-            with col1:
-                with st.spinner("Generando PDF..." if st.session_state.language == "Español" else "Generating PDF..."):
-                    try:
-                        pdf = FPDF()
-                        pdf.set_margins(20, 20, 20)
-                        pdf.add_page()
-                        font_name = 'Helvetica'
-                        pdf.set_font(font_name, 'B', 14)
-                        pdf.set_text_color(30, 136, 229)
-                        pdf.cell(0, 10, "Informe de Auditoría del Lugar de Trabajo Ético" if st.session_state.language == "Español" else "Ethical Workplace Audit Report", ln=True, align="C")
-                        pdf.ln(10)
+                        # Summary Sheet
+                        summary_df = pd.DataFrame({
+                            "Puntuación General" if st.session_state.language == "Español" else "Overall Score": [f"{overall_score:.1f}%"],
+                            "Calificación" if st.session_state.language == "Español" else "Grade": [grade],
+                            "Resumen de Hallazgos" if st.session_state.language == "Español" else "Findings Summary": [
+                                f"{len(df[df['Porcentaje' if st.session_state.language == 'Español' else 'Percent'] < 50])} categorías requieren acción urgente (<50%), {len(df[(df['Porcentaje' if st.session_state.language == 'Español' else 'Percent'] >= 50) & (df['Porcentaje' if st.session_state.language == 'Español' else 'Percent'] < 70)])} necesitan mejoras específicas (50-69%). La puntuación general es {overall_score:.1f}% ({grade})." if st.session_state.language == "Español" else
+                                f"{len(df[df['Percent'] < 50])} categories require urgent action (<50%), {len(df[(df['Percent'] >= 50) & (df['Percent'] < 70)])} need specific improvements (50-69%). Overall score is {overall_score:.1f}% ({grade})."
+                            ]
+                        })
+                        summary_df.to_excel(writer, sheet_name='Resumen' if st.session_state.language == "Español" else 'Summary', index=False)
+                        worksheet_summary = writer.sheets['Resumen' if st.session_state.language == "Español" else 'Summary']
+                        worksheet_summary.set_column('A:A', 20)
+                        worksheet_summary.set_column('B:B', 15)
+                        worksheet_summary.set_column('C:C', 60)
+                        for col_num, value in enumerate(summary_df.columns.values):
+                            worksheet_summary.write(0, col_num, value, bold)
 
-                        # Overall Grade
-                        pdf.set_font(font_name, 'B', 11)
-                        pdf.set_text_color(51)
-                        wrapped_grade = textwrap.wrap(f"Calificación General del Lugar de Trabajo: {grade} ({overall_score:.1f}%)" if st.session_state.language == "Español" else
-                                                     f"Overall Workplace Grade: {grade} ({overall_score:.1f}%)", width=80)
-                        for line in wrapped_grade:
-                            pdf.multi_cell(0, 8, line)
-                        pdf.set_font(font_name, '', 10)
-                        wrapped_description = textwrap.wrap(grade_description, width=80)
-                        for line in wrapped_description:
-                            pdf.multi_cell(0, 8, line)
-                        pdf.ln(8)
+                        # Results Sheet
+                        df.to_excel(writer, sheet_name='Resultados' if st.session_state.language == "Español" else 'Results', float_format="%.1f")
+                        worksheet_results = writer.sheets['Resultados' if st.session_state.language == "Español" else 'Results']
+                        worksheet_results.set_column('A:A', 30)
+                        worksheet_results.set_column('B:C', 15)
+                        worksheet_results.set_column('D:D', 20)
+                        for col_num, value in enumerate(df.columns.values):
+                            worksheet_results.write(0, col_num + 1, value, bold)
+                        worksheet_results.write(0, 0, 'Categoría' if st.session_state.language == "Español" else 'Category', bold)
+                        for row_num, value in enumerate(df['Porcentaje' if st.session_state.language == "Español" else 'Percent']):
+                            cell_format = red_format if value < 50 else yellow_format if value < 70 else green_format
+                            worksheet_results.write(row_num + 1, 2, value / 100, percent_format)
+                            worksheet_results.write(row_num + 1, 2, value / 100, cell_format)
 
-                        # Audit Results
-                        pdf.set_font(font_name, 'B', 11)
-                        pdf.multi_cell(0, 8, "Resultados de la Auditoría" if st.session_state.language == "Español" else "Audit Results")
-                        pdf.set_font(font_name, '', 10)
-                        pdf.ln(5)
-                        for cat, row in df.iterrows():
-                            result_text = f"{cat}: {row['Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}% (Prioridad: {row['Prioridad' if st.session_state.language == 'Español' else 'Priority']})"
-                            wrapped_result = textwrap.wrap(result_text, width=80)
-                            for line in wrapped_result:
-                                pdf.multi_cell(0, 8, line)
-                        pdf.ln(8)
-
-                        # Action Plan
-                        pdf.add_page()
-                        pdf.set_font(font_name, 'B', 11)
-                        pdf.multi_cell(0, 8, "Plan de Acción" if st.session_state.language == "Español" else "Action Plan")
-                        pdf.set_font(font_name, '', 10)
-                        pdf.ln(5)
+                        # Findings and Suggestions Sheet
+                        findings_data = []
                         for cat in categories:
                             if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 70:
-                                pdf.set_font(font_name, 'B', 11)
-                                wrapped_cat = textwrap.wrap(cat, width=80)
-                                for line in wrapped_cat:
-                                    pdf.multi_cell(0, 8, line)
-                                pdf.set_font(font_name, '', 10)
+                                findings_data.append([
+                                    cat,
+                                    f"{df.loc[cat, 'Porcentaje' if st.session_state.language == 'Español' else 'Percent']:.1f}%",
+                                    "Alta" if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50 else "Media" if st.session_state.language == "Español" else
+                                    "High" if df.loc[cat, "Percent"] < 50 else "Medium",
+                                    "Acción urgente requerida." if df.loc[cat, "Porcentaje" if st.session_state.language == "Español" else "Percent"] < 50 else "Se necesitan mejoras específicas." if st.session_state.language == "Español" else
+                                    "Urgent action required." if df.loc[cat, "Percent"] < 50 else "Specific improvements needed."
+                                ])
                                 for idx, score in enumerate(st.session_state.responses[cat]):
                                     if score < 70:
                                         question = questions[cat][st.session_state.language][idx][0]
                                         rec = recommendations[cat][idx]
-                                        action_text = f"- {question}: {rec}"
-                                        wrapped_action = textwrap.wrap(action_text, width=75)
-                                        for line in wrapped_action:
-                                            pdf.multi_cell(0, 8, line)
-                                pdf.ln(5)
-
-                        # LEAN 2.0 Institute Advertisement
-                        pdf.add_page()
-                        pdf.set_font(font_name, 'B', 11)
-                        pdf.multi_cell(0, 8, "Asóciate con LEAN 2.0 Institute" if st.session_state.language == "Español" else "Partner with LEAN 2.0 Institute")
-                        pdf.set_font(font_name, '', 10)
-                        pdf.ln(5)
-                        for text in ad_text:
-                            wrapped_text = textwrap.wrap(text, width=80)
-                            for line in wrapped_text:
-                                pdf.multi_cell(0, 8, line)
-
-                        # Certificate
-                        pdf.add_page()
-                        pdf.set_font(font_name, 'B', 14)
-                        pdf.set_text_color(67, 160, 71)
-                        pdf.multi_cell(0, 10, "Certificado de Finalización" if st.session_state.language == "Español" else "Certificate of Completion", align="C")
-                        pdf.ln(10)
-                        pdf.set_font(font_name, '', 10)
-                        pdf.set_text_color(51)
-                        cert_text = (
-                            "¡Felicidades por completar la Auditoría del Lugar de Trabajo Ético! Tus respuestas están ayudando a construir un entorno laboral ético y sostenible. Contáctanos en https://lean2institute.mystrikingly.com/ para apoyo estratégico." if st.session_state.language == "Español" else 
-                            "Congratulations on completing the Ethical Workplace Audit! Your responses are helping build an ethical and sustainable workplace. Contact us at https://lean2institute.mystrikingly.com/ for strategic support."
+                                        findings_data.append([
+                                            "", "", "", f"Pregunta: {question[:50]}... - Sugerencia: {rec}"
+                                        ])
+                        findings_df = pd.DataFrame(
+                            findings_data,
+                            columns=[
+                                "Categoría" if st.session_state.language == "Español" else "Category",
+                                "Puntuación" if st.session_state.language == "Español" else "Score",
+                                "Prioridad" if st.session_state.language == "Español" else "Priority",
+                                "Hallazgos y Sugerencias" if st.session_state.language == "Español" else "Findings and Suggestions"
+                            ]
                         )
-                        wrapped_cert = textwrap.wrap(cert_text, width=80)
-                        for line in wrapped_cert:
-                            pdf.multi_cell(0, 8, line)
+                        findings_df.to_excel(writer, sheet_name='Hallazgos' if st.session_state.language == "Español" else 'Findings', index=False)
+                        worksheet_findings = writer.sheets['Hallazgos' if st.session_state.language == "Español" else 'Findings']
+                        worksheet_findings.set_column('A:A', 30)
+                        worksheet_findings.set_column('B:B', 15)
+                        worksheet_findings.set_column('C:C', 15)
+                        worksheet_findings.set_column('D:D', 60)
+                        for col_num, value in enumerate(findings_df.columns.values):
+                            worksheet_findings.write(0, col_num, value, bold)
+                        for row_num in range(len(findings_df)):
+                            for col_num in range(len(findings_df.columns)):
+                                worksheet_findings.write(row_num + 1, col_num, findings_df.iloc[row_num, col_num], border_format)
 
-                        pdf_output = io.BytesIO()
-                        pdf.output(pdf_output)
-                        pdf_output.seek(0)
-                        b64_pdf = base64.b64encode(pdf_output.getvalue()).decode()
-                        href_pdf = (
-                            f'<a href="data:application/pdf;base64,{b64_pdf}" download="informe_auditoria_lugar_trabajo_etico.pdf" class="download-link" role="button" aria-label="Descargar Informe PDF">Descargar Informe PDF y Plan de Acción</a>' if st.session_state.language == "Español" else 
-                            f'<a href="data:application/pdf;base64,{b64_pdf}" download="ethical_workplace_audit_report.pdf" class="download-link" role="button" aria-label="Download PDF Report">Download PDF Report & Action Plan</a>'
-                        )
-                        st.markdown(href_pdf, unsafe_allow_html=True)
-                        pdf_output.close()
-                    except Exception as e:
-                        st.error(f"Error al generar el PDF: {str(e)}. Por favor, intenta de nuevo o contacta a soporte." if st.session_state.language == "Español" else
-                                 f"Error generating PDF: {str(e)}. Please try again or contact support.")
+                        # Bar Chart
+                        chart_data_df = df[["Porcentaje" if st.session_state.language == "Español" else "Percent"]].reset_index()
+                        chart_data_df.to_excel(writer, sheet_name='Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', index=False)
+                        worksheet_chart = writer.sheets['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data']
+                        chart = workbook.add_chart({'type': 'bar'})
+                        chart.add_series({
+                            'name': 'Puntuación (%)' if st.session_state.language == "Español" else 'Score (%)',
+                            'categories': ['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', 1, 0, len(chart_data_df), 0],
+                            'values': ['Datos_Gráfico' if st.session_state.language == "Español" else 'Chart_Data', 1, 1, len(chart_data_df), 1],
+                            'fill': {'color': '#1E88E5'},
+                        })
+                        chart.set_title({'name': 'Puntuaciones por Categoría' if st.session_state.language == "Español" else 'Category Scores'})
+                        chart.set_x_axis({'name': 'Puntuación (%)' if st.session_state.language == "Español" else 'Score (%)'})
+                        chart.set_y_axis({'name': 'Categoría' if st.session_state.language == "Español" else 'Category'})
+                        worksheet_results.insert_chart('F2', chart)
 
-            # Excel export
-            with col2:
-                with st.spinner("Generando Excel..." if st.session_state.language == "Español" else "Generating Excel..."):
-                    try:
-                        excel_output = io.BytesIO()
-                        with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
-                            df.to_excel(
-                                writer, 
-                                sheet_name='Resultados de la Auditoría' if st.session_state.language == "Español" else 'Audit Results', 
-                                float_format="%.1f"
-                            )
-                            pd.DataFrame({"Puntuación General" if st.session_state.language == "Español" else "Overall Score": [overall_score], "Calificación" if st.session_state.language == "Español" else "Grade": [grade]}).to_excel(
-                                writer, 
-                                sheet_name='Resumen' if st.session_state.language == "Español" else 'Summary', 
-                                index=False
-                            )
-                        excel_output.seek(0)
-                        b64_excel = base64.b64encode(excel_output.getvalue()).decode()
-                        href_excel = (
-                            f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lugar_trabajo_etico.xlsx" class="download-link" role="button" aria-label="Descargar Informe Excel">Descargar Informe Excel</a>' if st.session_state.language == "Español" else 
-                            f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="ethical_workplace_audit_results.xlsx" class="download-link" role="button" aria-label="Download Excel Report">Download Excel Report</a>'
-                        )
-                        st.markdown(href_excel, unsafe_allow_html=True)
-                        excel_output.close()
-                    except ImportError:
-                        st.error("La exportación a Excel requiere 'xlsxwriter'. Por favor, instálalo usando `pip install xlsxwriter`." if st.session_state.language == "Español" else
-                                 "Excel export requires 'xlsxwriter'. Please install it using `pip install xlsxwriter`.")
-                    except Exception as e:
-                        st.error(f"No se pudo generar el archivo Excel: {str(e)}" if st.session_state.language == "Español" else f"Failed to generate Excel file: {str(e)}")
+                    excel_output.seek(0)
+                    b64_excel = base64.b64encode(excel_output.getvalue()).decode()
+                    href_excel = (
+                        f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="resultados_auditoria_lugar_trabajo_etico.xlsx" class="download-link" role="button" aria-label="Descargar Informe Excel">Descargar Informe Excel</a>' if st.session_state.language == "Español" else 
+                        f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="ethical_workplace_audit_results.xlsx" class="download-link" role="button" aria-label="Download Excel Report">Download Excel Report</a>'
+                    )
+                    st.markdown(href_excel, unsafe_allow_html=True)
+                    excel_output.close()
+                except ImportError:
+                    st.error("La exportación a Excel requiere 'xlsxwriter'. Por favor, instálalo usando `pip install xlsxwriter`." if st.session_state.language == "Español" else
+                             "Excel export requires 'xlsxwriter'. Please install it using `pip install xlsxwriter`.")
+                except Exception as e:
+                    st.error(f"No se pudo generar el archivo Excel: {str(e)}" if st.session_state.language == "Español" else f"Failed to generate Excel file: {str(e)}")
 
             st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
