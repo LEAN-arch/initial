@@ -399,7 +399,7 @@ if st.session_state.show_intro:
     with st.container():
         st.markdown('<div class="main-container" role="main">', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="header" role="heading" aria-level="1">🤝 ¡Bienvenido a LEAN 2.0 Institute! Evaluemos tu entorno laboral. / Welcome to LEAN 2.0 Institute! Let's assess your work environment.</div>',
+            f"""<div class="header" role="heading" aria-level="1">🤝 ¡Bienvenido a LEAN 2.0 Institute! Evaluemos tu entorno laboral. / Welcome to LEAN 2.0 Institute! Let's assess your work environment.</div>""",
             unsafe_allow_html=True
         )
         with st.expander("", expanded=True):
