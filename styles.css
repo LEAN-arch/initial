@@ -1,0 +1,326 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root {
+    --primary: #1E88E5;
+    --secondary: #43A047;
+    --error: #D32F2F;
+    --background: #F5F7FA;
+    --surface: #FFFFFF;
+    --text: #212121;
+    --text-secondary: #757575;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--background);
+    color: var(--text);
+    line-height: 1.6;
+}
+
+.main-container {
+    background-color: var(--surface);
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    max-width: 1200px;
+    margin: 2rem auto;
+    transition: transform 0.3s ease;
+}
+
+.stButton>button {
+    background-color: var(--primary);
+    color: white;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    border: none;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stButton>button:hover {
+    background-color: #1565C0;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stButton>button:focus {
+    outline: 3px solid #90CAF9;
+    outline-offset: 2px;
+}
+
+.stButton>button:disabled {
+    background-color: #B0BEC5;
+    cursor: not-allowed;
+}
+
+.stRadio>label {
+    background-color: #E3F2FD;
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.stRadio>label:hover {
+    background-color: #BBDEFB;
+}
+
+.required {
+    color: var(--error);
+    font-weight: 600;
+    margin-left: 0.25rem;
+}
+
+.header {
+    color: var(--primary);
+    font-size: 2.25rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+}
+
+.subheader {
+    color: var(--text);
+    font-size: 1.5rem;
+    margin: 1.5rem 0;
+    text-align: center;
+    font-weight: 600;
+}
+
+.sidebar .sidebar-content {
+    background-color: var(--surface);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.download-link {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.3s ease;
+}
+
+.download-link:hover {
+    color: #1565C0;
+    text-decoration: underline;
+}
+
+.download-link::before {
+    content: '📄';
+    margin-right: 0.5rem;
+}
+
+.motivation {
+    color: var(--secondary);
+    font-size: 1.1rem;
+    text-align: center;
+    margin: 1.5rem 0;
+    font-style: italic;
+    background-color: #E8F5E9;
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+
+.badge {
+    background-color: var(--secondary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 24px;
+    font-size: 1.1rem;
+    text-align: center;
+    margin: 1.5rem auto;
+    display: block;
+    width: fit-content;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.insights {
+    background-color: #E3F2FD;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin: 1.5rem 0;
+    border-left: 4px solid var(--primary);
+}
+
+.grade {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    margin: 1.5rem 0;
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+
+.grade-excellent { background-color: var(--secondary); color: white; }
+.grade-good { background-color: #FFD54F; color: #212121; }
+.grade-needs-improvement { background-color: var(--error); color: white; }
+.grade-critical { background-color: #B71C1C; color: white; }
+
+.progress-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1.5rem 0;
+    background-color: #ECEFF1;
+    padding: 0.5rem;
+    border-radius: 12px;
+}
+
+.progress-step {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.progress-step.active {
+    background-color: var(--primary);
+    color: white;
+}
+
+.progress-step.completed {
+    background-color: var(--secondary);
+    color: white;
+}
+
+.progress-step:hover {
+    background-color: #BBDEFB;
+}
+
+.progress-completion {
+    background-color: var(--secondary);
+    height: 8px;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.card {
+    background-color: #FAFAFA;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin: 1rem 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+}
+
+.sticky-nav {
+    position: sticky;
+    bottom: 1rem;
+    background-color: var(--surface);
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 200px;
+    background-color: #424242;
+    color: white;
+    text-align: center;
+    border-radius: 6px;
+    padding: 0.5rem;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+.stSelectbox select {
+    background-color: #E3F2FD;
+    border-radius: 8px;
+    padding: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.stSelectbox select:hover {
+    background-color: #BBDEFB;
+}
+
+@media (max-width: 768px) {
+    .main-container {
+        padding: 1rem;
+        margin: 1rem;
+    }
+    .header {
+        font-size: 1.75rem;
+    }
+    .subheader {
+        font-size: 1.25rem;
+    }
+    .stButton>button {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    .stRadio>label {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+    }
+    .progress-bar {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .progress-step {
+        font-size: 0.8rem;
+        padding: 0.5rem;
+    }
+    .sticky-nav {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+[role="radiogroup"] {
+    margin: 0.5rem 0;
+}
+
+[role="radio"] {
+    cursor: pointer;
+}
+
+[role="radio"]:focus {
+    outline: 3px solid #90CAF9;
+    outline-offset: 2px;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
