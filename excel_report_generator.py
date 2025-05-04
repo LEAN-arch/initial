@@ -455,7 +455,7 @@ def generate_excel_report(
         worksheet_viz.write('D5', "Brecha de Mejora (50-69%)" if language == "Español" else "Improvement Gap (50-69%)", header_format)
         stacked_chart = workbook.add_chart({'type': 'bar', 'subtype': 'stacked'})
         stacked_chart.add_series({
-            'name': TRANSL subcribe[language]["score_percent"],
+            'name': TRANSLATIONS[language]["score_percent"],
             'categories': f"='{TRANSLATIONS[language]['actionable_charts']}'!$A$6:$A${5 + len(stacked_data)}",
             'values': f"='{TRANSLATIONS[language]['actionable_charts']}'!$B$6:$B${5 + len(stacked_data)}",
             'fill': {'color': '#43A047'},
