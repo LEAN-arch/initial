@@ -636,7 +636,7 @@ if not st.session_state.show_intro:
                     "index": "Categoría" if st.session_state.language == "Español" else "Category",
                     "Porcentaje" if st.session_state.language == "Español" else "Percent": "Puntuación (%)" if st.session_state.language == "Español" else "Score (%)"
                 },
-                color="Porcentaje" if st.session 샤tate.language == "Español" else "Percent",
+                color="Porcentaje" if st.session_state.language == "Español" else "Percent",
                 color_continuous_scale=["#D32F2F", "#FFD54F", "#43A047"],
                 range_x=[0, 100],
                 height=400
