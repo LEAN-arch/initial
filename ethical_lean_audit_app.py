@@ -519,8 +519,8 @@ if not st.session_state.show_intro:
                     ],
                     "scores": [0, 25, 50, 75, 100]
                 },
-                "tooltip": "Selecciona la descripción que mejor refleje la proporción de casos aplicados." if st.session_state.language == "Español" else
-                          "Select the description that best reflects the proportion of cases applied."
+                "tooltip": "Selecciona la descripción que mejor refleje la proporción de casos aplicados. Haz doble clic en cada respuesta para registrarla." if st.session_state.language == "Español" else
+                          "Select the description that best reflects the proportion of cases applied. Please double-click on each response to register it."
             },
             "frequency": {
                 "Español": {
