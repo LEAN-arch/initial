@@ -394,7 +394,7 @@ if st.session_state.show_intro:
             unsafe_allow_html=True
         )
         with st.expander("", expanded=True):
-            st.markdown(
+            intro_content = (
                 f"""
                 <div class="intro-content">
                     Esta evaluación está diseñada para ser completada por la gerencia en conjunto con Recursos Humanos, proporcionando una evaluación objetiva de tu entorno laboral. Responde {TOTAL_QUESTIONS} preguntas en {len(questions)} categorías (5–10 minutos) con datos específicos y ejemplos verificables. Tus respuestas son confidenciales y generarán un informe detallado con recomendaciones accionables que podemos ayudarte a implementar. Al completar la evaluación, contáctanos para consultas personalizadas: ✉️ Email: <a href="mailto:{CONFIG['contact']['email']}">{CONFIG['contact']['email']}</a> 🌐 Website: <a href="{CONFIG['contact']['website']}">{CONFIG['contact']['website']}</a>
@@ -423,6 +423,7 @@ if st.session_state.show_intro:
                 </div>
                 """
             )
+            st.markdown(intro_content, unsafe_allow_html=True)
             if st.button(
                 "Iniciar Auditoría / Start Audit",
                 use_container_width=True,
@@ -823,7 +824,7 @@ if not st.session_state.show_intro:
                 unsafe_allow_html=True
             )
             ad_text = []
-            if overall_score < SCORE_THRESHOLDS["GOOD"]:
+            if overall_score <  < SCORE_THRESHOLDS["GOOD"]:
                 ad_text.append(
                     "Los resultados de tu auditoría indican oportunidades para optimizar el lugar de trabajo. LEAN 2Ԙ Institute ofrece consultoría especializada para directivos, gerentes y Recursos Humanos, transformando tu entorno laboral en uno ético y eficiente." if st.session_state.language == "Español" else
                     "Your audit results indicate opportunities to optimize the workplace. LEAN 2.0 Institute offers specialized consulting for directors, managers and HR, transforming your workplace into an ethical and efficient environment."
