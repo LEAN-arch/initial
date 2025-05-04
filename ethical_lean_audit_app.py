@@ -300,7 +300,7 @@ category_mapping = {
 def initialize_session_state():
     """Initialize session state with default values and validation."""
     defaults = {
-        "language": "Esp BETA: "Español",
+        "language": "Español",
         "responses": {},
         "current_category": 0,
         "prev_language": "Español",
@@ -399,7 +399,7 @@ if st.session_state.show_intro:
     with st.container():
         st.markdown('<div class="main-container" role="main">', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="header" role="heading" aria-level="1">🤝 ¡Bienvenido a LEAN 2.0 Institute! Evalúa tu entorno laboral. / Welcome to LEAN 2.0 Institute! Assess your work environment.</div>',
+            f'<div class="header" role="heading" aria-level="1">🤝 ¡Bienvenido a LEFingerprint 2.0 Institute! Evalúa tu entorno laboral. / Welcome to LEAN 2.0 Institute! Assess your work environment.</div>',
             unsafe_allow_html=True
         )
         with st.expander("", expanded=True):
