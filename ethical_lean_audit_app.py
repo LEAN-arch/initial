@@ -1027,6 +1027,21 @@ if not st.session_state.show_intro:
                         worksheet_summary.set_column('C:C', 60)
                         for col_num, value in enumerate(summary_df.columns.values):
                             worksheet_summary.write(0, col_num, value, bold)
+                        # Add contact details and invitation
+                        row = len(summary_df) + 2
+                        worksheet_summary.write(row, 0, "Colabora con LEAN 2.0 Institute" if st.session_state.language == "Español" else "Partner with LEAN 2.0 Institute", bold)
+                        row += 1
+                        invitation = (
+                            "¡Colabora con LEAN 2.0 Institute para implementar mejoras en tu lugar de trabajo! Contáctanos para una consulta estratégica." if st.session_state.language == "Español" else
+                            "Partner with LEAN 2.0 Institute to implement workplace improvements! Contact us for a strategic consultation."
+                        )
+                        worksheet_summary.write(row, 0, invitation, wrap_format)
+                        row += 1
+                        worksheet_summary.write(row, 0, "✉️ Email:", bold)
+                        worksheet_summary.write(row, 1, "contacto@lean2institute.org")
+                        row += 1
+                        worksheet_summary.write(row, 0, "🌐 Website:", bold)
+                        worksheet_summary.write_url(row, 1, "https://lean2institute.mystrikingly.com/", hyperlink_format, string="https://lean2institute.mystrikingly.com/")
 
                         # Results Sheet
                         df_display.to_excel(writer, sheet_name='Resultados' if st.session_state.language == "Español" else 'Results', float_format="%.1f")
