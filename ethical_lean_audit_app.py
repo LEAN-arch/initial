@@ -55,6 +55,11 @@ st.markdown("""
         .stRadio>label:hover {
             background-color: #d0e9ff;
         }
+        .unanswered {
+            border: 2px solid #ff4d4d;
+            padding: 5px;
+            border-radius: 8px;
+        }
         .header {
             color: #007bff;
             font-size: 2.5em;
@@ -378,9 +383,9 @@ if not st.session_state.show_intro:
                 st.error(f"Discrepancia en el número de preguntas en la categoría {cat} entre Español e Inglés.")
                 st.stop()
 
-        # Initialize responses
+        # Initialize responses with None
         if not st.session_state.responses or len(st.session_state.responses) != len(questions):
-            st.session_state.responses = {cat: [0] * len(questions[cat][LANG]) for cat in questions}
+            st.session_state.responses = {cat: [None] * len(questions[cat][LANG]) for cat in questions}
 
         # Progress stepper
         categories = list(questions.keys())
@@ -410,7 +415,11 @@ if not st.session_state.show_intro:
             st.markdown(f'<div class="subheader">{category}</div>', unsafe_allow_html=True)
             for idx, (q, q_type) in enumerate(questions[category][LANG]):
                 with st.container():
-                    st.markdown(f"**{q}**")
+                    # Highlight unanswered questions
+                    is_unanswered = st.session_state.responses[category][idx] is None
+                    st.markdown(f"**{q}** {'<span style=\"color: red;\">*</span>' if is_unanswered else ''}", unsafe_allow_html=True)
+                    css_class = "unanswered" if is_unanswered else ""
+                    st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
                     options = [0, 25, 50, 75, 100]
                     score = st.radio(
                         "",
@@ -422,6 +431,7 @@ if not st.session_state.show_intro:
                              "Select a response based on verifiable data."
                     )
                     st.session_state.responses[category][idx] = score
+                    st.markdown('</div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
         # Sticky navigation buttons
@@ -443,24 +453,41 @@ if not st.session_state.show_intro:
                         disabled=category_index == len(categories) - 1,
                         use_container_width=True
                     ):
-                        if all(score != 0 for score in st.session_state.responses[category]):
+                        if all(score is not None for score in st.session_state.responses[category]):
                             st.session_state.current_category = min(category_index + 1, len(categories) - 1)
                             st.rerun()
                         else:
+                            unanswered = [q for i, (q, _) in enumerate(questions[category][LANG]) if st.session_state.responses[category][i] is None]
                             st.error(
-                                "Por favor, responde todas las preguntas antes de continuar." if LANG == "Español" else
-                                "Please answer all questions before proceeding."
+                                f"Por favor, responde las siguientes preguntas: {', '.join([q[:50] + '...' if len(q) > 50 else q for q in unanswered])}" if LANG == "Español" else
+                                f"Please answer the following questions: {', '.join([q[:50] + '...' if len(q) > 50 else q for q in unanswered])}"
                             )
+                            # Scroll to first unanswered question
+                            first_unanswered_idx = next((i for i, score in enumerate(st.session_state.responses[category]) if score is None), None)
+                            if first_unanswered_idx is not None:
+                                st.markdown(
+                                    f"""
+                                    <script>
+                                        document.getElementById('{category}_{first_unanswered_idx}').scrollIntoView({{behavior: 'smooth', block: 'center'}});
+                                    </script>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
                 else:
                     if st.button("Enviar Auditoría / Submit Audit"):
-                        if all(all(score != 0 for score in scores) for scores in st.session_state.responses.values()):
+                        if all(all(score is not None for score in scores) for scores in st.session_state.responses.values()):
                             with st.spinner("Generando tu informe... / Generating your report..."):
                                 st.session_state.current_category = len(categories)
                                 st.rerun()
                         else:
+                            unanswered_questions = []
+                            for cat in categories:
+                                for i, (q, _) in enumerate(questions[cat][LANG]):
+                                    if st.session_state.responses[cat][i] is None:
+                                        unanswered_questions.append(f"{cat}: {q[:50] + '...' if len(q) > 50 else q}")
                             st.error(
-                                "Por favor, responde todas las preguntas en todas las categorías." if LANG == "Español" else
-                                "Please answer all questions in all categories."
+                                f"Por favor, responde todas las preguntas en todas las categorías. Preguntas faltantes: {', '.join(unanswered_questions)}" if LANG == "Español" else
+                                f"Please answer all questions in all categories. Missing questions: {', '.join(unanswered_questions)}"
                             )
             st.markdown('</div>', unsafe_allow_html=True)
 
