@@ -340,7 +340,10 @@ category_mapping = {
     }
 }
 
-# Initialize session state at the top
+# Load static data before initializing session state
+questions, response_options = load_static_data()
+
+# Initialize session state
 def initialize_session_state():
     defaults = {
         "language": "Español",
@@ -374,9 +377,6 @@ def initialize_session_state():
 
 # Call initialize_session_state immediately
 initialize_session_state()
-
-# Load static data
-questions, response_options = load_static_data()
 
 # Set page configuration
 st.set_page_config(
@@ -415,7 +415,7 @@ def load_css():
         .badge { background: #1E88E5; color: #FFFFFF; padding: 0.5rem 1rem; border-radius: 16px; display: inline-block; margin: 1rem 0; }
         .progress-bar-container { margin: 1rem 0; height: 30px; }
         .progress-bar { height: 20px; background: #E0E0E0; border-radius: 10px; overflow: hidden; }
-        .progress-bar-fill { height: 100%; background: #1E88E5; transition: width 0.35s; }
+        .progress-bar-fill { height: 100%; background: #1E88E5; transition: width: 0.35s; }
         @media (max-width: 768px) { 
             .main-title { font-size: 2rem; } 
             .section-title { font-size: 1.5rem; } 
