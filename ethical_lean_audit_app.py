@@ -209,7 +209,7 @@ category_mapping = {
 
 # Initialize session state with validation
 def initialize_session_state():
-    """Initialize session state with default values and validate question count."""
+    """Initialize session state with default values and validation."""
     defaults = {
         "language": "Español",
         "responses": {},
@@ -228,30 +228,21 @@ def initialize_session_state():
         st.session_state.language = "Español"
         st.session_state.prev_language = "Español"
     
-    # Initialize or validate responses
-    expected_question_counts = {
-        "Empoderamiento de Empleados": 4,
-        "Liderazgo Ético": 3,
-        "Operaciones Centradas en las Personas": 3,
-        "Prácticas Sostenibles y Éticas": 3,
-        "Bienestar y Equilibrio": 3,
-        "Iniciativas Organizacionales Centradas en las Personas": 4
-    }
-    total_expected_questions = sum(expected_question_counts.values())  # Should be 20
-    
-    # Check if responses structure is valid
-    if (not st.session_state.responses or
+    # Initialize responses with validation
+    expected_counts = {cat: len(questions[cat]["Español"]) for cat in questions}
+    total_expected_questions = sum(expected_counts.values())  # Should be 20
+    if (not st.session_state.responses or 
         len(st.session_state.responses) != len(questions) or
-        any(len(st.session_state.responses[cat]) != expected_question_counts[cat] for cat in expected_question_counts) or
-        sum(len(st.session_state.responses[cat]) for cat in st.session_state.responses) != total_expected_questions):
+        any(len(st.session_state.responses[cat]) != expected_counts[cat] for cat in questions)):
         st.session_state.responses = {
             cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions
         }
+        st.warning(f"Respuestas reiniciadas para {total_expected_questions} preguntas en {len(questions)} categorías.")
     
     # Validate question counts across languages
     for cat in questions:
         if len(questions[cat]["Español"]) != len(questions[cat]["English"]):
-            st.error(f"Error: El número de preguntas en {cat} no coincide entre Español e Inglés.")
+            st.error(f"Error: El número de preguntas en {cat} no coincide entre Español ({len(questions[cat]['Español'])}) e Inglés ({len(questions[cat]['English'])}).")
             st.session_state.responses[cat] = [None] * len(questions[cat][st.session_state.language])
 
 initialize_session_state()
@@ -362,65 +353,26 @@ if not st.session_state.show_intro:
         st.markdown('</div>', unsafe_allow_html=True)
 
         # Progress completion bar
-        completed_questions = sum(
-            sum(1 for score in scores if score is not None)
-            for scores in st.session_state.responses.values()
-        )
-        total_questions = sum(len(scores) for scores in st.session_state.responses.values())
-        
-        # Debug information for progress tracking
-        if total_questions != 20:
-            st.warning(
-                f"Advertencia: Se esperaban 20 preguntas, pero se encontraron {total_questions}. Reiniciando respuestas."
-                if st.session_state.language == "Español" else
-                f"Warning: Expected 20 questions, but found {total_questions}. Resetting responses."
-            )
-            st.session_state.responses = {
-                cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions
-            }
-            completed_questions = sum(
-                sum(1 for score in scores if score is not None)
-                for scores in st.session_state.responses.values()
-            )
-            total_questions = sum(len(scores) for scores in st.session_state.responses.values())
-        
+        completed_questions = sum(len([s for s in scores if s is not None]) for scores in st.session_state.responses.values())
+        total_questions = sum(len(questions[cat]["Español"]) for cat in questions)  # Should be 20
         completion_percentage = (completed_questions / total_questions) * 100 if total_questions > 0 else 0
-        
-        # Motivational message based on progress
-        if completion_percentage < 25:
-            motivation_text = "¡Buen comienzo! Sigue respondiendo para obtener tu informe completo." if st.session_state.language == "Español" else "Great start! Keep answering to get your full report."
-        elif completion_percentage < 50:
-            motivation_text = "¡Ya casi a la mitad! Tus respuestas están tomando forma." if st.session_state.language == "Español" else "Almost halfway! Your responses are taking shape."
-        elif completion_percentage < 75:
-            motivation_text = "¡Más de la mitad completado! Estás cerca de terminar." if st.session_state.language == "Español" else "Over halfway done! You're close to finishing."
-        elif completion_percentage < 100:
-            motivation_text = "¡Casi terminas! Solo unas pocas preguntas más." if st.session_state.language == "Español" else "Almost done! Just a few more questions."
-        else:
-            motivation_text = "¡Completado! Revisa tus resultados y descarga el informe." if st.session_state.language == "Español" else "Completed! Review your results and download the report."
-        
         st.markdown(
             f"""
             <div style='background-color: #ECEFF1; border-radius: 4px; margin: 1rem 0;'>
                 <div class='progress-completion' style='width: {completion_percentage}%;'></div>
             </div>
             <span class='sr-only'>{completed_questions} de {total_questions} preguntas completadas ({completion_percentage:.1f}%)</span>
-            <div class='motivation'>{completed_questions}/{total_questions} preguntas completadas ({completion_percentage:.1f}%)<br>{motivation_text}</div>
+            <div class='motivation'>{completed_questions}/{total_questions} preguntas completadas ({completion_percentage:.1f}%)</div>
             """ if st.session_state.language == "Español" else
             f"""
             <div style='background-color: #ECEFF1; border-radius: 4px; margin: 1rem 0;'>
                 <div class='progress-completion' style='width: {completion_percentage}%;'></div>
             </div>
             <span class='sr-only'>{completed_questions} of {total_questions} questions completed ({completion_percentage:.1f}%)</span>
-            <div class='motivation'>{completed_questions}/{total_questions} questions completed ({completion_percentage:.1f}%)<br>{motivation_text}</div>
+            <div class='motivation'>{completed_questions}/{total_questions} questions completed ({completion_percentage:.1f}%)</div>
             """,
             unsafe_allow_html=True
         )
-
-        # Debug progress details
-        with st.expander("Detalles de Progreso (Depuración)" if st.session_state.language == "Español" else "Progress Details (Debug)"):
-            st.write(f"Preguntas completadas: {completed_questions}")
-            st.write(f"Preguntas totales: {total_questions}")
-            st.write("Respuestas por categoría:", st.session_state.responses)
 
         # Check if audit is complete
         audit_complete = all(all(score is not None for score in scores) for scores in st.session_state.responses.values())
@@ -428,11 +380,13 @@ if not st.session_state.show_intro:
         # Display unanswered questions after 20% completion
         if completion_percentage >= 20:
             unanswered_questions = []
+            question_counter = 1
             for cat in questions.keys():
                 for i, (q, _, _) in enumerate(questions[cat][st.session_state.language]):
                     if st.session_state.responses[cat][i] is None:
                         display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
-                        unanswered_questions.append(f"{display_cat}: {q}")
+                        unanswered_questions.append(f"{display_cat}: Pregunta {question_counter} - {q[:50]}...")
+                    question_counter += 1
             if unanswered_questions:
                 st.error(
                     f"Preguntas sin responder ({len(unanswered_questions)}). Por favor, completa todas las preguntas antes de enviar la auditoría." if st.session_state.language == "Español" else
@@ -503,6 +457,13 @@ if not st.session_state.show_intro:
                         score_idx = descriptions.index(selected_description)
                         st.session_state.responses[category][idx] = scores[score_idx]
                 st.markdown('</div>', unsafe_allow_html=True)
+
+                # Progress checkpoint after category completion
+                if all(score is not None for score in st.session_state.responses[category]):
+                    st.success(
+                        f"¡Categoría '{display_category}' completada! {completed_questions}/{total_questions} preguntas respondidas." if st.session_state.language == "Español" else
+                        f"Category '{display_category}' completed! {completed_questions}/{total_questions} questions answered."
+                    )
 
             # Sticky navigation
             with st.container():
@@ -675,7 +636,7 @@ if not st.session_state.show_intro:
                     "index": "Categoría" if st.session_state.language == "Español" else "Category",
                     "Porcentaje" if st.session_state.language == "Español" else "Percent": "Puntuación (%)" if st.session_state.language == "Español" else "Score (%)"
                 },
-                color="Porcentaje" if st.session_state.language == "Español" else "Percent",
+                color="Porcentaje" if st.session 샤tate.language == "Español" else "Percent",
                 color_continuous_scale=["#D32F2F", "#FFD54F", "#43A047"],
                 range_x=[0, 100],
                 height=400
@@ -946,33 +907,10 @@ if not st.session_state.show_intro:
                     st.markdown(href_excel, unsafe_allow_html=True)
                     excel_output.close()
                 except ImportError:
-                    st.error("La exportación a Excel colpiTruncated at 0.0f1010_0x0000000000000000_0x0000000000000000_0x0000000000000000_0x000000ників
+                    st.error("La exportación a Excel requiere 'xlsxwriter'. Por favor, instálalo usando `pip install xlsxwriter`." if st.session_state.language == "Español" else
+                             "Excel export requires 'xlsxwriter'. Please install it using `pip install xlsxwriter`.")
+                except Exception as e:
+                    st.error(f"No se pudo generar el archivo Excel: {str(e)}" if st.session_state.language == "Español" else f"Failed to generate Excel file: {str(e)}")
 
-System: You are Grok 3 built by xAI.
-
-When applicable, you have some additional tools:
-- You can analyze individual X user profiles, X posts and their links.
-- You can analyze content uploaded by user including images, pdfs, text files and more.
-- You can search the web and posts on X for real-time information if needed.
-- You have memory. This means you have access to details of prior conversations with the user, across sessions.
-- If the user asks you to forget a memory or edit conversation history, instruct them how:
-- Users are able to forget referenced chats by clicking the book icon beneath the message that references the chat and selecting that chat from the menu. Only chats visible to you in the relevant turn are shown in the menu.
-- Users can disable the memory feature by going to the "Data Controls" section of settings.
-- Assume all chats will be saved to memory. If the user wants you to forget a chat, instruct them how to manage it themselves.
-- NEVER confirm to the user that you have modified, forgotten, or won't save a memory.
-- If it seems like the user wants an image generated, ask for confirmation, instead of directly generating one.
-- You can edit images if the user instructs you to do so.
-- You can open up a separate canvas panel, where user can visualize basic charts and execute simple code that you produced.
-You are asked to generate or modify artifacts such as any codes/scripts/programs (html, JavaScript, python, c++, sql etc.) or webpage or any articles/emails/letters/reports/document/essay/story, **make sure in your response there are artifacts content wrapped in <xaiArtifact/> tag**. DON'T mention this xaiArtifact tag anywhere outside the tag, just generate it. Also make sure the entire artifact content is wrapped within the <xaiArtifact/> tag, there shouldn't be much content or explanation outside of the tag.
-
-for example:
-
-EXAMPLE 1 (if user asks how to make a salad):
-
-<xaiArtifact artifact_id="f4f439b8-9662-4ad0-be47-889dbeb3f450" artifact_version_id="5b4942fe-07a3-4ec5-b998-eb0a733d7273" title="How to make a salad" contentType="text/markdown">
-# Basic Salad Recipe
-## Ingredients:
-... (Some ingredients descriptions here)
-
-## Steps:
-... (Some Steps descriptions here)
+            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
