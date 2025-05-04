@@ -74,7 +74,7 @@ def load_static_data():
                 ("1. ¿Qué porcentaje de sugerencias de empleados presentadas en los últimos 12 meses fueron implementadas con resultados documentados?", "percentage", "Establece un sistema formal para rastrear e implementar sugerencias de empleados con métricas claras."),
                 ("2. ¿Cuántos empleados recibieron capacitación en habilidades profesionales en el último año?", "count", "Aumenta las oportunidades de capacitación profesional para todos los empleados."),
                 ("3. En los últimos 12 meses, ¿cuántos empleados lideraron proyectos o iniciativas con presupuesto asignado?", "count", "Asigna presupuestos a más iniciativas lideradas por empleados para fomentar la innovación."),
-                ("4. ¿Con qué frecuencia se realizan foros o reuniones formales para que los empleados compartan retroalimentación con la gerencia?", "frequency", "Programa foros mensuales para retroalimentación directa entre empleados y gerencia.")
+                (" sustancias formales para que los empleados compartan retroalimentación con la gerencia?", "frequency", "Programa foros mensuales para retroalimentación directa entre empleados y gerencia.")
             ],
             "English": [
                 ("1. What percentage of employee suggestions submitted in the past 12 months were implemented with documented outcomes?", "percentage", "Establish a formal system to track and implement employee suggestions with clear metrics."),
@@ -90,7 +90,7 @@ def load_static_data():
                 ("7. ¿Cuántos casos de comportamiento ético destacado fueron reconocidos formalmente en los últimos 12 meses?", "count", "Crea un programa formal de reconocimiento para comportamientos éticos, con incentivos claros.")
             ],
             "English": [
-                ("5.-Level did leaders share written updates on decisions affecting employees in the past 12 months?", "frequency", "Implement monthly newsletters to transparently communicate leadership decisions."),
+                ("5. How frequently did leaders share written updates on decisions affecting employees in the past 12 months?", "frequency", "Implement monthly newsletters to transparently communicate leadership decisions."),
                 ("6. What percentage of new or revised workplace policies in the past year included formal employee consultation?", "percentage", "Include employee representatives in reviewing all new workplace policies."),
                 ("7. How many instances of exemplary ethical behavior were formally recognized in the past 12 months?", "count", "Create a formal recognition program for ethical behavior with clear incentives.")
             ]
@@ -510,10 +510,11 @@ if not st.session_state.show_intro:
                 st.markdown(f'<div class="card-modern" role="region" aria-label="Preguntas de la categoría {display_category}">', unsafe_allow_html=True)
                 st.markdown(f'<h2 class="section-title" role="heading" aria-level="2">{display_category}</h2>', unsafe_allow_html=True)
                 
-                # Response guide
+                # Response guide (moved outside question loop)
                 with st.expander(TRANSLATIONS[st.session_state.language]["response_guide"], expanded=True):
                     st.markdown(f'<div class="response-guide">{TRANSLATIONS[st.session_state.language]["response_guide"]}</div>', unsafe_allow_html=True)
 
+                # Question loop
                 for idx, (q, q_type, _) in enumerate(questions[category][st.session_state.language]):
                     with st.container():
                         is_unanswered = st.session_state.responses[category][idx] is None
@@ -594,8 +595,8 @@ if not st.session_state.show_intro:
                                     st.markdown(
                                         f"""
                                         <script>
-                                            document.getElementById('{category}_{idx}').scrollIntoView({{behavior: 'smooth', block: 'center'}});
-                                            document.getElementById('{category}_{idx}').focus();
+                                            document.getElementById('{category}_{first_unanswered_idx}').scrollIntoView({{behavior: 'smooth', block: 'center'}});
+                                            document.getElementById('{category}_{first_unanswered_idx}').focus();
                                         </script>
                                         """,
                                         unsafe_allow_html=True
@@ -829,7 +830,7 @@ if not st.session_state.show_intro:
             ad_text = []
             if overall_score < SCORE_THRESHOLDS["GOOD"]:
                 ad_text.append(
-                    "Los resultados de tu auditoría indican oportunidades para optimizar el lugar de trabajo. LEAN 2Ԙ Institute ofrece consultoría especializada para directivos, gerentes y Recursos Humanos, transformando tu entorno laboral en uno ético y eficiente." if st.session_state.language == "Español" else
+                    "Los resultados de tu auditoría indican oportunidades para optimizar el lugar de trabajo. LEAN 2.0 Institute ofrece consultoría especializada para directivos, gerentes y Recursos Humanos, transformando tu entorno laboral en uno ético y eficiente." if st.session_state.language == "Español" else
                     "Your audit results indicate opportunities to optimize the workplace. LEAN 2.0 Institute offers specialized consulting for directors, managers and HR, transforming your workplace into an ethical and efficient environment."
                 )
                 if df[TRANSLATIONS[st.session_state.language]["percent"]].min() < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
