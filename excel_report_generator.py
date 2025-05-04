@@ -19,8 +19,8 @@ def generate_excel_report(
     REPORT_DATE: str
 ) -> io.BytesIO:
     """
-    Generate a professional Excel report with enhanced content, contact information on the cover sheet,
-    refined visualizations, and actionable insights for maximum impact.
+    Generate a professional Excel report with accurate English and Spanish translations,
+    advanced visualizations, contact information on the cover sheet, and actionable insights.
     
     Args:
         df: DataFrame with category scores and priorities
@@ -39,6 +39,64 @@ def generate_excel_report(
     Returns:
         io.BytesIO: Excel file buffer
     """
+    # Validate language input
+    if language not in ["English", "Español"]:
+        raise ValueError(f"Unsupported language: {language}. Must be 'English' or 'Español'")
+
+    # Comprehensive translation dictionary
+    TRANSLATIONS = {
+        "English": {
+            "report_title": "LEAN 2.0 Workplace Audit Report",
+            "summary": "Executive Summary",
+            "results": "Results",
+            "actionable_charts": "Visualizations",
+            "contact": "Contact",
+            "category": "Category",
+            "score": "Score",
+            "score_percent": "Score (%)",
+            "percent": "Percentage",
+            "priority": "Priority",
+            "high_priority": "High Priority",
+            "medium_priority": "Medium Priority",
+            "low_priority": "Low Priority",
+            "high_priority_categories": "High Priority Categories",
+            "overall_score": "Overall Score",
+            "grade": "Grade",
+            "question": "Question",
+            "suggestion": "Suggestion",
+            "chart_title": "Category Performance Overview",
+            "marketing_message": "Contact LEAN 2.0 Institute to transform your workplace with ethical and sustainable practices.",
+            "date_format": "%m/%d/%Y"
+        },
+        "Español": {
+            "report_title": "Informe de Auditoría del Lugar de Trabajo LEAN 2.0",
+            "summary": "Resumen Ejecutivo",
+            "results": "Resultados",
+            "actionable_charts": "Visualizaciones",
+            "contact": "Contacto",
+            "category": "Categoría",
+            "score": "Puntuación",
+            "score_percent": "Puntuación (%)",
+            "percent": "Porcentaje",
+            "priority": "Prioridad",
+            "high_priority": "Alta Prioridad",
+            "medium_priority": "Prioridad Media",
+            "low_priority": "Baja Prioridad",
+            "high_priority_categories": "Categorías de Alta Prioridad",
+            "overall_score": "Puntuación General",
+            "grade": "Calificación",
+            "question": "Pregunta",
+            "suggestion": "Sugerencia",
+            "chart_title": "Resumen de Desempeño por Categoría",
+            "marketing_message": "Contacte al Instituto LEAN 2.0 para transformar su lugar de trabajo con prácticas éticas y sostenibles.",
+            "date_format": "%d/%m/%Y"
+        }
+    }
+
+    # Format date according to language
+    from datetime import datetime
+    report_date_formatted = datetime.strptime(REPORT_DATE, "%Y-%m-%d").strftime(TRANSLATIONS[language]["date_format"])
+
     excel_output = io.BytesIO()
     with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
         workbook = writer.book
@@ -95,31 +153,39 @@ def generate_excel_report(
         for cat in responses:
             if not responses[cat] or any(score is None for score in responses[cat]):
                 raise ValueError(f"Invalid or missing responses in category {cat}")
+        # Validate translation keys
+        required_keys = ["report_title", "summary", "results", "actionable_charts", "contact", "category",
+                        "score", "score_percent", "percent", "priority", "high_priority", "medium_priority",
+                        "low_priority", "high_priority_categories", "overall_score", "grade", "question",
+                        "suggestion", "chart_title", "marketing_message", "date_format"]
+        if not all(key in TRANSLATIONS[language] for key in required_keys):
+            missing = [key for key in required_keys if key not in TRANSLATIONS[language]]
+            raise ValueError(f"Missing translation keys for {language}: {missing}")
 
         # Cover Sheet
         cover_sheet = workbook.add_worksheet("Cover")
         cover_sheet.merge_range('A1:F1', TRANSLATIONS[language]["report_title"], title_format)
-        cover_sheet.merge_range('A2:F2', "Ethical Lean Workplace Audit", subtitle_format)
-        cover_sheet.merge_range('A3:F3', f"Generated on: {REPORT_DATE}", subtitle_format)
-        cover_sheet.merge_range('A4:F4', "Prepared by: LEAN 2.0 Institute", subtitle_format)
-        cover_sheet.merge_range('A5:F5', "Contact Us:", bold_format)
-        cover_sheet.merge_range('A6:F6', f"Email: {CONFIG['contact']['email']} | Website: {CONFIG['contact']['website']}", cell_format)
-        cover_sheet.merge_range('A7:F7', "Mission: Transforming workplaces through ethical, inclusive, and sustainable practices.", wrap_format)
-        cover_sheet.write('A9', "Table of Contents:", bold_format)
+        cover_sheet.merge_range('A2:F2', "Auditoría del Lugar de Trabajo Ético" if language == "Español" else "Ethical Lean Workplace Audit", subtitle_format)
+        cover_sheet.merge_range('A3:F3', f"Generado el: {report_date_formatted}" if language == "Español" else f"Generated on: {report_date_formatted}", subtitle_format)
+        cover_sheet.merge_range('A4:F4', "Preparado por: Instituto LEAN 2.0" if language == "Español" else "Prepared by: LEAN 2.0 Institute", subtitle_format)
+        cover_sheet.merge_range('A5:F5', "Contáctenos:" if language == "Español" else "Contact Us:", bold_format)
+        cover_sheet.merge_range('A6:F6', f"Correo: {CONFIG['contact']['email']} | Sitio Web: {CONFIG['contact']['website']}" if language == "Español" else f"Email: {CONFIG['contact']['email']} | Website: {CONFIG['contact']['website']}", cell_format)
+        cover_sheet.merge_range('A7:F7', "Misión: Transformar los lugares de trabajo con prácticas éticas, inclusivas y sostenibles." if language == "Español" else "Mission: Transforming workplaces through ethical, inclusive, and sustainable practices.", wrap_format)
+        cover_sheet.write('A9', "Tabla de Contenidos:" if language == "Español" else "Table of Contents:", bold_format)
         toc_links = [
-            ("Executive Summary", TRANSLATIONS[language]["summary"]),
-            ("Statistical Insights", "Statistical Insights"),
-            ("Results", TRANSLATIONS[language]["results"]),
-            ("Action Plan", "Action Plan"),
-            ("Visualizations", TRANSLATIONS[language]["actionable_charts"]),
-            ("Contact", TRANSLATIONS[language]["contact"])
+            ("Resumen Ejecutivo" if language == "Español" else "Executive Summary", TRANSLATIONS[language]["summary"]),
+            ("Perspectivas Estadísticas" if language == "Español" else "Statistical Insights", "Statistical Insights"),
+            ("Resultados" if language == "Español" else "Results", TRANSLATIONS[language]["results"]),
+            ("Plan de Acción" if language == "Español" else "Action Plan", "Action Plan"),
+            ("Visualizaciones" if language == "Español" else "Visualizations", TRANSLATIONS[language]["actionable_charts"]),
+            ("Contacto" if language == "Español" else "Contact", TRANSLATIONS[language]["contact"])
         ]
         for idx, (name, sheet) in enumerate(toc_links, start=10):
             cover_sheet.write_url(f'A{idx}', f"internal:'{sheet}'!A1", 
                                string=name, cell_format=workbook.add_format({
                                    'font_color': 'blue', 'underline': 1, 'font_size': 10, 'font_name': 'Arial'
                                }))
-        cover_sheet.write('A17', "Logo Placeholder: Insert LEAN 2.0 Institute logo", bold_format)
+        cover_sheet.write('A17', "Placeholder para el Logo: Inserte el logo del Instituto LEAN 2.0" if language == "Español" else "Logo Placeholder: Insert LEAN 2.0 Institute logo", bold_format)
         cover_sheet.set_column('A:F', 25)
 
         # Executive Summary Sheet
@@ -133,23 +199,23 @@ def generate_excel_report(
             TRANSLATIONS[language]["overall_score"]: [f"{overall_score:.1f}%"],
             TRANSLATIONS[language]["grade"]: [grade],
             TRANSLATIONS[language]["high_priority_categories"]: [critical_count],
-            "Categories Needing Improvement": [improvement_count],
-            "Categories Performing Well": [good_count],
-            "Next Steps": ["Review the Action Plan for prioritized recommendations."]
+            "Categorías que Necesitan Mejora" if language == "Español" else "Categories Needing Improvement": [improvement_count],
+            "Categorías con Buen Desempeño" if language == "Español" else "Categories Performing Well": [good_count],
+            "Próximos Pasos" if language == "Español" else "Next Steps": ["Revise el Plan de Acción para recomendaciones priorizadas." if language == "Español" else "Review the Action Plan for prioritized recommendations."]
         }
         summary_df = pd.DataFrame(summary_data)
         summary_df.to_excel(writer, sheet_name=TRANSLATIONS[language]["summary"], index=False, startrow=4)
         worksheet_summary = writer.sheets[TRANSLATIONS[language]["summary"]]
         worksheet_summary.merge_range('A1:F1', TRANSLATIONS[language]["summary"], title_format)
-        worksheet_summary.write('A2', f"Date: {REPORT_DATE}", subtitle_format)
-        worksheet_summary.write_url('A3', "internal:Cover!A1", string="Back to Cover", 
+        worksheet_summary.write('A2', f"Fecha: {report_date_formatted}" if language == "Español" else f"Date: {report_date_formatted}", subtitle_format)
+        worksheet_summary.write_url('A3', "internal:Cover!A1", string="Volver a la Portada" if language == "Español" else "Back to Cover", 
                                   cell_format=workbook.add_format({'font_color': 'blue', 'underline': 1, 'font_size': 10, 'font_name': 'Arial'}))
-        worksheet_summary.set_column('A:A', 25, cell_format)
+        worksheet_summary.set_column('A:A', 30, cell_format)
         worksheet_summary.set_column('B:E', 20, center_format)
         worksheet_summary.set_column('F:F', 60, wrap_format)
         for col_num, value in enumerate(summary_df.columns.values):
             worksheet_summary.write(4, col_num, value, header_format)
-        worksheet_summary.write('A4', "Metric", header_format)
+        worksheet_summary.write('A4', "Métrica" if language == "Español" else "Metric", header_format)
         for row in range(5, 5 + len(summary_df)):
             worksheet_summary.write(row, 0, summary_df.columns[row-5], bold_format)
             worksheet_summary.write(row, 0, row-5+1, center_format)
@@ -172,16 +238,16 @@ def generate_excel_report(
         stats_data = {
             TRANSLATIONS[language]["category"]: df_display.index,
             TRANSLATIONS[language]["score"]: df_display[TRANSLATIONS[language]["percent"]],
-            "Standard Deviation": [np.std(responses[cat]) for cat in responses],
-            "Min Score": [min(responses[cat]) for cat in responses],
-            "Max Score": [max(responses[cat]) for cat in responses]
+            "Desviación Estándar" if language == "Español" else "Standard Deviation": [np.std(responses[cat]) for cat in responses],
+            "Puntuación Mínima" if language == "Español" else "Min Score": [min(responses[cat]) for cat in responses],
+            "Puntuación Máxima" if language == "Español" else "Max Score": [max(responses[cat]) for cat in responses]
         }
         stats_df = pd.DataFrame(stats_data)
-        stats_df.to_excel(writer, sheet_name="Statistical Insights", index=False, startrow=3)
-        worksheet_stats = writer.sheets["Statistical Insights"]
-        worksheet_stats.merge_range('A1:E1', "Statistical Insights", title_format)
-        worksheet_stats.write('A2', f"Date: {REPORT_DATE}", subtitle_format)
-        worksheet_stats.write_url('A3', "internal:Cover!A1", string="Back to Cover", 
+        stats_df.to_excel(writer, sheet_name="Perspectivas Estadísticas" if language == "Español" else "Statistical Insights", index=False, startrow=3)
+        worksheet_stats = writer.sheets["Perspectivas Estadísticas" if language == "Español" else "Statistical Insights"]
+        worksheet_stats.merge_range('A1:E1', "Perspectivas Estadísticas" if language == "Español" else "Statistical Insights", title_format)
+        worksheet_stats.write('A2', f"Fecha: {report_date_formatted}" if language == "Español" else f"Date: {report_date_formatted}", subtitle_format)
+        worksheet_stats.write_url('A3', "internal:Cover!A1", string="Volver a la Portada" if language == "Español" else "Back to Cover", 
                                 cell_format=workbook.add_format({'font_color': 'blue', 'underline': 1, 'font_size': 10, 'font_name': 'Arial'}))
         worksheet_stats.set_column('A:A', 35, cell_format)
         worksheet_stats.set_column('B:B', 15, percent_format)
@@ -209,8 +275,8 @@ def generate_excel_report(
         results_df.to_excel(writer, sheet_name=TRANSLATIONS[language]["results"], startrow=3)
         worksheet_results = writer.sheets[TRANSLATIONS[language]["results"]]
         worksheet_results.merge_range('A1:D1', TRANSLATIONS[language]["results"], title_format)
-        worksheet_results.write('A2', f"Date: {REPORT_DATE}", subtitle_format)
-        worksheet_results.write_url('A3', "internal:Cover!A1", string="Back to Cover", 
+        worksheet_results.write('A2', f"Fecha: {report_date_formatted}" if language == "Español" else f"Date: {report_date_formatted}", subtitle_format)
+        worksheet_results.write_url('A3', "internal:Cover!A1", string="Volver a la Portada" if language == "Español" else "Back to Cover", 
                                   cell_format=workbook.add_format({'font_color': 'blue', 'underline': 1, 'font_size': 10, 'font_name': 'Arial'}))
         worksheet_results.set_column('A:A', 35, cell_format)
         worksheet_results.set_column('B:D', 15, center_format)
@@ -233,7 +299,7 @@ def generate_excel_report(
             })
         worksheet_results.freeze_panes(4, 0)
 
-        # Action Plan Sheet with Enhanced Prioritization
+        # Action Plan Sheet
         action_plan_data = []
         for cat in questions.keys():
             display_cat = next(k for k, v in category_mapping[language].items() if v == cat)
@@ -248,6 +314,9 @@ def generate_excel_report(
                 feasibility_score = score / 100
                 priority_score = impact_score * 0.7 + feasibility_score * 0.3
                 effort = (
+                    "Alto" if score < SCORE_THRESHOLDS["CRITICAL"]/2 else
+                    "Medio" if score < SCORE_THRESHOLDS["CRITICAL"] else
+                    "Bajo" if language == "Español" else
                     "High" if score < SCORE_THRESHOLDS["CRITICAL"]/2 else
                     "Medium" if score < SCORE_THRESHOLDS["CRITICAL"] else
                     "Low"
@@ -258,8 +327,8 @@ def generate_excel_report(
                     "Priority": priority,
                     "Priority Score": priority_score,
                     "Estimated Effort": effort,
-                    "Action Plan": f"Immediate action required to address low performance in {display_cat}.",
-                    "Type": "Category"
+                    "Action Plan": f"Se requiere acción inmediata para abordar el bajo desempeño en {display_cat}." if language == "Español" else f"Immediate action required to address low performance in {display_cat}.",
+                    "Type": "Categoría" if language == "Español" else "Category"
                 })
                 for idx, q_score in enumerate(responses[cat]):
                     if q_score < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]:
@@ -267,6 +336,9 @@ def generate_excel_report(
                         q_impact_score = (100 - q_score) / 100
                         q_priority_score = q_impact_score * 0.7 + feasibility_score * 0.3
                         q_effort = (
+                            "Alto" if q_score < SCORE_THRESHOLDS["CRITICAL"]/2 else
+                            "Medio" if q_score < SCORE_THRESHOLDS["CRITICAL"] else
+                            "Bajo" if language == "Español" else
                             "High" if q_score < SCORE_THRESHOLDS["CRITICAL"]/2 else
                             "Medium" if q_score < SCORE_THRESHOLDS["CRITICAL"] else
                             "Low"
@@ -279,14 +351,14 @@ def generate_excel_report(
                             "Estimated Effort": q_effort,
                             "Action Plan": f"{TRANSLATIONS[language]['question']}: {question[:100]}{'...' if len(question) > 100 else ''}\n"
                                          f"{TRANSLATIONS[language]['suggestion']}: {rec}",
-                            "Type": "Question"
+                            "Type": "Pregunta" if language == "Español" else "Question"
                         })
         action_plan_df = pd.DataFrame(action_plan_data).sort_values(["Priority", "Priority Score"], ascending=[True, False])
-        action_plan_df.to_excel(writer, sheet_name="Action Plan", index=False, startrow=3)
-        worksheet_action = writer.sheets["Action Plan"]
-        worksheet_action.merge_range('A1:F1', "Action Plan", title_format)
-        worksheet_action.write('A2', f"Date: {REPORT_DATE}", subtitle_format)
-        worksheet_action.write_url('A3', "internal:Cover!A1", string="Back to Cover", 
+        action_plan_df.to_excel(writer, sheet_name="Plan de Acción" if language == "Español" else "Action Plan", index=False, startrow=3)
+        worksheet_action = writer.sheets["Plan de Acción" if language == "Español" else "Action Plan"]
+        worksheet_action.merge_range('A1:F1', "Plan de Acción" if language == "Español" else "Action Plan", title_format)
+        worksheet_action.write('A2', f"Fecha: {report_date_formatted}" if language == "Español" else f"Date: {report_date_formatted}", subtitle_format)
+        worksheet_action.write_url('A3', "internal:Cover!A1", string="Volver a la Portada" if language == "Español" else "Back to Cover", 
                                 cell_format=workbook.add_format({'font_color': 'blue', 'underline': 1, 'font_size': 10, 'font_name': 'Arial'}))
         worksheet_action.set_column('A:A', 35, cell_format)
         worksheet_action.set_column('B:C', 15, center_format)
@@ -295,7 +367,9 @@ def generate_excel_report(
         worksheet_action.set_column('F:F', 80, wrap_format)
         action_plan_columns = [
             TRANSLATIONS[language]["category"], TRANSLATIONS[language]["score"], TRANSLATIONS[language]["priority"],
-            "Priority Score", "Estimated Effort", "Action Plan"
+            "Puntuación de Prioridad" if language == "Español" else "Priority Score",
+            "Esfuerzo Estimado" if language == "Español" else "Estimated Effort",
+            "Plan de Acción" if language == "Español" else "Action Plan"
         ]
         for col_num, value in enumerate(action_plan_columns):
             worksheet_action.write(3, col_num, value, header_format)
@@ -313,51 +387,168 @@ def generate_excel_report(
 
         # Visualizations Sheet
         worksheet_viz = workbook.add_worksheet(TRANSLATIONS[language]["actionable_charts"])
-        worksheet_viz.merge_range('A1:F1', TRANSLATIONS[language]["actionable_charts"], title_format)
-        worksheet_viz.write('A2', f"Date: {REPORT_DATE}", subtitle_format)
-        worksheet_viz.write_url('A3', "internal:Cover!A1", string="Back to Cover", 
+        worksheet_viz.merge_range('A1:I1', TRANSLATIONS[language]["actionable_charts"], title_format)
+        worksheet_viz.write('A2', f"Fecha: {report_date_formatted}" if language == "Español" else f"Date: {report_date_formatted}", subtitle_format)
+        worksheet_viz.write_url('A3', "internal:Cover!A1", string="Volver a la Portada" if language == "Español" else "Back to Cover", 
                               cell_format=workbook.add_format({'font_color': 'blue', 'underline': 1, 'font_size': 10, 'font_name': 'Arial'}))
 
-        # Bar Chart
-        chart_data = df_display[[TRANSLATIONS[language]["percent"]]].reset_index()
-        chart_data.to_excel(writer, sheet_name=TRANSLATIONS[language]["actionable_charts"], startrow=4, index=False)
+        # Stacked Bar Chart
+        stacked_data = df_display[[TRANSLATIONS[language]["percent"]]].reset_index()
+        stacked_data["Critical Gap"] = stacked_data[TRANSLATIONS[language]["percent"]].apply(
+            lambda x: max(0, SCORE_THRESHOLDS["CRITICAL"]/100 - x)
+        )
+        stacked_data["Improvement Gap"] = stacked_data[TRANSLATIONS[language]["percent"]].apply(
+            lambda x: max(0, min((SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]-SCORE_THRESHOLDS["CRITICAL"])/100, SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"]/100 - x - stacked_data["Critical Gap"]))
+        )
+        stacked_data["Achieved"] = stacked_data[TRANSLATIONS[language]["percent"]]/100
+        stacked_data.to_excel(writer, sheet_name=TRANSLATIONS[language]["actionable_charts"], startrow=4, startcol=0, index=False)
         worksheet_viz.set_column('A:A', 35, cell_format)
-        worksheet_viz.set_column('B:B', 15, percent_format)
+        worksheet_viz.set_column('B:D', 15, percent_format)
         worksheet_viz.write('A5', TRANSLATIONS[language]["category"], header_format)
-        worksheet_viz.write('B5', TRANSLATIONS[language]["score_percent"], header_format)
-        bar_chart = workbook.add_chart({'type': 'bar'})
-        bar_chart.add_series({
+        worksheet_viz.write('B5', "Puntuación Alcanzada" if language == "Español" else "Achieved Score", header_format)
+        worksheet_viz.write('C5', "Brecha Crítica (<50%)" if language == "Español" else "Critical Gap (<50%)", header_format)
+        worksheet_viz.write('D5', "Brecha de Mejora (50-69%)" if language == "Español" else "Improvement Gap (50-69%)", header_format)
+        stacked_chart = workbook.add_chart({'type': 'bar', 'subtype': 'stacked'})
+        stacked_chart.add_series({
             'name': TRANSLATIONS[language]["score_percent"],
-            'categories': f"='{TRANSLATIONS[language]['actionable_charts']}'!$A$6:$A${5 + len(chart_data)}",
-            'values': f"='{TRANSLATIONS[language]['actionable_charts']}'!$B$6:$B${5 + len(chart_data)}",
-            'fill': {'color': '#1E88E5'},
-            'data_labels': {'value': True, 'num_format': '0.0%'}
+            'categories': f"='{TRANSLATIONS[language]['actionable_charts']}'!$A$6:$A${5 + len(stacked_data)}",
+            'values': f"='{TRANSLATIONS[language]['actionable_charts']}'!$B$6:$B${5 + len(stacked_data)}",
+            'fill': {'color': '#43A047'},
+            'data_labels': {'value': True, 'num_format': '0.0%', 'font': {'size': 10, 'name': 'Arial'}}
         })
-        bar_chart.set_title({'name': TRANSLATIONS[language]["chart_title"]})
-        bar_chart.set_x_axis({'name': TRANSLATIONS[language]["score_percent"], 'min': 0, 'max': 1, 'num_format': '0%'})
-        bar_chart.set_y_axis({'name': TRANSLATIONS[language]["category"], 'reverse': True})
-        bar_chart.set_size({'width': 600, 'height': 300})
-        worksheet_viz.insert_chart('E5', bar_chart)
+        stacked_chart.add_series({
+            'name': "Brecha Crítica (<50%)" if language == "Español" else "Critical Gap (<50%)",
+            'values': f"='{TRANSLATIONS[language]['actionable_charts']}'!$C$6:$C${5 + len(stacked_data)}",
+            'fill': {'color': '#D32F2F'},
+            'data_labels': {'value': False}
+        })
+        stacked_chart.add_series({
+            'name': "Brecha de Mejora (50-69%)" if language == "Español" else "Improvement Gap (50-69%)",
+            'values': f"='{TRANSLATIONS[language]['actionable_charts']}'!$D$6:$D${5 + len(stacked_data)}",
+            'fill': {'color': '#FFD54F'},
+            'data_labels': {'value': False}
+        })
+        stacked_chart.set_title({'name': TRANSLATIONS[language]["chart_title"], 'name_font': {'size': 12, 'name': 'Arial'}})
+        stacked_chart.set_x_axis({
+            'name': TRANSLATIONS[language]["score_percent"],
+            'min': 0, 'max': 1, 'num_format': '0%',
+            'name_font': {'size': 10, 'name': 'Arial'},
+            'num_font': {'size': 10, 'name': 'Arial'}
+        })
+        stacked_chart.set_y_axis({
+            'name': TRANSLATIONS[language]["category"],
+            'reverse': True,
+            'name_font': {'size': 10, 'name': 'Arial'},
+            'num_font': {'size': 10, 'name': 'Arial'}
+        })
+        stacked_chart.set_legend({'position': 'bottom', 'font': {'size': 10, 'name': 'Arial'}})
+        stacked_chart.set_size({'width': 600, 'height': 300})
+        worksheet_viz.insert_chart('G5', stacked_chart)
 
-        # Line Chart
-        line_data = df_display[[TRANSLATIONS[language]["percent"]]].reset_index()
-        line_data.to_excel(writer, sheet_name=TRANSLATIONS[language]["actionable_charts"], startrow=4, startcol=3, index=False)
-        worksheet_viz.write('D5', TRANSLATIONS[language]["category"], header_format)
-        worksheet_viz.write('E5', TRANSLATIONS[language]["score_percent"], header_format)
-        line_chart = workbook.add_chart({'type': 'line'})
-        line_chart.add_series({
-            'name': TRANSLATIONS[language]["score_percent"],
-            'categories': f"='{TRANSLATIONS[language]['actionable_charts']}'!$D$6:$D${5 + len(line_data)}",
-            'values': f"='{TRANSLATIONS[language]['actionable_charts']}'!$E$6:$E${5 + len(line_data)}",
-            'line': {'color': '#1E88E5', 'width': 2},
-            'marker': {'type': 'circle', 'size': 6, 'fill': {'color': '#1E88E5'}, 'border': {'color': '#1E88E5'}},
-            'data_labels': {'value': True, 'num_format': '0.0%'}
+        # Visual Summary Table
+        summary_stats = {
+            "Métrica" if language == "Español" else "Metric": [
+                "Puntuación Media" if language == "Español" else "Mean Score",
+                "Varianza" if language == "Español" else "Variance",
+                "Categorías Críticas" if language == "Español" else "Critical Categories"
+            ],
+            "Valor" if language == "Español" else "Value": [
+                f"{df_display[TRANSLATIONS[language]['percent']].mean():.1f}%",
+                f"{df_display[TRANSLATIONS[language]['percent']].var():.2f}",
+                critical_count
+            ]
+        }
+        summary_stats_df = pd.DataFrame(summary_stats)
+        summary_stats_df.to_excel(writer, sheet_name=TRANSLATIONS[language]["actionable_charts"], startrow=4, startcol=4, index=False)
+        worksheet_viz.set_column('E:F', 20, cell_format)
+        worksheet_viz.write('E5', "Métrica" if language == "Español" else "Metric", header_format)
+        worksheet_viz.write('F5', "Valor" if language == "Español" else "Value", header_format)
+        for row in range(5, 5 + len(summary_stats_df)):
+            worksheet_viz.write(row, 4, summary_stats_df["Métrica" if language == "Español" else "Metric"][row-5], cell_format if (row-5) % 2 else alt_row_format)
+
+        # Box Plot
+        box_data = []
+        for cat in questions.keys():
+            display_cat = next(k for k, v in category_mapping[language].items() if v == cat)
+            for q_score in responses[cat]:
+                box_data.append({
+                    TRANSLATIONS[language]["category"]: display_cat,
+                    "Score": q_score / 100
+                })
+        box_df = pd.DataFrame(box_data)
+        box_df_pivot = box_df.pivot(columns=TRANSLATIONS[language]["category"], values="Score")
+        box_df_pivot.to_excel(writer, sheet_name=TRANSLATIONS[language]["actionable_charts"], startrow=20, startcol=0, index=False)
+        worksheet_viz.set_column('A:G', 15, percent_format)
+        for col_num, value in enumerate(box_df_pivot.columns, 1):
+            worksheet_viz.write(20, col_num, value, header_format)
+        box_chart = workbook.add_chart({'type': 'box'})
+        for col_idx, cat in enumerate(box_df_pivot.columns, 1):
+            box_chart.add_series({
+                'name': cat,
+                'values': f"='{TRANSLATIONS[language]['actionable_charts']}'!${chr(65+col_idx)}$21:${chr(65+col_idx)}${20 + len(box_df_pivot)}",
+                'fill': {'color': '#1E88E5'},
+                'line': {'color': '#1E88E5'},
+                'whisker': {'color': '#1E88E5'},
+                'median': {'color': '#D32F2F'},
+                'mean': {'color': '#FFD54F', 'type': 'diamond', 'size': 6}
+            })
+        box_chart.set_title({'name': "Distribución de Puntuaciones por Pregunta por Categoría" if language == "Español" else "Question Score Distribution by Category", 'name_font': {'size': 12, 'name': 'Arial'}})
+        box_chart.set_x_axis({
+            'name': TRANSLATIONS[language]["category"],
+            'name_font': {'size': 10, 'name': 'Arial'},
+            'num_font': {'size': 10, 'name': 'Arial'}
         })
-        line_chart.set_title({'name': "Score Trend Across Categories"})
-        line_chart.set_x_axis({'name': TRANSLATIONS[language]["category"]})
-        line_chart.set_y_axis({'name': TRANSLATIONS[language]["score_percent"], 'min': 0, 'max': 1, 'num_format': '0%'})
-        line_chart.set_size({'width': 600, 'height': 300})
-        worksheet_viz.insert_chart('E20', line_chart)
+        box_chart.set_y_axis({
+            'name': TRANSLATIONS[language]["score_percent"],
+            'min': 0, 'max': 1, 'num_format': '0%',
+            'name_font': {'size': 10, 'name': 'Arial'},
+            'num_font': {'size': 10, 'name': 'Arial'}
+        })
+        box_chart.set_size({'width': 600, 'height': 300})
+        worksheet_viz.insert_chart('G21', box_chart)
+
+        # Scatter Plot for Prioritization
+        scatter_data = action_plan_df[["Category", "Priority Score", "Estimated Effort"]].copy()
+        scatter_data["Effort Value"] = scatter_data["Estimated Effort"].map({
+            "Low": 1, "Medium": 2, "High": 3, "Bajo": 1, "Medio": 2, "Alto": 3
+        })
+        scatter_data = scatter_data[scatter_data["Category"] != ""]
+        scatter_data.to_excel(writer, sheet_name=TRANSLATIONS[language]["actionable_charts"], startrow=36, startcol=0, index=False)
+        worksheet_viz.set_column('A:A', 35, cell_format)
+        worksheet_viz.set_column('B:B', 15, number_format)
+        worksheet_viz.set_column('C:D', 15, center_format)
+        worksheet_viz.write('A37', TRANSLATIONS[language]["category"], header_format)
+        worksheet_viz.write('B37', "Puntuación de Prioridad" if language == "Español" else "Priority Score", header_format)
+        worksheet_viz.write('C37', "Esfuerzo Estimado" if language == "Español" else "Estimated Effort", header_format)
+        worksheet_viz.write('D37', "Valor de Esfuerzo" if language == "Español" else "Effort Value", header_format)
+        scatter_chart = workbook.add_chart({'type': 'scatter'})
+        scatter_chart.add_series({
+            'name': "Prioridad vs. Esfuerzo" if language == "Español" else "Priority vs Effort",
+            'categories': f"='{TRANSLATIONS[language]['actionable_charts']}'!$A$38:$A${37 + len(scatter_data)}",
+            'values': f"='{TRANSLATIONS[language]['actionable_charts']}'!$B$38:$B${37 + len(scatter_data)}",
+            'y2_values': f"='{TRANSLATIONS[language]['actionable_charts']}'!$D$38:$D${37 + len(scatter_data)}",
+            'marker': {
+                'type': 'circle',
+                'size': 8,
+                'fill': {'color': '#1E88E5'},
+                'border': {'color': '#1E88E5'}
+            }
+        })
+        scatter_chart.set_title({'name': "Análisis de Prioridad vs. Esfuerzo" if language == "Español" else "Priority vs. Effort Analysis", 'name_font': {'size': 12, 'name': 'Arial'}})
+        scatter_chart.set_x_axis({
+            'name': "Puntuación de Prioridad" if language == "Español" else "Priority Score",
+            'min': 0, 'max': 1,
+            'name_font': {'size': 10, 'name': 'Arial'},
+            'num_font': {'size': 10, 'name': 'Arial'}
+        })
+        scatter_chart.set_y_axis({
+            'name': "Esfuerzo (1=Bajo, 3=Alto)" if language == "Español" else "Effort (1=Low, 3=High)",
+            'min': 0.5, 'max': 3.5,
+            'name_font': {'size': 10, 'name': 'Arial'},
+            'num_font': {'size': 10, 'name': 'Arial'}
+        })
+        scatter_chart.set_size({'width': 600, 'height': 300})
+        worksheet_viz.insert_chart('G37', scatter_chart)
 
         # Heatmap
         question_scores = []
@@ -370,14 +561,14 @@ def generate_excel_report(
                     TRANSLATIONS[language]["score"]: responses[cat][idx] / 100
                 })
         heatmap_df = pd.DataFrame(question_scores)
-        heatmap_df.to_excel(writer, sheet_name=TRANSLATIONS[language]["actionable_charts"], startrow=4, startcol=7, index=False)
-        worksheet_viz.set_column('H:J', 25, cell_format)
-        worksheet_viz.write('H5', TRANSLATIONS[language]["category"], header_format)
-        worksheet_viz.write('I5', TRANSLATIONS[language]["question"], header_format)
-        worksheet_viz.write('J5', TRANSLATIONS[language]["score_percent"], header_format)
+        heatmap_df.to_excel(writer, sheet_name=TRANSLATIONS[language]["actionable_charts"], startrow=4, startcol=10, index=False)
+        worksheet_viz.set_column('K:M', 30, cell_format)
+        worksheet_viz.write('K5', TRANSLATIONS[language]["category"], header_format)
+        worksheet_viz.write('L5', TRANSLATIONS[language]["question"], header_format)
+        worksheet_viz.write('M5', TRANSLATIONS[language]["score_percent"], header_format)
         for row in range(5, 5 + len(heatmap_df)):
-            worksheet_viz.write(row, 7, heatmap_df[TRANSLATIONS[language]["category"]][row-5], cell_format if (row-5) % 2 else alt_row_format)
-            worksheet_viz.conditional_format(f'J{row}:J{row}', {
+            worksheet_viz.write(row, 10, heatmap_df[TRANSLATIONS[language]["category"]][row-5], cell_format if (row-5) % 2 else alt_row_format)
+            worksheet_viz.conditional_format(f'M{row}:M{row}', {
                 'type': '3_color_scale',
                 'min_color': '#D32F2F',
                 'mid_color': '#FFD54F',
@@ -386,22 +577,22 @@ def generate_excel_report(
 
         # Contact Sheet
         contact_df = pd.DataFrame({
-            "Contact Method": ["Email", "Website"],
-            "Details": [CONFIG["contact"]["email"], CONFIG["contact"]["website"]]
+            "Método de Contacto" if language == "Español" else "Contact Method": ["Correo" if language == "Español" else "Email", "Sitio Web" if language == "Español" else "Website"],
+            "Detalles" if language == "Español" else "Details": [CONFIG["contact"]["email"], CONFIG["contact"]["website"]]
         })
         contact_df.to_excel(writer, sheet_name=TRANSLATIONS[language]["contact"], index=False, startrow=3)
         worksheet_contact = writer.sheets[TRANSLATIONS[language]["contact"]]
         worksheet_contact.merge_range('A1:B1', TRANSLATIONS[language]["contact"], title_format)
-        worksheet_contact.write('A2', f"Date: {REPORT_DATE}", subtitle_format)
-        worksheet_contact.write_url('A3', "internal:Cover!A1", string="Back to Cover", 
+        worksheet_contact.write('A2', f"Fecha: {report_date_formatted}" if language == "Español" else f"Date: {report_date_formatted}", subtitle_format)
+        worksheet_contact.write_url('A3', "internal:Cover!A1", string="Volver a la Portada" if language == "Español" else "Back to Cover", 
                                  cell_format=workbook.add_format({'font_color': 'blue', 'underline': 1, 'font_size': 10, 'font_name': 'Arial'}))
         worksheet_contact.set_column('A:A', 20, cell_format)
         worksheet_contact.set_column('B:B', 50, cell_format)
         for col_num, value in enumerate(contact_df.columns.values):
             worksheet_contact.write(3, col_num, value, header_format)
         for row in range(4, 4 + len(contact_df)):
-            worksheet_contact.write(row, 0, contact_df["Contact Method"][row-4], cell_format if (row-4) % 2 else alt_row_format)
-        worksheet_contact.write('A7',"¡Trabajemos juntos! | Let's work together!", bold_format)
+            worksheet_contact.write(row, 0, contact_df["Método de Contacto" if language == "Español" else "Contact Method"][row-4], cell_format if (row-4) % 2 else alt_row_format)
+        worksheet_contact.write('A7', "Colabore con Nosotros" if language == "Español" else "Collaborate with Us", bold_format)
         worksheet_contact.write('A8', TRANSLATIONS[language]["marketing_message"], wrap_format)
 
     excel_output.seek(0)
