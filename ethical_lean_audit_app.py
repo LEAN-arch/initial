@@ -16,8 +16,8 @@ SCORE_THRESHOLDS = {
     "NEEDS_IMPROVEMENT": 70,
     "GOOD": 85,
 }
-TOTAL_QUESTIONS = 25  # Updated to include 5 new questions
-PROGRESS_DISPLAY_THRESHOLD = 20  # Show unanswered questions when 80% complete
+TOTAL_QUESTIONS = 25
+PROGRESS_DISPLAY_THRESHOLD = 20
 CHART_COLORS = ["#D32F2F", "#FFD54F", "#43A047"]
 CHART_HEIGHT = 400
 QUESTION_TRUNCATE_LENGTH = 100
@@ -41,7 +41,6 @@ TRANSLATIONS = {
         "report_filename_excel": "resultados_auditoria_lugar_trabajo_etico.xlsx",
         "unanswered_error": "Preguntas sin responder ({}). Por favor, completa todas las preguntas antes de enviar la auditoría.",
         "missing_questions": "Preguntas faltantes:",
-        "category_completed": "¡Categoría '{}' completada! {}/{} preguntas respondidas.",
         "all_answered": "¡Todas las preguntas han sido respondidas! Puedes proceder a ver los resultados.",
         "response_guide": "Selecciona la descripción que mejor represente la situación para cada pregunta. Las opciones describen el grado, frecuencia o cantidad aplicable.",
         "language_change_warning": "Cambiar el idioma reiniciará tus respuestas. ¿Deseas continuar?",
@@ -93,7 +92,6 @@ TRANSLATIONS = {
         "report_filename_excel": "ethical_workplace_audit_results.xlsx",
         "unanswered_error": "Unanswered questions ({}). Please complete all questions before submitting the audit.",
         "missing_questions": "Missing Questions:",
-        "category_completed": "Category '{}' completed! {}/{} questions answered.",
         "all_answered": "All questions have been answered! You can proceed to view the results.",
         "response_guide": "Select the description that best represents the situation for each question. The options describe the degree, frequency, or quantity applicable.",
         "language_change_warning": "Changing the language will reset your responses. Do you wish to continue?",
@@ -134,7 +132,6 @@ TRANSLATIONS = {
 # Cache static data
 @st.cache_data
 def load_static_data() -> Tuple[Dict, Dict]:
-    """Load and cache static data like questions and response options."""
     questions = {
         "Empoderamiento de Empleados": {
             "Español": [
@@ -305,7 +302,6 @@ def load_static_data() -> Tuple[Dict, Dict]:
         }
     }
 
-    # Validate question types
     valid_q_types = set(response_options.keys())
     for cat in questions:
         for lang in questions[cat]:
@@ -350,30 +346,24 @@ questions, response_options = load_static_data()
 
 # Initialize session state
 def initialize_session_state():
-    """Initialize session state with default values and validate structure."""
     defaults = {
         "language": "Español",
         "responses": {},
-        "current_category": 0,
-        "prev_language": "Español",
         "show_intro": True,
         "language_changed": False,
         "show_results": False,
         "reset_confirmed": False,
         "report_id": str(uuid.uuid4()),
-        "expander_state": {},  # Track expander state per category
-        "last_scroll_position": 0  # Track scroll position
+        "expander_state": {},
+        "last_scroll_position": 0
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
-    # Validate language
     if st.session_state.language not in ["Español", "English"]:
         st.session_state.language = "Español"
-        st.session_state.prev_language = "Español"
 
-    # Initialize responses
     if not st.session_state.responses:
         st.session_state.responses = {
             cat: [None] * len(questions[cat]["Español"]) for cat in questions
@@ -389,7 +379,6 @@ def initialize_session_state():
                     current[:expected_len] + [None] * (expected_len - len(current))
                 ) if len(current) < expected_len else current[:expected_len]
 
-    # Initialize expander state
     if not st.session_state.expander_state:
         st.session_state.expander_state = {cat: True for cat in questions}
 
@@ -402,54 +391,46 @@ st.set_page_config(
 
 # Load CSS
 def load_css():
-    """Load external CSS file with fallback to default styles."""
-    try:
-        with open("styles.css", "r") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        default_css = """
-            .main-container { overflow-anchor: auto; min-height: 100vh; }
-            .main-title { font-size: 2.5rem; color: #1E88E5; text-align: center; }
-            .section-title { font-size: 1.8rem; color: #424242; margin-bottom: 1rem; }
-            .card-modern { background: #FFFFFF; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1rem; min-height: 200px; }
-            .progress-circle { text-align: center; margin: 1rem 0; height: 150px; }
-            .progress-ring__background { fill: none; stroke: #E0E0E0; stroke-width: 12; }
-            .progress-ring__circle { fill: none; stroke: #1E88E5; stroke-width: 12; transition: stroke-dashoffset 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; }
-            .progress-label { font-size: 1rem; color: #424242; margin-top: 0.5rem; }
-            .question-container { display: flex; align-items: center; margin-bottom: 0.5rem; }
-            .question-text { font-weight: 500; color: #212121; margin-right: 0.5rem; }
-            .required { color: #D32F2F; font-weight: bold; }
-            .tooltip { position: relative; display: inline-block; }
-            .tooltip-icon { background: #1E88E5; color: white; border-radius: 50%; width: 20px; height: 20px; text-align: center; line-height: 20px; cursor: help; }
-            .tooltip-text { visibility: hidden; width: 200px; background: #424242; color: #FFFFFF; text-align: center; border-radius: 6px; padding: 5px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -100px; opacity: 0; transition: opacity 0.3s; }
-            .tooltip:hover .tooltip-text { visibility: visible; opacity: 1; }
-            .sticky-nav { position: sticky; bottom: 0; background: #F5F5F5; padding: 1rem; border-radius: 8px; box-shadow: 0 -2px 4px rgba(0,0,0,0.1); z-index: 10; }
-            .grade-excellent { background: #43A047; color: #FFFFFF; padding: 0.5rem; border-radius: 4px; }
-            .grade-good { background: #FFD54F; color: #212121; padding: 0.5rem; border-radius: 4px; }
-            .grade-needs-improvement { background: #FF9800; color: #FFFFFF; padding: 0.5rem; border-radius: 4px; }
-            .grade-critical { background: #D32F2F; color: #FFFFFF; padding: 0.5rem; border-radius: 4px; }
-            .alert { padding: 1rem; border-radius: 4px; margin-bottom: 1rem; min-height: 60px; }
-            .alert-info { background: #E3F2FD; color: #1E88E5; }
-            .alert-success { background: #E8F5E9; color: #43A047; }
-            .alert-warning { background: #FFF3E0; color: #FF9800; }
-            .badge { background: #1E88E5; color: #FFFFFF; padding: 0.5rem 1rem; border-radius: 16px; display: inline-block; margin: 1rem 0; }
-            .progress-bar-container { margin: 1rem 0; height: 30px; }
-            .progress-bar { height: 20px; background: #E0E0E0; border-radius: 10px; overflow: hidden; }
-            .progress-bar-fill { height: 100%; background: #1E88E5; transition: width 0.35s; }
-            @media (max-width: 768px) { 
-                .main-title { font-size: 2rem; } 
-                .section-title { font-size: 1.5rem; } 
-                .card-modern { padding: 1rem; } 
-                .progress-circle { height: 120px; }
-            }
-        """
-        st.markdown(f"<style>{default_css}</style>", unsafe_allow_html=True)
+    default_css = """
+        .main-container { overflow-anchor: none; min-height: 100vh; }
+        .main-title { font-size: 2.5rem; color: #1E88E5; text-align: center; }
+        .section-title { font-size: 1.8rem; color: #424242; margin-bottom: 1rem; }
+        .card-modern { background: #FFFFFF; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1rem; min-height: 200px; }
+        .expander-container { min-height: 300px; margin-bottom: 1rem; }
+        .progress-circle { text-align: center; margin: 1rem 0; height: 150px; }
+        .progress-ring__background { fill: none; stroke: #E0E0E0; stroke-width: 12; }
+        .progress-ring__circle { fill: none; stroke: #1E88E5; stroke-width: 12; transition: stroke-dashoffset 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .progress-label { font-size: 1rem; color: #424242; margin-top: 0.5rem; }
+        .question-container { display: flex; align-items: center; margin-bottom: 0.5rem; }
+        .question-text { font-weight: 500; color: #212121; margin-right: 0.5rem; }
+        .required { color: #D32F2F; font-weight: bold; }
+        .tooltip { position: relative; display: inline-block; }
+        .tooltip-icon { background: #1E88E5; color: white; border-radius: 50%; width: 20px; height: 20px; text-align: center; line-height: 20px; cursor: help; }
+        .tooltip-text { visibility: hidden; width: 200px; background: #424242; color: #FFFFFF; text-align: center; border-radius: 6px; padding: 5px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -100px; opacity: 0; transition: opacity 0.3s; }
+        .tooltip:hover .tooltip-text { visibility: visible; opacity: 1; }
+        .sticky-nav { position: sticky; bottom: 0; background: #F5F5F5; padding: 1rem; border-radius: 8px; box-shadow: 0 -2px 4px rgba(0,0,0,0.1); z-index: 10; }
+        .grade-excellent { background: #43A047; color: #FFFFFF; padding: 0.5rem; border-radius: 4px; }
+        .grade-good { background: #FFD54F; color: #212121; padding: 0.5rem; border-radius: 4px; }
+        .grade-needs-improvement { background: #FF9800; color: #FFFFFF; padding: 0.5rem; border-radius: 4px; }
+        .grade-critical { background: #D32F2F; color: #FFFFFF; padding: 0.5rem; border-radius: 4px; }
+        .alert { padding: 1rem; border-radius: 4px; margin-bottom: 1rem; min-height: 60px; }
+        .alert-info { background: #E3F2FD; color: #1E88E5; }
+        .alert-success { background: #E8F5E9; color: #43A047; }
+        .alert-warning { background: #FFF3E0; color: #FF9800; }
+        .badge { background: #1E88E5; color: #FFFFFF; padding: 0.5rem 1rem; border-radius: 16px; display: inline-block; margin: 1rem 0; }
+        .progress-bar-container { margin: 1rem 0; height: 30px; }
+        .progress-bar { height: 20px; background: #E0E0E0; border-radius: 10px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: #1E88E5; transition: width 0.35s; }
+        @media (max-width: 768px) { 
+            .main-title { font-size: 2rem; } 
+            .section-title { font-size: 1.5rem; } 
+            .card-modern { padding: 1rem; } 
+            .progress-circle { height: 120px; }
+        }
+    """
+    st.markdown(f"<style>{default_css}</style>", unsafe_allow_html=True)
 
-# Initialize and load
-initialize_session_state()
-load_css()
-
-# JavaScript to maintain scroll position
+# JavaScript for scroll preservation
 st.markdown("""
     <script>
         document.addEventListener("DOMContentLoaded", function() {
@@ -457,20 +438,28 @@ st.markdown("""
             if (scrollPos) {
                 window.scrollTo(0, parseInt(scrollPos));
             }
-            document.addEventListener("change", function() {
-                sessionStorage.setItem("scrollPosition", window.scrollY);
-            });
         });
+        document.addEventListener("change", function() {
+            sessionStorage.setItem("scrollPosition", window.scrollY);
+        });
+        document.addEventListener("click", function() {
+            sessionStorage.setItem("scrollPosition", window.scrollY);
+        });
+        function scrollToCategory(categoryId) {
+            const element = document.getElementById(categoryId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                sessionStorage.setItem("scrollPosition", element.offsetTop);
+            }
+        }
     </script>
 """, unsafe_allow_html=True)
 
 # Helper functions
 def sanitize_input(text: str) -> str:
-    """Sanitize user input to prevent XSS."""
     return re.sub(r'[<>]', '', text)
 
 def get_grade(score: float) -> Tuple[str, str, str]:
-    """Determine grade, description, and CSS class based on score."""
     lang = st.session_state.language
     if score >= SCORE_THRESHOLDS["GOOD"]:
         return (
@@ -498,18 +487,15 @@ def get_grade(score: float) -> Tuple[str, str, str]:
         )
 
 def update_language():
-    """Handle language change with confirmation."""
     if st.session_state.language_select != st.session_state.language:
         if any(any(score is not None for score in scores) for scores in st.session_state.responses.values()):
             if not st.session_state.get("language_change_confirmed", False):
                 st.session_state.language_changed = True
                 return
         st.session_state.language = st.session_state.language_select
-        st.session_state.current_category = 0
         st.session_state.responses = {
             cat: [None] * len(questions[cat][st.session_state.language]) for cat in questions
         }
-        st.session_state.prev_language = st.session_state.language
         st.session_state.show_intro = True
         st.session_state.show_results = False
         st.session_state.language_changed = False
@@ -517,12 +503,10 @@ def update_language():
         st.session_state.expander_state = {cat: True for cat in questions}
 
 def reset_audit():
-    """Reset the audit responses and state."""
     if st.session_state.get("reset_confirmed", False):
         st.session_state.responses = {
             cat: [None] * len(questions[cat]["Español"]) for cat in questions
         }
-        st.session_state.current_category = 0
         st.session_state.show_intro = True
         st.session_state.show_results = False
         st.session_state.reset_confirmed = False
@@ -551,20 +535,17 @@ with st.sidebar:
             if st.button("Cancelar / Cancel", key="cancel_language_change"):
                 st.session_state.language_select = st.session_state.language
                 st.session_state.language_changed = False
-    st.markdown('<h2 class="sidebar-title">Progress</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="sidebar-title">Navegación / Navigation</h2>', unsafe_allow_html=True)
     display_categories = list(category_mapping[st.session_state.language].keys())
     for i, display_cat in enumerate(display_categories):
-        status = 'active' if i == st.session_state.current_category else 'completed' if i < st.session_state.current_category else ''
+        category_id = f"category_{i}"
         if st.button(
             display_cat,
             key=f"nav_{i}",
-            disabled=False,
             use_container_width=True,
-            type="primary" if status == 'active' else "secondary"
+            type="secondary"
         ):
-            st.session_state.current_category = max(0, min(i, len(display_categories) - 1))
-            st.session_state.show_intro = False
-            st.session_state.show_results = False
+            st.markdown(f'<script>scrollToCategory("{category_id}")</script>', unsafe_allow_html=True)
     if st.button(TRANSLATIONS[st.session_state.language]["reset_audit"], key="reset_audit_button", type="secondary"):
         st.session_state.reset_confirmed = True
         st.warning(TRANSLATIONS[st.session_state.language]["reset_warning"])
@@ -700,115 +681,78 @@ with st.container():
                     icon="✅"
                 )
 
-        # Category questions
+        # Display all categories and questions
         if not st.session_state.show_results:
-            category_index = max(0, min(st.session_state.current_category, len(display_categories) - 1))
-            display_category = display_categories[category_index]
-            category = category_mapping[st.session_state.language][display_category]
-            
-            with st.container():
-                st.markdown(f'<div class="card-modern" role="region" aria-label="Category {display_category} Questions">', unsafe_allow_html=True)
-                st.markdown(f'<h2 class="section-title">{display_category}</h2>', unsafe_allow_html=True)
-                
-                # Persist expander state
-                expander_key = f"expander_{category}"
-                if expander_key not in st.session_state.expander_state:
-                    st.session_state.expander_state[expander_key] = True
-                with st.expander("Instrucciones / Instructions", expanded=st.session_state.expander_state[expander_key]):
-                    st.markdown(f'<div class="response-guide">{TRANSLATIONS[st.session_state.language]["response_guide"]}</div>', unsafe_allow_html=True)
-                    # Update expander state on toggle
-                    st.session_state.expander_state[expander_key] = st.session_state.get(f"st_expander_{expander_key}", True)
-
-                for idx, (q, q_type, _) in enumerate(questions[category][st.session_state.language]):
-                    with st.container():
-                        is_unanswered = st.session_state.responses[category][idx] is None
-                        st.markdown(
-                            f"""
-                            <div class="question-container">
-                                <label class="question-text" for="{category}_{idx}">
-                                    {sanitize_input(q)} {'<span class="required" aria-label="Required">*</span>' if is_unanswered else ''}
-                                </label>
-                                <div class="tooltip">
-                                    <span class="tooltip-icon">?</span>
-                                    <span class="tooltip-text">{response_options[q_type][st.session_state.language]['tooltip']}</span>
+            for idx, display_category in enumerate(display_categories):
+                category = category_mapping[st.session_state.language][display_category]
+                category_id = f"category_{idx}"
+                with st.container():
+                    st.markdown(f'<div id="{category_id}" class="card-modern" role="region" aria-label="Category {display_category} Questions">', unsafe_allow_html=True)
+                    st.markdown(f'<h2 class="section-title">{display_category}</h2>', unsafe_allow_html=True)
+                    expander_key = f"expander_{category}"
+                    if expander_key not in st.session_state.expander_state:
+                        st.session_state.expander_state[expander_key] = True
+                    with st.expander("Instrucciones / Instructions", expanded=st.session_state.expander_state[expander_key]):
+                        st.markdown(f'<div class="response-guide">{TRANSLATIONS[st.session_state.language]["response_guide"]}</div>', unsafe_allow_html=True)
+                        st.session_state.expander_state[expander_key] = st.session_state.get(f"st_expander_{expander_key}", True)
+                    for q_idx, (q, q_type, _) in enumerate(questions[category][st.session_state.language]):
+                        with st.container():
+                            is_unanswered = st.session_state.responses[category][q_idx] is None
+                            st.markdown(
+                                f"""
+                                <div class="question-container">
+                                    <label class="question-text" for="{category}_{q_idx}">
+                                        {sanitize_input(q)} {'<span class="required" aria-label="Required">*</span>' if is_unanswered else ''}
+                                    </label>
+                                    <div class="tooltip">
+                                        <span class="tooltip-icon">?</span>
+                                        <span class="tooltip-text">{response_options[q_type][st.session_state.language]['tooltip']}</span>
+                                    </div>
                                 </div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
+                                """,
+                                unsafe_allow_html=True
+                            )
+                            descriptions = response_options[q_type][st.session_state.language]["descriptions"]
+                            scores = response_options[q_type][st.session_state.language]["scores"]
+                            radio_key = f"{category}_{q_idx}_{st.session_state.report_id}"
+                            selected_description = st.radio(
+                                "",
+                                descriptions,
+                                key=radio_key,
+                                horizontal=False,
+                                help=response_options[q_type][st.session_state.language]['tooltip'],
+                                label_visibility="hidden"
+                            )
+                            score_idx = descriptions.index(selected_description)
+                            st.session_state.responses[category][q_idx] = scores[score_idx]
+                    if all(score is not None for score in st.session_state.responses[category]):
+                        st.success(
+                            TRANSLATIONS[st.session_state.language]["category_completed"].format(
+                                display_category, completed_questions, TOTAL_QUESTIONS
+                            ),
+                            icon="🎉"
                         )
-                        descriptions = response_options[q_type][st.session_state.language]["descriptions"]
-                        scores = response_options[q_type][st.session_state.language]["scores"]
-                        # Use unique key for each radio button
-                        radio_key = f"{category}_{idx}_{st.session_state.report_id}"
-                        selected_description = st.radio(
-                            "",
-                            descriptions,
-                            key=radio_key,
-                            horizontal=False,
-                            help=response_options[q_type][st.session_state.language]['tooltip'],
-                            label_visibility="hidden"
-                        )
-                        score_idx = descriptions.index(selected_description)
-                        st.session_state.responses[category][idx] = scores[score_idx]
-                st.markdown('</div>', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
 
-                if all(score is not None for score in st.session_state.responses[category]):
-                    st.success(
-                        TRANSLATIONS[st.session_state.language]["category_completed"].format(
-                            display_category, completed_questions, TOTAL_QUESTIONS
-                        ),
-                        icon="🎉"
-                    )
-
+            # View Results button
             with st.container():
-                st.markdown('<nav class="sticky-nav" role="navigation" aria-label="Category Navigation">', unsafe_allow_html=True)
-                col1, col2 = st.columns([1, 1], gap="small")
-                with col1:
-                    if st.button(
-                        "⬅ Anterior" if st.session_state.language == "Español" else "⬅ Previous",
-                        disabled=category_index == 0,
-                        use_container_width=True,
-                        key="prev_category",
-                        type="secondary"
-                    ):
-                        st.session_state.current_category = max(category_index - 1, 0)
-                        st.session_state.show_results = False
-                with col2:
-                    if category_index < len(display_categories) - 1:
-                        if st.button(
-                            "Siguiente ➡" if st.session_state.language == "Español" else "Next ➡",
-                            disabled=category_index == len(display_categories) - 1,
-                            use_container_width=True,
-                            key="next_category",
-                            type="primary"
-                        ):
-                            if all(score is not None for score in st.session_state.responses[category]):
-                                st.session_state.current_category = min(category_index + 1, len(display_categories) - 1)
-                                st.session_state.show_results = False
-                            else:
-                                st.error(
-                                    TRANSLATIONS[st.session_state.language]["unanswered_error"].format(
-                                        len([s for s in st.session_state.responses[category] if s is None])
-                                    ),
-                                    icon="⚠️"
-                                )
+                st.markdown('<nav class="sticky-nav" role="navigation" aria-label="Results Navigation">', unsafe_allow_html=True)
+                if st.button(
+                    "Ver Resultados" if st.session_state.language == "Español" else "View Results",
+                    use_container_width=True,
+                    key="view_results",
+                    disabled=not audit_complete,
+                    type="primary"
+                ):
+                    if audit_complete:
+                        st.session_state.show_results = True
                     else:
-                        if st.button(
-                            "Ver Resultados" if st.session_state.language == "Español" else "View Results",
-                            use_container_width=True,
-                            key="view_results",
-                            disabled=not audit_complete,
-                            type="primary"
-                        ):
-                            if audit_complete:
-                                st.session_state.show_results = True
-                            else:
-                                st.error(
-                                    TRANSLATIONS[st.session_state.language]["unanswered_error"].format(
-                                        len(unanswered_questions)
-                                    ),
-                                    icon="⚠️"
-                                )
+                        st.error(
+                            TRANSLATIONS[st.session_state.language]["unanswered_error"].format(
+                                len(unanswered_questions)
+                            ),
+                            icon="⚠️"
+                        )
                 st.markdown('</nav>', unsafe_allow_html=True)
 
         # Results section
@@ -943,7 +887,6 @@ with st.container():
 
             # Download Excel report
             def generate_excel_report() -> io.BytesIO:
-                """Generate comprehensive Excel report with summary, results, findings, actionable charts, and contact info."""
                 excel_output = io.BytesIO()
                 with pd.ExcelWriter(excel_output, engine='xlsxwriter') as writer:
                     workbook = writer.book
