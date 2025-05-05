@@ -73,7 +73,9 @@ TRANSLATIONS = {
         "suggestion": "Sugerencia",
         "actionable_charts": "Gráficos Accionables",
         "marketing_message": "¡Transforme su lugar de trabajo con LEAN 2.0 Institute! Colaboramos con usted para implementar soluciones sostenibles que aborden los hallazgos de esta auditoría, promoviendo un entorno laboral ético, inclusivo y productivo. Contáctenos para comenzar hoy mismo.",
-        "submit_answers": "Enviar Respuestas"
+        "submit_answers": "Enviar Respuestas",
+        "reference_lines": "**Líneas de Referencia:** Discontinua = 50%, Punteada = 70%, Discontinua-Punteada = 85%",
+        "show_low_scores": "Mostrar solo preguntas que necesitan mejora (<70%)"
     },
     "English": {
         "title": "Ethical Lean Workplace Audit",
@@ -125,7 +127,9 @@ TRANSLATIONS = {
         "suggestion": "Suggestion",
         "actionable_charts": "Actionable Charts",
         "marketing_message": "Transform your workplace with LEAN 2.0 Institute! We partner with you to implement sustainable solutions that address the findings of this audit, fostering an ethical, inclusive, and productive work environment. Contact us to start today.",
-        "submit_answers": "Submit Answers"
+        "submit_answers": "Submit Answers",
+        "reference_lines": "**Reference Lines:** Dashed = 50%, Dotted = 70%, Dash-Dot = 85%",
+        "show_low_scores": "Show only questions needing improvement (<70%)"
     }
 }
 
@@ -712,9 +716,10 @@ with st.container():
                 use_container_width=True
             )
 
-            # Bar chart
+            # Bar chart with improvements
             df_display = df.copy()
             df_display.index = [next(k for k, v in category_mapping[st.session_state.language].items() if v == idx) for idx in df.index]
+            df_display = df_display.sort_values(by=TRANSLATIONS[st.session_state.language]["percent"], ascending=True)  # Sort by score ascending
             fig = px.bar(
                 df_display.reset_index(),
                 y="index",
@@ -737,9 +742,14 @@ with st.container():
                 yaxis_title=TRANSLATIONS[st.session_state.language]["category"],
                 coloraxis_showscale=False
             )
+            # Add reference lines
+            fig.add_vline(x=50, line_dash="dash", line_color="black")
+            fig.add_vline(x=70, line_dash="dot", line_color="black")
+            fig.add_vline(x=85, line_dash="dashdot", line_color="black")
             st.plotly_chart(fig, use_container_width=True)
+            st.markdown(TRANSLATIONS[st.session_state.language]["reference_lines"], unsafe_allow_html=True)
 
-            # Question-level breakdown
+            # Question-level breakdown with improvements
             with st.expander(TRANSLATIONS[st.session_state.language]["question_breakdown"]):
                 selected_display_category = st.selectbox(
                     TRANSLATIONS[st.session_state.language]["select_category"],
@@ -751,16 +761,23 @@ with st.container():
                     TRANSLATIONS[st.session_state.language]["question"]: [q for q, _, _ in questions[selected_category][st.session_state.language]],
                     TRANSLATIONS[st.session_state.language]["score"]: st.session_state.responses[selected_category]
                 })
+                show_low_scores = st.checkbox(TRANSLATIONS[st.session_state.language]["show_low_scores"], key="show_low_scores")
+                if show_low_scores:
+                    filtered_scores = question_scores[question_scores[TRANSLATIONS[st.session_state.language]["score"]] < 70]
+                    title_suffix = " (Below 70%)"
+                else:
+                    filtered_scores = question_scores
+                    title_suffix = ""
                 fig_questions = px.bar(
-                    question_scores,
+                    filtered_scores,
                     x=TRANSLATIONS[st.session_state.language]["score"],
                     y=TRANSLATIONS[st.session_state.language]["question"],
                     orientation='h',
-                    title=f"{TRANSLATIONS[st.session_state.language]['question_scores_for']} {selected_display_category}",
+                    title=f"{TRANSLATIONS[st.session_state.language]['question_scores_for']} {selected_display_category}{title_suffix}",
                     color=TRANSLATIONS[st.session_state.language]["score"],
                     color_continuous_scale=CHART_COLORS,
                     range_x=[0, 100],
-                    height=300 + len(question_scores) * 50
+                    height=300 + len(filtered_scores) * 50
                 )
                 fig_questions.update_layout(
                     showlegend=False,
@@ -769,6 +786,10 @@ with st.container():
                     yaxis_title=TRANSLATIONS[st.session_state.language]["question"],
                     coloraxis_showscale=False
                 )
+                # Add reference lines
+                fig_questions.add_vline(x=50, line_dash="dash", line_color="black")
+                fig_questions.add_vline(x=70, line_dash="dot", line_color="black")
+                fig_questions.add_vline(x=85, line_dash="dashdot", line_color="black")
                 st.plotly_chart(fig_questions, use_container_width=True)
 
             # Actionable insights
