@@ -71,7 +71,7 @@ TRANSLATIONS = {
         "grade_needs_improvement_desc": "Se identificaron debilidades moderadas. Prioriza acciones correctivas en áreas críticas.",
         "grade_critical_desc": "Existen problemas significativos que requieren intervención urgente. Considera apoyo externo.",
         "suggestion": "Sugerencia",
-        "actionable_charts": "Gráficos Accionables",
+        "actionable_charts": "Accionables Gráficos",
         "marketing_message": "¡Transforme su lugar de trabajo con LEAN 2.0 Institute! Colaboramos con usted para implementar soluciones sostenibles que aborden los hallazgos de esta auditoría, promoviendo un entorno laboral ético, inclusivo y productivo. Contáctenos para comenzar hoy mismo.",
         "submit_answers": "Enviar Respuestas",
         "reference_lines": "**Líneas de Referencia:** Discontinua = 50%, Punteada = 70%, Discontinua-Punteada = 85%",
@@ -792,7 +792,7 @@ with st.container():
                 fig_questions.add_vline(x=85, line_dash="dashdot", line_color="black")
                 st.plotly_chart(fig_questions, use_container_width=True)
 
-            # Actionable insights
+            # Action Discussion
             with st.expander(TRANSLATIONS[st.session_state.language]["actionable_insights"]):
                 insights = []
                 for cat in questions.keys():
@@ -842,6 +842,12 @@ with st.container():
                     worksheet_summary = writer.sheets[TRANSLATIONS[st.session_state.language]["summary"]]
                     worksheet_summary.write('A1', TRANSLATIONS[st.session_state.language]["report_title"], bold)
                     worksheet_summary.write('A2', f"Date: {REPORT_DATE}", bold)
+                    # Add contact information
+                    worksheet_summary.write('A5', TRANSLATIONS[st.session_state.language]["contact"], bold)
+                    worksheet_summary.write('A6', "Email:", bold)
+                    worksheet_summary.write('B6', CONFIG["contact"]["email"], wrap_format)
+                    worksheet_summary.write('A7', "Website:", bold)
+                    worksheet_summary.write('B7', CONFIG["contact"]["website"], wrap_format)
                     worksheet_summary.set_column('A:A', 20)
                     worksheet_summary.set_column('B:B', 15)
                     worksheet_summary.set_column('C:C', 80, wrap_format)
