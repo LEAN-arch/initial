@@ -25,7 +25,7 @@ REPORT_DATE = datetime.now().strftime("%Y-%m-%d")
 TRANSLATIONS = {
     "Español": {
         "title": "Auditoría Ética de Lugar de Trabajo Lean",
-        "header": "¡Evalúa y Mejora tu Lugar de Trabajo!",
+        "header": "¡Diagnostica y Optimiza tu Entorno Laboral!",
         "score": "Puntuación",
         "percent": "Porcentaje",
         "priority": "Prioridad",
