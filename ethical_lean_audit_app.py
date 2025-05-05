@@ -76,7 +76,7 @@ TRANSLATIONS = {
         "submit_answers": "Enviar Respuestas",
         "reference_lines": "**Líneas de Referencia:** Discontinua = 50%, Punteada = 70%, Discontinua-Punteada = 85%",
         "show_low_scores": "Mostrar solo preguntas que necesitan mejora (<70%)",
-        "actionable": "Accionable"  # Added for worksheet name
+        "actionable": "Accionable"
     },
     "English": {
         "title": "Ethical Lean Workplace Audit",
@@ -131,9 +131,16 @@ TRANSLATIONS = {
         "submit_answers": "Submit Answers",
         "reference_lines": "**Reference Lines:** Dashed = 50%, Dotted = 70%, Dash-Dot = 85%",
         "show_low_scores": "Show only questions needing improvement (<70%)",
-        "actionable": "Actionable"  # Added for worksheet name
+        "actionable": "Actionable"
     }
 }
+
+# Set page configuration at the top
+st.set_page_config(
+    page_title=TRANSLATIONS["Español"]["title"],
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # Cache static data
 @st.cache_data
@@ -386,15 +393,8 @@ def initialize_session_state():
                     current[:expected_len] + [None] * (expected_len - len(current))
                 ) if len(current) < expected_len else current[:expected_len]
 
-# Call initialize_session_state immediately
+# Call initialize_session_state
 initialize_session_state()
-
-# Set page configuration
-st.set_page_config(
-    page_title=TRANSLATIONS["Español"]["title"],
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Load CSS
 def load_css():
@@ -422,7 +422,7 @@ def load_css():
         .badge { background: #1E88E5; color: #FFFFFF; padding: 0.5rem 1rem; border-radius: 16px; display: inline-block; margin: 1rem 0; }
         .contact-info { margin-top: 1rem; font-size: 0.9rem; color: #424242; }
         @media (max-width: 768px) { 
-            .main-title { font-size: 2rem Ophthalmic } 
+            .main-title { font-size: 2rem; } 
             .section-title { font-size: 1.5rem; } 
             .card-modern { padding: 1rem; } 
         }
@@ -681,7 +681,7 @@ with st.container():
             df[TRANSLATIONS[st.session_state.language]["percent"]] = df[TRANSLATIONS[st.session_state.language]["score"]]
             df[TRANSLATIONS[st.session_state.language]["priority"]] = df[TRANSLATIONS[st.session_state.language]["percent"]].apply(
                 lambda x: TRANSLATIONS[st.session_state.language]["high_priority"] if x < SCORE_THRESHOLDS["CRITICAL"] else 
-                          TRANSLATIONS[st.session_state.language]["medium_priority"] if x < SCORE_THRESHOLDS["NEEDS_IMPRO改善"] else 
+                          TRANSLATIONS[st.session_state.language]["medium_priority"] if x < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] else 
                           TRANSLATIONS[st.session_state.language]["low_priority"]
             )
 
