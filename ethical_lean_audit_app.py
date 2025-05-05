@@ -414,6 +414,7 @@ def load_css():
         .alert-success { background: #E8F5E9; color: #43A047; }
         .alert-warning { background: #FFF3E0; color: #FF9800; }
         .badge { background: #1E88E5; color: #FFFFFF; padding: 0.5rem 1rem; border-radius: 16px; display: inline-block; margin: 1rem 0; }
+        .contact-info { margin-top: 1rem; font-size: 0.9rem; color: #424242; }
         @media (max-width: 768px) { 
             .main-title { font-size: 2rem; } 
             .section-title { font-size: 1.5rem; } 
@@ -506,6 +507,11 @@ def reset_audit():
 with st.sidebar:
     st.markdown('<section class="sidebar-container" role="navigation" aria-label="Audit Navigation">', unsafe_allow_html=True)
     st.image("assets/FOBO2.png", width=250, caption="LEAN 2.0 Institute")
+    # Contact Information
+    email_link = f'<a href="mailto:{CONFIG["contact"]["email"]}">{CONFIG["contact"]["email"]}</a>'
+    website_link = f'<a href="{CONFIG["contact"]["website"]}">{CONFIG["contact"]["website"]}</a>'
+    contact_text = TRANSLATIONS[st.session_state.language]["contact_info"].format(email_link, website_link)
+    st.markdown(f'<div class="contact-info">{contact_text}</div>', unsafe_allow_html=True)
     st.selectbox(
         "Idioma / Language",
         ["Español", "English"],
