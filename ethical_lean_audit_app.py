@@ -958,7 +958,7 @@ with st.container():
                     worksheet_contact.set_column('B:B', 50)
                     for col_num, value in enumerate(contact_df.columns.values):
                         worksheet_contact.write(2, col_num, value, header_format)
-                    worksheet_contact.write('A6', "Collaborate with Us", bold)
+                    worksheet_contact.write('A6', "¡Trabajemos juntos!|Let's work together!", bold)
                     worksheet_contact.write('A7', TRANSLATIONS[st.session_state.language]["marketing_message"], wrap_format)
 
                 excel_output.seek(0)
