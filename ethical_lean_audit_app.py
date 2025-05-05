@@ -71,11 +71,12 @@ TRANSLATIONS = {
         "grade_needs_improvement_desc": "Se identificaron debilidades moderadas. Prioriza acciones correctivas en áreas críticas.",
         "grade_critical_desc": "Existen problemas significativos que requieren intervención urgente. Considera apoyo externo.",
         "suggestion": "Sugerencia",
-        "actionable_charts": "Accionables Gráficos",
+        "actionable_charts": "Gráficos Accionables",
         "marketing_message": "¡Transforme su lugar de trabajo con LEAN 2.0 Institute! Colaboramos con usted para implementar soluciones sostenibles que aborden los hallazgos de esta auditoría, promoviendo un entorno laboral ético, inclusivo y productivo. Contáctenos para comenzar hoy mismo.",
         "submit_answers": "Enviar Respuestas",
         "reference_lines": "**Líneas de Referencia:** Discontinua = 50%, Punteada = 70%, Discontinua-Punteada = 85%",
-        "show_low_scores": "Mostrar solo preguntas que necesitan mejora (<70%)"
+        "show_low_scores": "Mostrar solo preguntas que necesitan mejora (<70%)",
+        "actionable": "Accionable"  # Added for worksheet name
     },
     "English": {
         "title": "Ethical Lean Workplace Audit",
@@ -129,7 +130,8 @@ TRANSLATIONS = {
         "marketing_message": "Transform your workplace with LEAN 2.0 Institute! We partner with you to implement sustainable solutions that address the findings of this audit, fostering an ethical, inclusive, and productive work environment. Contact us to start today.",
         "submit_answers": "Submit Answers",
         "reference_lines": "**Reference Lines:** Dashed = 50%, Dotted = 70%, Dash-Dot = 85%",
-        "show_low_scores": "Show only questions needing improvement (<70%)"
+        "show_low_scores": "Show only questions needing improvement (<70%)",
+        "actionable": "Actionable"  # Added for worksheet name
     }
 }
 
@@ -420,7 +422,7 @@ def load_css():
         .badge { background: #1E88E5; color: #FFFFFF; padding: 0.5rem 1rem; border-radius: 16px; display: inline-block; margin: 1rem 0; }
         .contact-info { margin-top: 1rem; font-size: 0.9rem; color: #424242; }
         @media (max-width: 768px) { 
-            .main-title { font-size: 2rem; } 
+            .main-title { font-size: 2rem Ophthalmic } 
             .section-title { font-size: 1.5rem; } 
             .card-modern { padding: 1rem; } 
         }
@@ -679,7 +681,7 @@ with st.container():
             df[TRANSLATIONS[st.session_state.language]["percent"]] = df[TRANSLATIONS[st.session_state.language]["score"]]
             df[TRANSLATIONS[st.session_state.language]["priority"]] = df[TRANSLATIONS[st.session_state.language]["percent"]].apply(
                 lambda x: TRANSLATIONS[st.session_state.language]["high_priority"] if x < SCORE_THRESHOLDS["CRITICAL"] else 
-                          TRANSLATIONS[st.session_state.language]["medium_priority"] if x < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"] else 
+                          TRANSLATIONS[st.session_state.language]["medium_priority"] if x < SCORE_THRESHOLDS["NEEDS_IMPRO改善"] else 
                           TRANSLATIONS[st.session_state.language]["low_priority"]
             )
 
@@ -792,7 +794,7 @@ with st.container():
                 fig_questions.add_vline(x=85, line_dash="dashdot", line_color="black")
                 st.plotly_chart(fig_questions, use_container_width=True)
 
-            # Action Discussion
+            # Actionable insights
             with st.expander(TRANSLATIONS[st.session_state.language]["actionable_insights"]):
                 insights = []
                 for cat in questions.keys():
@@ -821,7 +823,19 @@ with st.container():
                     border_format = workbook.add_format({'border': 1})
                     header_format = workbook.add_format({'bold': True, 'bg_color': '#1E88E5', 'color': 'white', 'border': 1})
 
-                    # Summary Sheet
+                    # Single Actionable Worksheet
+                    worksheet = workbook.add_worksheet(TRANSLATIONS[st.session_state.language]["actionable"])
+                    row = 0
+
+                    # Report Title and Date
+                    worksheet.write(row, 0, TRANSLATIONS[st.session_state.language]["report_title"], bold)
+                    row += 1
+                    worksheet.write(row, 0, f"Date: {REPORT_DATE}", bold)
+                    row += 2
+
+                    # Summary Section
+                    worksheet.write(row, 0, TRANSLATIONS[st.session_state.language]["summary"], bold)
+                    row += 1
                     critical_count = len(df[df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["CRITICAL"]])
                     improvement_count = len(df[(df[TRANSLATIONS[st.session_state.language]["percent"]] >= SCORE_THRESHOLDS["CRITICAL"]) & (df[TRANSLATIONS[st.session_state.language]["percent"]] < SCORE_THRESHOLDS["NEEDS_IMPROVEMENT"])])
                     summary_df = pd.DataFrame({
@@ -838,35 +852,39 @@ with st.container():
                             )
                         ]
                     })
-                    summary_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["summary"], index=False, startrow=2)
-                    worksheet_summary = writer.sheets[TRANSLATIONS[st.session_state.language]["summary"]]
-                    worksheet_summary.write('A1', TRANSLATIONS[st.session_state.language]["report_title"], bold)
-                    worksheet_summary.write('A2', f"Date: {REPORT_DATE}", bold)
-                    # Add contact information
-                    worksheet_summary.write('A5', TRANSLATIONS[st.session_state.language]["contact"], bold)
-                    worksheet_summary.write('A6', "Email:", bold)
-                    worksheet_summary.write('B6', CONFIG["contact"]["email"], wrap_format)
-                    worksheet_summary.write('A7', "Website:", bold)
-                    worksheet_summary.write('B7', CONFIG["contact"]["website"], wrap_format)
-                    worksheet_summary.set_column('A:A', 20)
-                    worksheet_summary.set_column('B:B', 15)
-                    worksheet_summary.set_column('C:C', 80, wrap_format)
+                    summary_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable"], index=False, startrow=row)
                     for col_num, value in enumerate(summary_df.columns.values):
-                        worksheet_summary.write(2, col_num, value, header_format)
+                        worksheet.write(row, col_num, value, header_format)
+                    row += len(summary_df) + 2
 
-                    # Results Sheet
-                    df_display.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["results"], float_format="%.1f", startrow=2)
-                    worksheet_results = writer.sheets[TRANSLATIONS[st.session_state.language]["results"]]
-                    worksheet_results.write('A1', TRANSLATIONS[st.session_state.language]["results"], bold)
-                    worksheet_results.write('A2', f"Date: {REPORT_DATE}", bold)
-                    worksheet_results.set_column('A:A', 30)
-                    worksheet_results.set_column('B:C', 15)
-                    worksheet_results.set_column('D:D', 20)
+                    # Contact Section
+                    worksheet.write(row, 0, TRANSLATIONS[st.session_state.language]["contact"], bold)
+                    row += 1
+                    contact_df = pd.DataFrame({
+                        "Contact Method": ["Email", "Website"],
+                        "Details": [CONFIG["contact"]["email"], CONFIG["contact"]["website"]]
+                    })
+                    contact_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable"], index=False, startrow=row)
+                    for col_num, value in enumerate(contact_df.columns.values):
+                        worksheet.write(row, col_num, value, header_format)
+                    row += len(contact_df) + 1
+                    worksheet.write(row, 0, "¡Trabajemos juntos!|Let's work together!", bold)
+                    row += 1
+                    worksheet.write(row, 0, TRANSLATIONS[st.session_state.language]["marketing_message"], wrap_format)
+                    row += 2
+
+                    # Results Section
+                    worksheet.write(row, 0, TRANSLATIONS[st.session_state.language]["results"], bold)
+                    row += 1
+                    df_display.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable"], float_format="%.1f", startrow=row+1)
                     for col_num, value in enumerate(df_display.columns.values):
-                        worksheet_results.write(2, col_num + 1, value, header_format)
-                    worksheet_results.write(2, 0, TRANSLATIONS[st.session_state.language]["category"], header_format)
+                        worksheet.write(row+1, col_num + 1, value, header_format)
+                    worksheet.write(row+1, 0, TRANSLATIONS[st.session_state.language]["category"], header_format)
+                    row += len(df_display) + 3
 
-                    # Findings Sheet
+                    # Findings Section
+                    worksheet.write(row, 0, TRANSLATIONS[st.session_state.language]["findings"], bold)
+                    row += 1
                     findings_data = []
                     for cat in questions.keys():
                         display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
@@ -894,17 +912,14 @@ with st.container():
                             TRANSLATIONS[st.session_state.language]["findings_and_suggestions"]
                         ]
                     )
-                    findings_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["findings"], index=False, startrow=2)
-                    worksheet_findings = writer.sheets[TRANSLATIONS[st.session_state.language]["findings"]]
-                    worksheet_findings.write('A1', TRANSLATIONS[st.session_state.language]["findings"], bold)
-                    worksheet_findings.write('A2', f"Date: {REPORT_DATE}", bold)
-                    worksheet_findings.set_column('A:A', 30)
-                    worksheet_findings.set_column('B:C', 15)
-                    worksheet_findings.set_column('D:D', 80, wrap_format)
+                    findings_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable"], index=False, startrow=row)
                     for col_num, value in enumerate(findings_df.columns.values):
-                        worksheet_findings.write(2, col_num, value, header_format)
+                        worksheet.write(row, col_num, value, header_format)
+                    row += len(findings_df) + 2
 
-                    # Actionable Insights Sheet
+                    # Actionable Insights Section
+                    worksheet.write(row, 0, TRANSLATIONS[st.session_state.language]["actionable_insights"], bold)
+                    row += 1
                     insights_data = []
                     for cat in questions.keys():
                         display_cat = next(k for k, v in category_mapping[st.session_state.language].items() if v == cat)
@@ -919,53 +934,36 @@ with st.container():
                             TRANSLATIONS[st.session_state.language]["actionable_insights"]
                         ]
                     )
-                    insights_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_insights"], index=False, startrow=2)
-                    worksheet_insights = writer.sheets[TRANSLATIONS[st.session_state.language]["actionable_insights"]]
-                    worksheet_insights.write('A1', TRANSLATIONS[st.session_state.language]["actionable_insights"], bold)
-                    worksheet_insights.write('A2', f"Date: {REPORT_DATE}", bold)
-                    worksheet_insights.set_column('A:A', 30)
-                    worksheet_insights.set_column('B:B', 15)
-                    worksheet_insights.set_column('C:C', 50, wrap_format)
+                    insights_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable"], index=False, startrow=row)
                     for col_num, value in enumerate(insights_df.columns.values):
-                        worksheet_insights.write(2, col_num, value, header_format)
+                        worksheet.write(row, col_num, value, header_format)
+                    row += len(insights_df) + 2
 
-                    # Actionable Charts Sheet
-                    worksheet_charts = workbook.add_worksheet(TRANSLATIONS[st.session_state.language]["actionable_charts"])
-                    worksheet_charts.write('A1', TRANSLATIONS[st.session_state.language]["actionable_charts"], bold)
-                    worksheet_charts.write('A2', f"Date: {REPORT_DATE}", bold)
+                    # Actionable Charts Section
+                    worksheet.write(row, 0, TRANSLATIONS[st.session_state.language]["actionable_charts"], bold)
+                    row += 1
                     chart_data = df_display[[TRANSLATIONS[st.session_state.language]["percent"]]].reset_index()
-                    chart_data.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable_charts"], startrow=4, index=False)
-                    worksheet_charts.set_column('A:A', 30)
-                    worksheet_charts.set_column('B:B', 15)
-                    worksheet_charts.write('A4', TRANSLATIONS[st.session_state.language]["category"], header_format)
-                    worksheet_charts.write('B4', TRANSLATIONS[st.session_state.language]["score_percent"], header_format)
+                    chart_data.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["actionable"], startrow=row, index=False)
+                    worksheet.write(row, 0, TRANSLATIONS[st.session_state.language]["category"], header_format)
+                    worksheet.write(row, 1, TRANSLATIONS[st.session_state.language]["score_percent"], header_format)
                     bar_chart = workbook.add_chart({'type': 'bar'})
                     bar_chart.add_series({
                         'name': TRANSLATIONS[st.session_state.language]["score_percent"],
-                        'categories': f"='{TRANSLATIONS[st.session_state.language]['actionable_charts']}'!$A$5:$A${4 + len(chart_data)}",
-                        'values': f"='{TRANSLATIONS[st.session_state.language]['actionable_charts']}'!$B$5:$B${4 + len(chart_data)}",
+                        'categories': f"='{TRANSLATIONS[st.session_state.language]['actionable']}'!$A${row+1}:$A${row+len(chart_data)}",
+                        'values': f"='{TRANSLATIONS[st.session_state.language]['actionable']}'!$B${row+1}:$B${row+len(chart_data)}",
                         'fill': {'color': '#1E88E5'}
                     })
                     bar_chart.set_title({'name': TRANSLATIONS[st.session_state.language]["chart_title"]})
                     bar_chart.set_x_axis({'name': TRANSLATIONS[st.session_state.language]["score_percent"], 'min': 0, 'max': 100})
                     bar_chart.set_y_axis({'name': TRANSLATIONS[st.session_state.language]["category"]})
-                    worksheet_charts.insert_chart('D5', bar_chart)
+                    worksheet.insert_chart(f'D{row+1}', bar_chart)
+                    row += len(chart_data) + 2
 
-                    # Contact Sheet
-                    contact_df = pd.DataFrame({
-                        "Contact Method": ["Email", "Website"],
-                        "Details": [CONFIG["contact"]["email"], CONFIG["contact"]["website"]]
-                    })
-                    contact_df.to_excel(writer, sheet_name=TRANSLATIONS[st.session_state.language]["contact"], index=False, startrow=2)
-                    worksheet_contact = writer.sheets[TRANSLATIONS[st.session_state.language]["contact"]]
-                    worksheet_contact.write('A1', TRANSLATIONS[st.session_state.language]["contact"], bold)
-                    worksheet_contact.write('A2', f"Date: {REPORT_DATE}", bold)
-                    worksheet_contact.set_column('A:A', 20)
-                    worksheet_contact.set_column('B:B', 50)
-                    for col_num, value in enumerate(contact_df.columns.values):
-                        worksheet_contact.write(2, col_num, value, header_format)
-                    worksheet_contact.write('A6', "¡Trabajemos juntos!|Let's work together!", bold)
-                    worksheet_contact.write('A7', TRANSLATIONS[st.session_state.language]["marketing_message"], wrap_format)
+                    # Set column widths
+                    worksheet.set_column('A:A', 30)
+                    worksheet.set_column('B:B', 15)
+                    worksheet.set_column('C:C', 20)
+                    worksheet.set_column('D:D', 80, wrap_format)
 
                 excel_output.seek(0)
                 return excel_output
